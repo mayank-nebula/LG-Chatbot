@@ -1,0 +1,4 @@
+requests==2.31.0
+openai==1.13.3
+flask==3.0.2
+packaging==23.2
