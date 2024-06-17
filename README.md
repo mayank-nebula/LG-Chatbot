@@ -1,11 +1,12 @@
-file_handler = logging.handlers.RotatingFileHandler('pipeline.log', maxBytes=10**7, backupCount=5)
-console_handler = logging.StreamHandler()
+[Unit]
+Description=Flask App for Pipeline Management
+After=network.target
 
-# Set log format
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-console_handler.setFormatter(formatter)
+[Service]
+User=your_user
+WorkingDirectory=/path/to/your/app
+ExecStart=/bin/bash -c "source /path/to/conda/bin/activate your_env_name && exec python /path/to/your/app/app.py"
+Restart=always
 
-# Add handlers to the logger
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
+[Install]
+WantedBy=multi-user.target
