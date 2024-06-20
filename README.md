@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 PIPELINE_LOG = 'pipeline.log'
 PIPELINE_SCRIPT = 'pipeline.py'
-CONDA_ENV_NAME = '/home/Mayank.Sharma/anaconda3/envs/GV_Test'
+CONDA_ENV_NAME = 'GV_Test'
 CONDA_BIN_PATH = '/home/Mayank.Sharma/anaconda3/bin/activate'
 
 @app.route('/flask_pipeline')
@@ -33,7 +33,7 @@ def index():
                     .then(data => {
                         document.getElementById('logs').innerText = data;
                     });
-            }, 5050);
+            }, 5000);
         </script>
     ''', status=status, logs=logs)
 
@@ -41,15 +41,20 @@ def index():
 def start_pipeline():
     status, pid = check_pipeline()
     if status == 'stopped':
-        with open(PIPELINE_LOG, 'a') as f:
-            command = f". {CONDA_BIN_PATH} {CONDA_ENV_NAME} && python {PIPELINE_SCRIPT}"
-            subprocess.Popen(
-                command,
-                shell=True,
-                stdout=f,
-                stderr=f
-            )
-    return "Pipeline Started"
+        try:
+            with open(PIPELINE_LOG, 'a') as f:
+                command = f"source {CONDA_BIN_PATH} {CONDA_ENV_NAME} && python {PIPELINE_SCRIPT}"
+                subprocess.Popen(
+                    ['/bin/bash', '-c', command],
+                    stdout=f,
+                    stderr=f
+                )
+            return "Pipeline Started"
+        except Exception as e:
+            with open(PIPELINE_LOG, 'a') as f:
+                f.write(f"Error starting pipeline: {e}\n")
+            return "Error starting pipeline"
+    return "Pipeline already running"
 
 @app.route('/flask_pipeline/stop', methods=['POST'])
 def stop_pipeline():
@@ -74,8 +79,8 @@ def get_logs():
         return 'No logs available.'
 
 def check_pipeline():
-    for proc in psutil.process_iter(['pid', 'name']):
-        if proc.info['name'] == 'python' and PIPELINE_SCRIPT in proc.cmdline():
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        if proc.info['name'] == 'python' and PIPELINE_SCRIPT in proc.info['cmdline']:
             return 'running', proc.info['pid']
     return 'stopped', None
 
