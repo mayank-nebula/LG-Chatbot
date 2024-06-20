@@ -1,69 +1,83 @@
+from flask import Flask, render_template_string, request, jsonify
+import subprocess
+import psutil
 import os
 
-import subprocess
-from pdfplumber import open as open_pdf
+app = Flask(__name__)
+PIPELINE_LOG = 'pipeline.log'
+PIPELINE_SCRIPT = 'pipeline.py'
+CONDA_ENV_NAME = '/home/Mayank.Sharma/anaconda3/envs/GV_Test'
+CONDA_BIN_PATH = '/home/Mayank.Sharma/anaconda3/bin/activate'
 
-from pdf_loader_MV import pdf_ingestion_MV
-from ppt_loader_MV import ppt_ingestion_MV
-from pdf_ppt_loader import pdf_ppt_ingestion_MV
+@app.route('/flask_pipeline')
+def index():
+    status, pid = check_pipeline()
+    logs = get_logs()
+    return render_template_string('''
+        <form action="/flask_pipeline/start" method="post">
+            <button type="submit" {% if status == 'running' %} disabled {% endif %}>Start Pipeline</button>
+        </form>
+        <form action="/flask_pipeline/stop" method="post">
+            <button type="submit" {% if status == 'stopped' %} disabled {% endif %}>Stop Pipeline</button>
+        </form>
+        <form action="/flask_pipeline/restart" method="post">
+            <button type="submit">Restart Pipeline</button>
+        </form>
+        <h2>Status: {{ status }}</h2>
+        <h2>Logs:</h2>
+        <pre id="logs">{{ logs }}</pre>
+        <script>
+            setInterval(function() {
+                fetch('/flask_pipeline/logs')
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById('logs').innerText = data;
+                    });
+            }, 5050);
+        </script>
+    ''', status=status, logs=logs)
 
-def convert_doc_to_file(fpath, fname):
-    if fname.endswith(".doc"):
-        docx_fname = os.path.splitext(fname)[0] + ".docx"
-        docx_file = os.path.join(fpath,docx_fname)
-        subprocess.run(["unoconv", "-f", "docx", "-o", docx_file, os.path.join(fpath,fname)])
+@app.route('/flask_pipeline/start', methods=['POST'])
+def start_pipeline():
+    status, pid = check_pipeline()
+    if status == 'stopped':
+        with open(PIPELINE_LOG, 'a') as f:
+            command = f". {CONDA_BIN_PATH} {CONDA_ENV_NAME} && python {PIPELINE_SCRIPT}"
+            subprocess.Popen(
+                command,
+                shell=True,
+                stdout=f,
+                stderr=f
+            )
+    return "Pipeline Started"
 
-        pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-        pdf_file = os.path.join(fpath,pdf_fname)
-        subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,docx_fname)])
+@app.route('/flask_pipeline/stop', methods=['POST'])
+def stop_pipeline():
+    status, pid = check_pipeline()
+    if status == 'running':
+        os.kill(pid, 9)
+    return 'Pipeline stopped!'
 
-        os.remove(docx_file)
-        print("PDF File Created")
+@app.route('/flask_pipeline/restart', methods=['POST'])
+def restart_pipeline():
+    stop_pipeline()
+    start_pipeline()
+    return 'Pipeline restarted!'
 
-    elif fname.endswith(".docx"):
-        pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-        pdf_file = os.path.join(fpath,pdf_fname)
-        subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,fname)])
+@app.route('/flask_pipeline/logs')
+def get_logs():
+    try:
+        with open(PIPELINE_LOG, 'r') as f:
+            logs = f.read()
+        return logs
+    except FileNotFoundError:
+        return 'No logs available.'
 
-        print("PDF File Created")
+def check_pipeline():
+    for proc in psutil.process_iter(['pid', 'name']):
+        if proc.info['name'] == 'python' and PIPELINE_SCRIPT in proc.cmdline():
+            return 'running', proc.info['pid']
+    return 'stopped', None
 
-def is_pdf(fpath, fname):
-    with open_pdf(os.path.join(fpath,fname)) as pdf:
-        page_layouts = set((page.width,page.height) for page in pdf.pages)
-        if len(page_layouts) == 1:
-            width,height = next(iter(page_layouts))
-            aspect_ratio = width/height
-            if aspect_ratio > 1:
-                print('PPT converted to PDF')
-                return False
-    print('Original PDF')
-    return True
-
-
-def ingest_files(files_metadata, deliverables_list_metadata):
-    current_folder = os.getcwd()
-    parent_folder = os.path.dirname(current_folder)
-    files_to_ingest_folder = os.path.join(parent_folder, current_folder, "files_to_ingest")
-
-    for file in os.listdir(files_to_ingest_folder):
-        if file.endswith(".pdf"):
-            if is_pdf(files_to_ingest_folder,file):
-                pdf_ingestion_MV(file, files_metadata, deliverables_list_metadata)
-            else:
-                pdf_ppt_ingestion_MV(file, files_metadata, deliverables_list_metadata)
-            print(f"{file} processed successfully")
-
-        elif file.endswith((".ppt", ".pptx")):
-            ppt_ingestion_MV(file, files_metadata, deliverables_list_metadata)
-            print(f"{file} processed successfully")
-
-        elif file.endswith((".doc", ".docx")):
-            pdf_name = os.path.splitext(file)[0] + ".pdf"
-            pdf_path = os.path.join(files_to_ingest_folder, pdf_name)
-
-            convert_doc_to_file(files_to_ingest_folder,file)
-            pdf_ingestion_MV(pdf_name, files_metadata, deliverables_list_metadata)
-            print(f"{file} processed successfully")
-
-            os.remove(pdf_path)
-            print("PDF File Removed")
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5050)
