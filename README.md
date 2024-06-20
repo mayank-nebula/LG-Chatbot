@@ -1,4 +1,4 @@
-error-
+ferror-
 
 /bin/sh: 65: /home/Mayank.Sharma/anaconda3/etc/profile.d/conda.sh: dirname: not found
 /bin/sh: 65: /home/Mayank.Sharma/anaconda3/etc/profile.d/conda.sh: dirname: not found
@@ -224,3 +224,22 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<< 
+
+
+
+[Unit]
+Description=Gunicorn instance serve Flask Piepline  app
+After=network.target
+
+[Service]
+User=Mayank.Sharma
+Group=www-data
+WorkingDirectory=/home/Mayank.Sharma/GV_Test
+Environment="PATH=/home/Mayank.Sharma/anaconda3/envs/GV_Test/bin"
+ExecStart=/home/Mayank.Sharma/anaconda3/envs/GV_Test/bin/gunicorn --workers 3 --bind unix:pipeline_flask_frontend.sock -m 007 wsgi_pipeline:app
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+
