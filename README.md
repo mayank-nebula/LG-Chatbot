@@ -17,28 +17,41 @@ logging.basicConfig(
 CONVERSION_TIMEOUT = 10
 
 def convert_doc_to_file(fpath, fname):
+    """
+    Converts DOC or DOCX files to PDF format using unoconv.
+
+    Parameters:
+    - fpath (str): The directory path of the file.
+    - fname (str): The name of the file to be converted.
+
+    Returns:
+    - bool: True if the conversion was successful, False otherwise.
+    """
     try:
         if fname.endswith(".doc"):
+            # Convert .doc to .docx
             docx_fname = os.path.splitext(fname)[0] + ".docx"
-            docx_file = os.path.join(fpath,docx_fname)
-            subprocess.run(["unoconv", "-f", "docx", "-o", docx_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT)
+            docx_file = os.path.join(fpath, docx_fname)
+            subprocess.run(["unoconv", "-f", "docx", "-o", docx_file, os.path.join(fpath, fname)], timeout=CONVERSION_TIMEOUT)
 
+            # Convert .docx to .pdf
             pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-            pdf_file = os.path.join(fpath,pdf_fname)
-            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,docx_fname)], timeout=CONVERSION_TIMEOUT)
+            pdf_file = os.path.join(fpath, pdf_fname)
+            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath, docx_fname)], timeout=CONVERSION_TIMEOUT)
 
-            os.remove(docx_file)
+            os.remove(docx_file)  # Remove the intermediate .docx file
             logging.info("PDF File Created")
             return True
 
         elif fname.endswith(".docx"):
+            # Convert .docx to .pdf
             pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-            pdf_file = os.path.join(fpath,pdf_fname)
-            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT, check=True)
+            pdf_file = os.path.join(fpath, pdf_fname)
+            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath, fname)], timeout=CONVERSION_TIMEOUT, check=True)
 
             logging.info("PDF File Created")
             return True
-    
+
     except subprocess.TimeoutExpired:
         logging.error(f"Conversion of {fname} can't be done.")
     except Exception as e:
@@ -47,12 +60,22 @@ def convert_doc_to_file(fpath, fname):
     return False
 
 def is_pdf(fpath, fname):
+    """
+    Checks if a given PDF file is an original PDF or a converted PPT.
+
+    Parameters:
+    - fpath (str): The directory path of the file.
+    - fname (str): The name of the file to be checked.
+
+    Returns:
+    - bool: True if the file is an original PDF, False if it's a converted PPT.
+    """
     try:
-        with open_pdf(os.path.join(fpath,fname)) as pdf:
-            page_layouts = set((page.width,page.height) for page in pdf.pages)
+        with open_pdf(os.path.join(fpath, fname)) as pdf:
+            page_layouts = set((page.width, page.height) for page in pdf.pages)
             if len(page_layouts) == 1:
-                width,height = next(iter(page_layouts))
-                aspect_ratio = width/height
+                width, height = next(iter(page_layouts))
+                aspect_ratio = width / height
                 if aspect_ratio > 1:
                     logging.info('PPT converted to PDF')
                     return False
@@ -62,8 +85,18 @@ def is_pdf(fpath, fname):
         logging.error(f"An error occurred: {e}")
         return False
 
-
 def ingest_files(files_metadata, deliverables_list_metadata):
+    """
+    Processes and ingests various file types (PDF, PPT, DOC, DOCX) from a specific folder.
+
+    Parameters:
+    - files_metadata (dict): Metadata related to the files to be ingested.
+    - deliverables_list_metadata (dict): Metadata related to the deliverables list.
+
+    The function handles the ingestion process by checking the file type, converting
+    DOC/DOCX files to PDF, and utilizing specific ingestion functions for each file type.
+    Failed files are logged and recorded in a CSV file.
+    """
     current_folder = os.getcwd()
     parent_folder = os.path.dirname(current_folder)
     files_to_ingest_folder = os.path.join(parent_folder, current_folder, "files_to_ingest")
@@ -71,12 +104,11 @@ def ingest_files(files_metadata, deliverables_list_metadata):
     failed_files = []
 
     for file in os.listdir(files_to_ingest_folder):
-
         base_name, ext = os.path.splitext(file)
         lower_ext = ext.lower()
-        original_file_path = os.path.join(files_to_ingest_folder,file)
+        original_file_path = os.path.join(files_to_ingest_folder, file)
         lower_case_file = base_name + lower_ext
-        lower_case_path = os.path.join(files_to_ingest_folder,lower_case_file)
+        lower_case_path = os.path.join(files_to_ingest_folder, lower_case_file)
 
         file_was_renamed = False
 
@@ -88,7 +120,7 @@ def ingest_files(files_metadata, deliverables_list_metadata):
 
         try:
             if lower_case_file.endswith(".pdf"):
-                if is_pdf(files_to_ingest_folder,lower_case_file):
+                if is_pdf(files_to_ingest_folder, lower_case_file):
                     if not pdf_ingestion_MV(lower_case_file, files_metadata, deliverables_list_metadata):
                         raise Exception("PDF Ingestion Failed")
                 else:
@@ -105,7 +137,7 @@ def ingest_files(files_metadata, deliverables_list_metadata):
                 pdf_name = os.path.splitext(lower_case_file)[0] + ".pdf"
                 pdf_path = os.path.join(files_to_ingest_folder, pdf_name)
 
-                if convert_doc_to_file(files_to_ingest_folder,lower_case_file):
+                if convert_doc_to_file(files_to_ingest_folder, lower_case_file):
                     if pdf_ingestion_MV(pdf_name, files_metadata, deliverables_list_metadata):
                         logging.info(f"{lower_case_file} processed successfully")
                         if os.path.exists(pdf_path):
@@ -123,14 +155,11 @@ def ingest_files(files_metadata, deliverables_list_metadata):
         if file_was_renamed:
             os.rename(lower_case_path, original_file_path)
 
-        failed_file_path = os.path.join(parent_folder, current_folder, 'failed_files.csv')
-        with open(failed_file_path, 'a', newline='') as csvfile:
-            csv_writer = csv.writer(csvfile)
-            if os.stat(failed_file_path).st_size==0:
-                csv_writer.writerow(['Filename'])
-            for failed_file in failed_files:
-                csv_writer.writerow([failed_file])
-
-
-
-
+    # Write failed files to CSV
+    failed_file_path = os.path.join(parent_folder, current_folder, 'failed_files.csv')
+    with open(failed_file_path, 'a', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        if os.stat(failed_file_path).st_size == 0:
+            csv_writer.writerow(['Filename'])
+        for failed_file in failed_files:
+            csv_writer.writerow([failed_file])
