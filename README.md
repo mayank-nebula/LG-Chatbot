@@ -19,41 +19,68 @@ from langchain_core.runnables import RunnableParallel
 from langchain_community.vectorstores import Chroma
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 
+# Configure ChromaDB settings
 settings = Settings(anonymized_telemetry=False)
+
+# Load environment variables from a .env file
 load_dotenv()
 
+# Load configuration from a JSON file
 with open('config.json', 'r') as confile_file:
     config = json.load(confile_file)
 
+# Extract base URL and model names from the configuration
 base_url = config['ollama']['base_url']
 nomic = config['ollama']['embeddings']['nomic']
 llava_llama3 = config['ollama']['models']['llava-llama3-fp16']
 
+# Set up current working directory and initialize chat history
 current_dir = os.getcwd()
 chat_history = []
+
+# Initialize ChromaDB client
 chroma_client = chromadb.HttpClient(host="localhost", port=8000, settings=settings)
 
-embeddings = OllamaEmbeddings(base_url = base_url, model=nomic)
+# Initialize embeddings using the Ollama embeddings model
+embeddings = OllamaEmbeddings(base_url=base_url, model=nomic)
+
+# Initialize the vector store using ChromaDB and the embeddings function
 vectorstore = Chroma(
     collection_name="GV_Test_MV", client=chroma_client, embedding_function=embeddings
 )
 
+# Load document store from a pickle file
 docstore_path = os.path.join(current_dir, "docstore.pkl")
-
 with open(docstore_path, "rb") as f:
     loaded_docstore = pickle.load(f)
 
+# Initialize multi-vector retriever
 retriever = MultiVectorRetriever(
     vectorstore=vectorstore, docstore=loaded_docstore, id_key="GV_Test_MV"
 )
 
 def looks_like_base64(sb):
-    """Check if the string looks like base64"""
+    """
+    Check if the string looks like base64
+
+    Parameters:
+    - sb (str): The string to check
+
+    Returns:
+    - bool: True if the string looks like base64, False otherwise
+    """
     return re.match("^[A-Za-z0-9+/]+[=]{0,2}$", sb) is not None
 
-
 def is_image_data(b64data):
-    """Check if the base64 data is an image by looking at the start of the data"""
+    """
+    Check if the base64 data is an image by looking at the start of the data
+
+    Parameters:
+    - b64data (str): The base64 encoded data
+
+    Returns:
+    - bool: True if the data is an image, False otherwise
+    """
     image_signatures = {
         b"\xff\xd8\xff": "jpg",
         b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a": "png",
@@ -69,9 +96,17 @@ def is_image_data(b64data):
     except Exception:
         return False
 
-
 def resize_base64_image(base64_string, size=(128, 128)):
-    """Resize an image encoded as a Base64 string"""
+    """
+    Resize an image encoded as a Base64 string
+
+    Parameters:
+    - base64_string (str): The base64 encoded image data
+    - size (tuple): The desired size to resize the image to
+
+    Returns:
+    - str: The resized image data encoded as base64
+    """
     img_data = base64.b64decode(base64_string)
     img = Image.open(io.BytesIO(img_data))
     resized_img = img.resize(size, Image.LANCZOS)
@@ -79,9 +114,16 @@ def resize_base64_image(base64_string, size=(128, 128)):
     resized_img.save(buffered, format=img.format)
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-
 def split_image_text_types(docs):
-    """Split base64-encoded images, texts, and metadata"""
+    """
+    Split base64-encoded images, texts, and metadata
+
+    Parameters:
+    - docs (list): List of documents containing text or base64-encoded images
+
+    Returns:
+    - dict: Dictionary with separate lists of images and texts
+    """
     b64_images = []
     texts = []
     for doc in docs:
@@ -94,15 +136,21 @@ def split_image_text_types(docs):
             b64_images.append(doc_content)
         else:
             texts.append(doc_content)
-
     return {
         "images": b64_images,
         "texts": texts,
     }
 
-
 def img_prompt_func(data_dict):
-    """Join the context into a single string"""
+    """
+    Join the context into a single string for prompt
+
+    Parameters:
+    - data_dict (dict): Dictionary containing question and context
+
+    Returns:
+    - list: List of HumanMessage objects with formatted messages
+    """
     formatted_texts = "\n".join(data_dict["context"]["texts"])
     chats = "\n".join(
         [
@@ -110,7 +158,6 @@ def img_prompt_func(data_dict):
             for chat in data_dict["context"]["chat_history"]
         ]
     )
-
     messages = []
 
     if data_dict["context"]["images"]:
@@ -136,13 +183,19 @@ def img_prompt_func(data_dict):
         ),
     }
     messages.append(text_message)
-
     return [HumanMessage(content=messages)]
 
-
 def multi_modal_rag_chain_source(retriever):
-    """Multi-modal RAG chain"""
-    model = ChatOllama(model=llava_llama3, base_url = base_url, temperature=0.4)
+    """
+    Multi-modal RAG chain
+
+    Parameters:
+    - retriever (MultiVectorRetriever): The retriever to use
+
+    Returns:
+    - RunnableParallel: The configured multi-modal RAG chain
+    """
+    model = ChatOllama(model=llava_llama3, base_url=base_url, temperature=0.4)
 
     def combined_context(data_dict):
         context = {
@@ -170,21 +223,17 @@ def multi_modal_rag_chain_source(retriever):
 
     return chain_with_source
 
-    # chain = (
-    #     {
-    #         "context": retriever | RunnableLambda(split_image_text_types) | RunnableLambda(combined_context),
-    #         "question": RunnablePassthrough()
-    #     }
-    #     | RunnableLambda(img_prompt_func)
-    #     | model
-    #     | StrOutputParser()
-    # )
-
-    # return chain
-
-
 def process_question(question, chatHistory):
-    """Process a question and return the answer"""
+    """
+    Process a question and return the answer
+
+    Parameters:
+    - question (str): The user's question
+    - chatHistory (list): The chat history containing previous user and AI messages
+
+    Returns:
+    - str: The answer to the user's question
+    """
     global chat_history
     chat_history = chatHistory.copy()
     chain = multi_modal_rag_chain_source(retriever)
