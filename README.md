@@ -1,7 +1,7 @@
 import os
 import shutil
 import time
-
+import csv
 import logging
 import subprocess
 from pdfplumber import open as open_pdf
@@ -14,18 +14,18 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-CONVERSION_TIMEOUT = 5
+CONVERSION_TIMEOUT = 10
 
 def convert_doc_to_file(fpath, fname):
     try:
         if fname.endswith(".doc"):
             docx_fname = os.path.splitext(fname)[0] + ".docx"
             docx_file = os.path.join(fpath,docx_fname)
-            subprocess.run(["unoconv", "-f", "docx", "-o", docx_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT)
+            subprocess.run(["unoconv", "-f", "docx", "-o", docx_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT, check=True)
 
             pdf_fname = os.path.splitext(fname)[0] + ".pdf"
             pdf_file = os.path.join(fpath,pdf_fname)
-            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,docx_fname)], timeout=CONVERSION_TIMEOUT)
+            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,docx_fname)], timeout=CONVERSION_TIMEOUT, check=True)
 
             os.remove(docx_file)
             logging.info("PDF File Created")
@@ -33,7 +33,7 @@ def convert_doc_to_file(fpath, fname):
         elif fname.endswith(".docx"):
             pdf_fname = os.path.splitext(fname)[0] + ".pdf"
             pdf_file = os.path.join(fpath,pdf_fname)
-            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT)
+            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT, check=True)
 
             logging.info("PDF File Created")
     
@@ -62,6 +62,8 @@ def ingest_files(files_metadata, deliverables_list_metadata):
     current_folder = os.getcwd()
     parent_folder = os.path.dirname(current_folder)
     files_to_ingest_folder = os.path.join(parent_folder, current_folder, "files_to_ingest")
+
+    failed_files = []
 
     for file in os.listdir(files_to_ingest_folder):
 
@@ -95,19 +97,26 @@ def ingest_files(files_metadata, deliverables_list_metadata):
                 pdf_name = os.path.splitext(lower_case_file)[0] + ".pdf"
                 pdf_path = os.path.join(files_to_ingest_folder, pdf_name)
 
-                convert_doc_to_file(files_to_ingest_folder,lower_case_file)
-
-                if pdf_ingestion_MV(pdf_name, files_metadata, deliverables_list_metadata):
-                    logging.info(f"{lower_case_file} processed successfully")
-                
-                if os.path.exists(pdf_path):
-                    os.remove(pdf_path)
-                    logging.info("PDF File Removed")
+                if convert_doc_to_file(files_to_ingest_folder,lower_case_file):
+                    if pdf_ingestion_MV(pdf_name, files_metadata, deliverables_list_metadata):
+                        logging.info(f"{lower_case_file} processed successfully")
+                        if os.path.exists(pdf_path):
+                            os.remove(pdf_path)
+                            logging.info("PDF File Removed")
+                else:
+                    failed_files.append(lower_case_file)
 
         except Exception as e:
             logging.error(f"Error Processing : {e}")
 
         if file_was_renamed:
             os.rename(lower_case_path, original_file_path)
+
+        failed_file_path = os.path.join(parent_folder, current_folder, 'failed_files.csv')
+        with open(failed_file_path, 'w', newline='') as csvfile:
+            csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(['Filename'])
+            for failed_file in failed_files:
+                csv_writer.writerow([failed_file])
 
 
