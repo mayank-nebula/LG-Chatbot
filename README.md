@@ -38,21 +38,24 @@ def convert_doc_to_file(fpath, fname):
             logging.info("PDF File Created")
     
     except subprocess.TimeoutExpired:
-        logging.error(f"Conversion can't be done.")
+        logging.error(f"Conversion of {fname} can't be done.")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
 
 def is_pdf(fpath, fname):
-    with open_pdf(os.path.join(fpath,fname)) as pdf:
-        page_layouts = set((page.width,page.height) for page in pdf.pages)
-        if len(page_layouts) == 1:
-            width,height = next(iter(page_layouts))
-            aspect_ratio = width/height
-            if aspect_ratio > 1:
-                logging.info('PPT converted to PDF')
-                return False
-    logging.info('Original PDF')
-    return True
+    try:
+        with open_pdf(os.path.join(fpath,fname)) as pdf:
+            page_layouts = set((page.width,page.height) for page in pdf.pages)
+            if len(page_layouts) == 1:
+                width,height = next(iter(page_layouts))
+                aspect_ratio = width/height
+                if aspect_ratio > 1:
+                    logging.info('PPT converted to PDF')
+                    return False
+        logging.info('Original PDF')
+        return True
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
 
 
 def ingest_files(files_metadata, deliverables_list_metadata):
@@ -96,7 +99,7 @@ def ingest_files(files_metadata, deliverables_list_metadata):
 
                 if pdf_ingestion_MV(pdf_name, files_metadata, deliverables_list_metadata):
                     logging.info(f"{lower_case_file} processed successfully")
-
+                
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
                     logging.info("PDF File Removed")
