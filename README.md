@@ -30,7 +30,10 @@ TIMESTAMP_FILE = 'last_run_timestamp.json'
 
 def acquire_token_func():
     """
-    Acquire token via MSAL
+    Acquire an access token using MSAL (Microsoft Authentication Library).
+
+    Returns:
+        tuple: A tuple containing the token response and the token expiration datetime.
     """
     logging.info("Acquiring access token...")
     authority_url = f'https://login.microsoftonline.com/{tenant_id}'
@@ -48,12 +51,32 @@ def acquire_token_func():
         raise Exception("Failed to acquire token", token_response.get('error'), token_response.get('error_description'))
 
 def get_site_id(client, site_url):
+    """
+    Fetch the site ID from SharePoint using the site URL.
+
+    Args:
+        client (GraphClient): The authenticated GraphClient.
+        site_url (str): The URL of the SharePoint site.
+
+    Returns:
+        str: The site ID.
+    """
     logging.info("Fetching site ID...")
     site = client.sites.get_by_url(site_url).execute_query()
     logging.info(f"Site ID fetched: {site.id}")
     return site.id
 
 def get_all_lists(client, site_id):
+    """
+    Retrieve all lists from the SharePoint site.
+
+    Args:
+        client (GraphClient): The authenticated GraphClient.
+        site_id (str): The ID of the SharePoint site.
+
+    Returns:
+        list: A list of dictionaries containing metadata of each list.
+    """
     logging.info("Fetching all lists...")
     lists = client.sites[site_id].lists.get().execute_query()
     lists_metadata = [{'ID': list.id, 'Name': list.name, 'WebUrl': list.web_url} for list in lists]
@@ -61,6 +84,16 @@ def get_all_lists(client, site_id):
     return lists_metadata
 
 def get_all_drives(client, site_id):
+    """
+    Retrieve all document libraries (drives) from the SharePoint site.
+
+    Args:
+        client (GraphClient): The authenticated GraphClient.
+        site_id (str): The ID of the SharePoint site.
+
+    Returns:
+        list: A list of dictionaries containing metadata of each drive.
+    """
     logging.info("Fetching all document libraries...")
     drives = client.sites[site_id].drives.get().execute_query()
     drives_metadata = [{'ID': drive.id, 'Name': drive.name, 'WebUrl': drive.web_url} for drive in drives]
@@ -68,6 +101,12 @@ def get_all_drives(client, site_id):
     return drives_metadata
 
 def get_last_run_timestamp():
+    """
+    Retrieve the timestamp of the last run from a JSON file.
+
+    Returns:
+        datetime: The timestamp of the last run, or None if the file does not exist.
+    """
     if os.path.exists(TIMESTAMP_FILE):
         with open(TIMESTAMP_FILE, 'r') as file:
             return datetime.fromisoformat(json.load(file)['last_run'])
@@ -75,11 +114,24 @@ def get_last_run_timestamp():
         return None
 
 def update_last_run_timestamp():
+    """
+    Update the timestamp of the last run to the current time and save it to a JSON file.
+    """
     with open(TIMESTAMP_FILE, 'w') as file:
         json.dump({'last_run': datetime.now().isoformat()}, file)
     logging.info("Last run timestamp updated.")
 
 def load_existing_csv_data(csv_filename, colName):
+    """
+    Load existing data from a CSV file into a dictionary.
+
+    Args:
+        csv_filename (str): The name of the CSV file.
+        colName (str): The column name to use as the dictionary key.
+
+    Returns:
+        dict: A dictionary with the specified column as keys and rows as values.
+    """
     if not os.path.isfile(csv_filename):
         return {}
     with open(csv_filename, mode='r', encoding='utf-8') as in_file:
@@ -87,6 +139,13 @@ def load_existing_csv_data(csv_filename, colName):
         return {row[colName]: row for row in reader}
 
 def save_to_csv(data, csv_filename):
+    """
+    Save a list of dictionaries to a CSV file.
+
+    Args:
+        data (list): The data to save.
+        csv_filename (str): The name of the CSV file.
+    """
     if data:
         with open(csv_filename, newline='', mode='w', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=data[0].keys())
@@ -95,6 +154,13 @@ def save_to_csv(data, csv_filename):
         logging.info(f'CSV file {csv_filename} created.')
 
 def update_csv(existing_data, csv_filename):
+    """
+    Update a CSV file with the existing data.
+
+    Args:
+        existing_data (dict): The existing data to update.
+        csv_filename (str): The name of the CSV file.
+    """
     if not existing_data:
         logging.info(f'No data to update for {csv_filename}')
         return
@@ -107,6 +173,16 @@ def update_csv(existing_data, csv_filename):
     logging.info(f'CSV file {csv_filename} updated.')
 
 def stream_file_content(site_id, drive_id, file_id, files_metadata, deliverables_list_metadata):
+    """
+    Download and process a file from SharePoint.
+
+    Args:
+        site_id (str): The ID of the SharePoint site.
+        drive_id (str): The ID of the drive.
+        file_id (str): The ID of the file.
+        files_metadata (dict): Metadata of the files.
+        deliverables_list_metadata (dict): Metadata of the deliverables list.
+    """
     global token, token_expires_at, client
 
     if token_expires_at < datetime.now() + timedelta(minutes=5):
@@ -135,6 +211,25 @@ def stream_file_content(site_id, drive_id, file_id, files_metadata, deliverables
     logging.info(f'{file_name} removed from local storage.')
 
 def traverse_folders_and_files(site_id, drive_id, parent_id, parent_path, last_run, existing_files, created_files, updated_files, existing_folders, created_folders, updated_folders):
+    """
+    Traverse through folders and files in the SharePoint document library.
+
+    Args:
+        site_id (str): The ID of the SharePoint site.
+        drive_id (str): The ID of the drive.
+        parent_id (str): The ID of the parent folder.
+        parent_path (str): The path of the parent folder.
+        last_run (datetime): The timestamp of the last run.
+        existing_files (dict): Existing files metadata.
+        created_files (list): List to store created files IDs.
+        updated_files (list): List to store updated files IDs.
+        existing_folders (dict): Existing folders metadata.
+        created_folders (list): List to store created folders IDs.
+        updated_folders (list): List to store updated folders IDs.
+
+    Returns:
+        tuple: A tuple containing lists of current file IDs and folder IDs.
+    """
     global token, token_expires_at, client
 
     if token_expires_at < datetime.now() + timedelta(minutes=5):
@@ -142,7 +237,6 @@ def traverse_folders_and_files(site_id, drive_id, parent_id, parent_path, last_r
         token, token_expires_at = acquire_token_func()
         client = GraphClient(lambda: token)
 
-    # logging.info(f"Traversing folder: {parent_path or 'root'}")
     folder_items = client.sites[site_id].drives[drive_id].items[parent_id].children.get().top(5000).execute_query()    
     current_file_ids = []
     current_folder_ids = []
@@ -171,28 +265,19 @@ def traverse_folders_and_files(site_id, drive_id, parent_id, parent_path, last_r
             current_file_ids.extend(sub_file_ids)
             current_folder_ids.extend(sub_folder_ids)
         elif item.is_file:
-            # permissions = client.sites[site_id].drives[drive_id].items[item.id].permissions.get().execute_query()
-            # my_permission_set = set()
-            # for permission in permissions:
-            #     permission_name = permission.to_json()['grantedToV2']['siteGroup']['displayName']
-            #     my_permission_set.add(permission_name)
-
             file_metadata = {
                 'ID': item.id,
                 'Name': item.name,
                 'Path': parent_path + "/" + item.name,
                 'WebUrl': item.web_url,
                 'CreatedDateTime': item.created_datetime,
-                # 'Permission': my_permission_set
             }
 
             if item.id in existing_files:
                 if last_run and item.last_modified_datetime > last_run:
                     updated_files.append(item.id)
-                    # logging.info(f"File updated: {item_path}")
             else:
                 created_files.append(item.id)
-                # logging.info(f"File found: {item_path}")
 
             existing_files[item.id] = file_metadata
             current_file_ids.append(item.id)
@@ -200,6 +285,14 @@ def traverse_folders_and_files(site_id, drive_id, parent_id, parent_path, last_r
     return current_file_ids, current_folder_ids
 
 def save_to_csv1(data, csv_filename, field_names):
+    """
+    Save a list of dictionaries to a CSV file with specified field names.
+
+    Args:
+        data (list): The data to save.
+        csv_filename (str): The name of the CSV file.
+        field_names (list): The field names for the CSV file.
+    """
     if data:
         with open(csv_filename, newline='', mode='w', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=field_names)
@@ -208,6 +301,9 @@ def save_to_csv1(data, csv_filename, field_names):
         logging.info(f'CSV file {csv_filename} created.')
 
 def sharepoint_file_acquisition():
+    """
+    Main function to acquire files from SharePoint, process them, and update metadata.
+    """
     global token, token_expires_at, client
 
     try:
