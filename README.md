@@ -1,137 +1,93 @@
-import os
-import shutil
-import time
-import csv
-import logging
-import subprocess
-from pdfplumber import open as open_pdf
+import chromadb
+from chromadb.config import Settings
+from dotenv import load_dotenv
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.chat_models import ChatOllama
+from langchain_core.messages import HumanMessage, AIMessage
+from langchain_community.vectorstores import Chroma
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+import json
 
-from pdf_loader_MV import pdf_ingestion_MV
-from ppt_loader_MV import ppt_ingestion_MV
-from pdf_ppt_loader import pdf_ppt_ingestion_MV
+settings = Settings(anonymized_telemetry=False)
+load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+with open('config.json', 'r') as confile_file:
+    config = json.load(confile_file)
+
+base_url = config['ollama']['base_url']
+nomic = config['ollama']['embeddings']['nomic']
+llama3 = config['ollama']['models']['llama3-8B']
+
+chroma_client = chromadb.HttpClient(host="localhost", port=8000, settings=settings)
+
+embeddings = OllamaEmbeddings(base_url = base_url, model=nomic)
+vectorstore = Chroma(
+    collection_name="GV_Test_MV", client=chroma_client, embedding_function=embeddings
 )
 
-CONVERSION_TIMEOUT = 10
 
-def convert_doc_to_file(fpath, fname):
-    try:
-        if fname.endswith(".doc"):
-            docx_fname = os.path.splitext(fname)[0] + ".docx"
-            docx_file = os.path.join(fpath,docx_fname)
-            subprocess.run(["unoconv", "-f", "docx", "-o", docx_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT)
-
-            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-            pdf_file = os.path.join(fpath,pdf_fname)
-            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,docx_fname)], timeout=CONVERSION_TIMEOUT)
-
-            os.remove(docx_file)
-            logging.info("PDF File Created")
-            return True
-
-        elif fname.endswith(".docx"):
-            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-            pdf_file = os.path.join(fpath,pdf_fname)
-            subprocess.run(["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath,fname)], timeout=CONVERSION_TIMEOUT, check=True)
-
-            logging.info("PDF File Created")
-            return True
-    
-    except subprocess.TimeoutExpired:
-        logging.error(f"Conversion of {fname} can't be done.")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
-
-    return False
-
-def is_pdf(fpath, fname):
-    try:
-        with open_pdf(os.path.join(fpath,fname)) as pdf:
-            page_layouts = set((page.width,page.height) for page in pdf.pages)
-            if len(page_layouts) == 1:
-                width,height = next(iter(page_layouts))
-                aspect_ratio = width/height
-                if aspect_ratio > 1:
-                    logging.info('PPT converted to PDF')
-                    return False
-        logging.info('Original PDF')
-        return True
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
-        return False
+def convert_chat_history(chat_history):
+    converted_chat_history = []
+    for chat in chat_history:
+        question = chat["user"]
+        answer = chat["ai"]
+        converted_chat_history.extend(
+            [HumanMessage(content=question), AIMessage(content=answer)]
+        )
+    return converted_chat_history
 
 
-def ingest_files(files_metadata, deliverables_list_metadata):
-    current_folder = os.getcwd()
-    parent_folder = os.path.dirname(current_folder)
-    files_to_ingest_folder = os.path.join(parent_folder, current_folder, "files_to_ingest")
+def process_question(question, chatHistory):
+    """Process a question and return the answer"""
+    print("question")
+    converted_chat_history = convert_chat_history(chatHistory)
+    retriever = vectorstore.as_retriever()
 
-    failed_files = []
+    model = ChatOllama(model=llama3, base_url = base_url, temperature=0)
 
-    for file in os.listdir(files_to_ingest_folder):
 
-        base_name, ext = os.path.splitext(file)
-        lower_ext = ext.lower()
-        original_file_path = os.path.join(files_to_ingest_folder,file)
-        lower_case_file = base_name + lower_ext
-        lower_case_path = os.path.join(files_to_ingest_folder,lower_case_file)
+    contextualize_q_system_prompt = """Given a chat history and the latest user question \
+    which might reference context in the chat history, formulate a standalone question \
+    which can be understood without the chat history. Do NOT answer the question, \
+    just reformulate it if needed and otherwise return it as is."""
+    contextualize_q_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", contextualize_q_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
+    history_aware_retriever = create_history_aware_retriever(
+        model, retriever, contextualize_q_prompt
+    )
 
-        file_was_renamed = False
+    qa_system_prompt = """You are a highly capable question answering assistant backed by relevant information retriened from a large corpus \
+    Provide clear, concise answer to questions based solely on the provided context passages. \
+    If there is not enough information in the context to answer simply say "I don't have enought information to say" or related to these lines. \
+    Do not refer to how the context was retrieved or stored. Focus on giving the best possible answer using only the given context within the specified length.\
+    Just give the answer directly without referring to the word context.
 
-        if ext.isupper():
-            os.rename(original_file_path, lower_case_path)
-            file_was_renamed = True
-        else:
-            lower_case_file = file
+    {context}"""
+    qa_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", qa_system_prompt),
+            MessagesPlaceholder("chat_history"),
+            ("human", "{input}"),
+        ]
+    )
 
-        try:
-            if lower_case_file.endswith(".pdf"):
-                if is_pdf(files_to_ingest_folder,lower_case_file):
-                    if not pdf_ingestion_MV(lower_case_file, files_metadata, deliverables_list_metadata):
-                        raise Exception("PDF Ingestion Failed")
-                else:
-                    if not pdf_ppt_ingestion_MV(lower_case_file, files_metadata, deliverables_list_metadata):
-                        raise Exception("PDF Ingestion Failed")
-                logging.info(f"{lower_case_file} processed successfully")
+    question_answer_chain = create_stuff_documents_chain(model, qa_prompt)
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
-            elif lower_case_file.endswith((".ppt", ".pptx")):
-                if not ppt_ingestion_MV(lower_case_file, files_metadata, deliverables_list_metadata):
-                    raise Exception("PPT Ingestion Failed")
-                logging.info(f"{lower_case_file} processed successfully")
+    response = rag_chain.invoke(
+        {"input": question, "chat_history": converted_chat_history}
+    )
 
-            elif lower_case_file.endswith((".doc", ".docx")):
-                pdf_name = os.path.splitext(lower_case_file)[0] + ".pdf"
-                pdf_path = os.path.join(files_to_ingest_folder, pdf_name)
+    my_sources = set()
 
-                if convert_doc_to_file(files_to_ingest_folder,lower_case_file):
-                    if pdf_ingestion_MV(pdf_name, files_metadata, deliverables_list_metadata):
-                        logging.info(f"{lower_case_file} processed successfully")
-                        if os.path.exists(pdf_path):
-                            os.remove(pdf_path)
-                            logging.info("PDF File Removed")
-                        else:
-                            raise Exception("PDF Ingestion failed after Conversion")
-                else:
-                    raise Exception("DOC/DOCX Conversion failed")
+    for single_context in response['context']:
+        my_sources.add(single_context.metadata['source'])
 
-        except Exception as e:
-            logging.error(f"Error Processing : {e}")
-            failed_files.append(lower_case_file)
-
-        if file_was_renamed:
-            os.rename(lower_case_path, original_file_path)
-
-    # Write failed files to CSV after processing all files
-    failed_file_path = os.path.join(parent_folder, current_folder, 'failed_files.csv')
-    with open(failed_file_path, 'w', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(['Filename'])
-        for failed_file in failed_files:
-            csv_writer.writerow([failed_file])
-
-    if failed_files:
-        logging.info(f"Failed files written to {failed_file_path}")
-    else:
-        logging.info("No failed files to report")
+    return response["answer"], list(my_sources)
