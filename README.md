@@ -1,1 +1,1 @@
-                Document(page_content=s, metadata={id_key: doc_ids[i], "id": file_metadata['ID'], "source":file_metadata['WebUrl'], "permission":deliverables_list_metadata['DeliverablePermissions'], "deliverables_list_metadata":f'{deliverables_list_metadata}'})
+document_content_description = "General description of various documents including their source, permissions, and associated metadata"
