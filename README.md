@@ -123,12 +123,15 @@ def ingest_files(files_metadata, deliverables_list_metadata):
         if file_was_renamed:
             os.rename(lower_case_path, original_file_path)
 
-        failed_file_path = os.path.join(parent_folder, current_folder, 'failed_files.csv')
-        with open(failed_file_path, 'a', newline='') as csvfile:
-            csv_writer = csv.writer(csvfile)
-            if os.stat(failed_file_path).st_size==0:
-                csv_writer.writerow(['Filename'])
-            for failed_file in failed_files:
-                csv_writer.writerow([failed_file])
+    # Write failed files to CSV after processing all files
+    failed_file_path = os.path.join(parent_folder, current_folder, 'failed_files.csv')
+    with open(failed_file_path, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(['Filename'])
+        for failed_file in failed_files:
+            csv_writer.writerow([failed_file])
 
-
+    if failed_files:
+        logging.info(f"Failed files written to {failed_file_path}")
+    else:
+        logging.info("No failed files to report")
