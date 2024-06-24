@@ -22,11 +22,10 @@ llama3 = config['ollama']['models']['llama3-8B']
 
 chroma_client = chromadb.HttpClient(host="localhost", port=8000, settings=settings)
 
-embeddings = OllamaEmbeddings(base_url = base_url, model=nomic)
+embeddings = OllamaEmbeddings(base_url=base_url, model=nomic)
 vectorstore = Chroma(
     collection_name="GV_Test_MV", client=chroma_client, embedding_function=embeddings
 )
-
 
 def convert_chat_history(chat_history):
     converted_chat_history = []
@@ -38,15 +37,34 @@ def convert_chat_history(chat_history):
         )
     return converted_chat_history
 
+def is_greeting(question):
+    """Use the LLM to determine if the input question is a greeting."""
+    model = ChatOllama(model=llama3, base_url=base_url, temperature=0)
+    greeting_check_prompt = """You are a highly capable assistant. Determine if the following message is only a greeting. 
+    If it is only a greeting, respond with a friendly greeting. If it is not, return 'No'.
+    Message: {input}"""
+    
+    response = model({"input": question, "system_prompt": greeting_check_prompt})
+    return response['content'].strip().lower() != 'no'
 
 def process_question(question, chatHistory):
     """Process a question and return the answer"""
-    print("question")
+
+    # Check if the question is a greeting
+    if is_greeting(question):
+        # Define a simple greeting response
+        greeting_response_prompt = """You are a friendly and polite AI assistant. Respond warmly to the user's greeting. Do not provide additional information, just a friendly greeting."""
+
+        model = ChatOllama(model=llama3, base_url=base_url, temperature=0)
+
+        response = model({"input": question, "system_prompt": greeting_response_prompt})
+        return response['content'], []
+
+    # If not a greeting, proceed with the usual process
     converted_chat_history = convert_chat_history(chatHistory)
     retriever = vectorstore.as_retriever()
 
-    model = ChatOllama(model=llama3, base_url = base_url, temperature=0)
-
+    model = ChatOllama(model=llama3, base_url=base_url, temperature=0)
 
     contextualize_q_system_prompt = """Given a chat history and the latest user question \
     which might reference context in the chat history, formulate a standalone question \
@@ -63,10 +81,10 @@ def process_question(question, chatHistory):
         model, retriever, contextualize_q_prompt
     )
 
-    qa_system_prompt = """You are a highly capable question answering assistant backed by relevant information retriened from a large corpus \
-    Provide clear, concise answer to questions based solely on the provided context passages. \
-    If there is not enough information in the context to answer simply say "I don't have enought information to say" or related to these lines. \
-    Do not refer to how the context was retrieved or stored. Focus on giving the best possible answer using only the given context within the specified length.\
+    qa_system_prompt = """You are a highly capable question answering assistant backed by relevant information retrieved from a large corpus. \
+    Provide clear, concise answers to questions based solely on the provided context passages. \
+    If there is not enough information in the context to answer, simply say "I don't have enough information to say" or something similar. \
+    Do not refer to how the context was retrieved or stored. Focus on giving the best possible answer using only the given context within the specified length. \
     Just give the answer directly without referring to the word context.
 
     {context}"""
@@ -91,3 +109,11 @@ def process_question(question, chatHistory):
         my_sources.add(single_context.metadata['source'])
 
     return response["answer"], list(my_sources)
+
+# Example usage
+question = "Hello, how are you?"
+chatHistory = [{"user": "Hi there!", "ai": "Hello! How can I assist you today?"}]
+
+answer, sources = process_question(question, chatHistory)
+print("Answer:", answer)
+print("Sources:", sources)
