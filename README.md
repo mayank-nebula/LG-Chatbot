@@ -37,4 +37,29 @@ def extract_pdf_elements(path, fname):
     fname: File name
     """
     try:
-        return partitio
+        return partition_pdf(
+            filename=os.path.join(path, fname),
+            extract_images_in_pdf=True,
+            infer_table_structure=True,
+            chunking_strategy="by_title",
+            max_characters=4000,
+            new_after_n_chars=3800,
+            combine_text_under_n_chars=2000,
+        )
+    except Exception as e:
+        print(f"Error extracting PDF elements: {e}")
+        return []
+
+def categorize_elements(raw_pdf_elements):
+    """
+    Categorize extracted elements from a PDF into tables and texts.
+    raw_pdf_elements: List of unstructured.documents.elements
+    """
+    tables = []
+    texts = []
+    for element in raw_pdf_elements:
+        if "unstructured.documents.elements.Table" in str(type(element)):
+            tables.append(str(element))
+        elif "unstructured.documents.elements.CompositeElement" in str(type(element)):
+            texts.append(str(element))
+    return texts, tables
