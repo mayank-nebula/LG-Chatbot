@@ -1,35 +1,24 @@
-def multi_modal_rag_chain_source(retriever): #will add chat history here
-    """Multi-modal RAG chain"""
-    model = ChatOllama(model=llava_llama3, base_url = base_url)
+# def split_image_text_types(docs):
+#     """Split base64-encoded images, texts, and metadata"""
+#     b64_images = []
+#     texts = []
+#     for doc in docs:
+#         if isinstance(doc.Document):
+#             file_permission = doc.metadata["DeliverablePermissions"]
+#             file_permission_list = file_permission.split(';')
 
-    # def combined_context(data_dict):
-    #     context = {
-    #         "texts": data_dict.get("texts", []),
-    #         "images": data_dict.get("images", []),
-    #         "chat_history": chat_history,
-    #     }
-    #     return context
+#             if any(element in file_permission_list for element in user_permissions):
+#                 doc_content = doc.page_content
+#                 sources.append(doc.metadata["source"])
+#                 if looks_like_base64(doc_content) and is_image_data(doc_content):
+#                     doc_content = resize_base64_image(doc_content, size=(1300, 600))
+#                     b64_images.append(doc_content)
+#                 else:
+#                     texts.append(doc_content)
+#             else:
+#                 continue
 
-    # chain = (
-    #     {
-    #         "context": retriever | RunnableLambda(split_image_text_types) | RunnableLambda(combined_context),
-    #         "question": RunnablePassthrough()
-    #     }
-    #     | RunnableLambda(img_prompt_func)
-    #     | model
-    #     | StrOutputParser()
-    # )
-
-    # return chain
-
-    chain = (
-        {
-            "context": retriever | RunnableLambda(split_image_text_types),
-            "question": RunnablePassthrough(),
-        }
-        | RunnableLambda(img_prompt_func)
-        | model
-        | StrOutputParser()
-    )
-
-    return chain
+#     return {
+#         "images": b64_images,
+#         "texts": texts,
+#     }
