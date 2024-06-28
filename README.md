@@ -1,13 +1,2 @@
-def has_permission(user_permissions_string, permission_string):
-    permissions = set(permission_string.split(';'))
-    user_permissions = set(user_permissions_string.split(';'))
-    return not user_permissions.isdisjoint(permissions)
-
-# Example usage
-permission_string = "HLSConfidential;ADConfidential;EGHConfidential;FTERestricted;USHCConfidential"
-user_permissions_string = "HLSConfidential;SomeOtherPermission"
-
-if has_permission(user_permissions_string, permission_string):
-    print("User has permission.")
-else:
-    print("User does not have permission.")
+parentReference,__etag,FileLeafRef,Title,ContentTags,FileName,IsArchived,OwnerLookupId,UploadedByLookupId,Abstract,DeliverablePermissions,OwnerToBeReplaced,UploadedByToBeReplaced,UploadedDate,DeliverableTypeLookupId,Region,StrategyArea,StrategyAreaTeam,Country,Country_x003a_CountryFusionID,ContentTypes,TeamsLookupId,Teams_x003a_IDLookupId,Country_x003a_ID,Modified,Created,id,ContentType,AuthorLookupId,EditorLookupId,_CheckinComment,LinkFilenameNoMenu,LinkFilename,DocIcon,FileSizeDisplay,ItemChildCount,FolderChildCount,_ComplianceFlags,_ComplianceTag,_ComplianceTagWrittenTime,_ComplianceTagUserId,_CommentCount,_LikeCount,_DisplayName,Edit,_UIVersionString,ParentVersionStringLookupId,ParentLeafNameLookupId,IsDeleted,_CopySource
+{'sharepointIds': {}},"""2db46d33-dd87-410b-a94d-14789e4d6d19,12""",GAE343MCK.06012014.Rural Dev and Ag - BPAT v2_Background and Overview_06012014.pdf,GAE343MCK.Rural Dev and Ag - BPAT v2_Background and Overview_06012014,BPAT; 2013; Breeding Program Assessment Tool; 2014,GAE343MCK.06012014.Rural Dev and Ag - BPAT v2.pdf,False,27,27,This document serves as a ‘how-to’ guide for implementing the Breeding Program Assessment Tool (BPAT) developed from September 2013 through June 2014.,HLSConfidential;HLSRestricted;USHCConfidential;USHCRestricted;EGHConfidential;EGHRestricted;ADConfidential;ADRestricted;FTEConfidential;FTERestricted,Michael Chang,Michael Chang,1/9/2019 11:34:59 AM,1,"[{'LookupId': 35, 'LookupValue': 'Global'}]","[{'LookupId': 16, 'LookupValue': 'Agricultural Development'}]","[{'LookupId': 6, 'LookupValue': 'Global Growth and Opportunity'}]","[{'LookupId': 197, 'LookupValue': 'Global'}]","[{'LookupId': 197, 'LookupValue': '-1'}]","[{'LookupId': 2, 'LookupValue': 'Background and Overview'}]",5,5,"[{'LookupId': 197, 'LookupValue': '197'}]",2020-06-22T12:43:54Z,2019-10-22T07:09:18Z,27,Document,12,115,,GAE343MCK.06012014.Rural Dev and Ag - BPAT v2_Background and Overview_06012014.pdf,GAE343MCK.06012014.Rural Dev and Ag - BPAT v2_Background and Overview_06012014.pdf,pdf,1610227,0,0,,,,,1,,,0,12.0,27,27,,
