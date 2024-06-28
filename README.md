@@ -1,24 +1,35 @@
-Restarting the Pipeline After Failure
+def multi_modal_rag_chain_source(retriever): #will add chat history here
+    """Multi-modal RAG chain"""
+    model = ChatOllama(model=llava_llama3, base_url = base_url)
 
-If the pipeline fails, follow these steps to restart it:
-Step-by-Step Instructions
-1.	Restart Flask Pipeline Service in VM1 () – sudo systemctl restart flask_pipeline.
+    # def combined_context(data_dict):
+    #     context = {
+    #         "texts": data_dict.get("texts", []),
+    #         "images": data_dict.get("images", []),
+    #         "chat_history": chat_history,
+    #     }
+    #     return context
 
-2.	Restart Ollama Service in VM2 () – sudo systemctl restart ollama.
+    # chain = (
+    #     {
+    #         "context": retriever | RunnableLambda(split_image_text_types) | RunnableLambda(combined_context),
+    #         "question": RunnablePassthrough()
+    #     }
+    #     | RunnableLambda(img_prompt_func)
+    #     | model
+    #     | StrOutputParser()
+    # )
 
-3.	Check the Last Processed File
-•	Open the pipeline.log file.
-•	Identify the last successfully processed file by reviewing the log entries.
+    # return chain
 
-4.	Clean Up Directories and Files
-•	Delete any files present in the files_to_ingest directory.
-•	Delete the output and figures directories.
+    chain = (
+        {
+            "context": retriever | RunnableLambda(split_image_text_types),
+            "question": RunnablePassthrough(),
+        }
+        | RunnableLambda(img_prompt_func)
+        | model
+        | StrOutputParser()
+    )
 
-5.	Update the Metadata File
-•	Open files_metadata.csv file.
-•	Identify the row of the last processed file and delete all rows below this row.
-
-6.	Access Flask Pipeline
-•	Navigate to the pipeline URL to ensure it is running.
-•	Click on Start Pipeline to start the pipeline.
-
+    return chain
