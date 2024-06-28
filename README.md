@@ -1,3 +1,5 @@
-retriever = MultiVectorRetriever(
-    vectorstore=vectorStore, docstore=loaded_docstore, id_key="MV_Summary", search_kwargs={"filter": {"MV_Summary": "483ff14d-3ce1-4258-897e-c9d486b28576"}}
-)
+parentReference,__etag,Title,UserLookupId,OrganisationLookupId,TeamsLookupId,TeamsPermissionLookupId,UserSettingsLookupId,RolesLookupId,UserSettings_x003a_EmailLookupId,UserSettings_x003a_FirstNameLookupId,UserSettings_x003a_LastNameLookupId,UserSettings_x003a_IDLookupId,UserSettings_x003a_TitleLookupId,LinkTitleNoMenu,LinkTitle,Created,id,ContentType,Modified,AuthorLookupId,EditorLookupId,_UIVersionString,Attachments,Edit,ItemChildCount,FolderChildCount,_ComplianceFlags,_ComplianceTag,_ComplianceTagWrittenTime,_ComplianceTagUserId
+{'sharepointIds': {}},"""5b1e70a6-d2bb-48b5-b530-9b2d08cb21b7,1""",Niranjan Bose,48,1,1,1,8,2,8,8,8,8,8,Niranjan Bose,Niranjan Bose,2020-02-18T07:34:06Z,5,Item,2020-02-18T07:34:06Z,12,12,1.0,False,,0,0,,,,
+{'sharepointIds': {}},"""987c398e-3de7-474b-b0a6-fea72be97bcc,1""",Niranjan Bose,48,1,3,1,8,2,8,8,8,8,8,Niranjan Bose,Niranjan Bose,2020-02-18T07:35:03Z,6,Item,2020-02-18T07:35:03Z,12,12,1.0,False,,0,0,,,,
+{'sharepointIds': {}},"""1bee4678-0b9a-4f50-af11-e11e7d8beed0,1""",Niranjan Bose,48,1,4,1,8,2,8,8,8,8,8,Niranjan Bose,Niranjan Bose,2020-02-18T07:36:20Z,7,Item,2020-02-18T07:36:20Z,12,12,1.0,False,,0,0,,,,
+{'sharepointIds': {}},"""a0a5097a-704f-4532-ac57-788f4edb4556,1""",Niranjan Bose,48,1,2,1,8,2,8,8,8,8,8,Niranjan Bose,Niranjan Bose,2020-02-18T07:36:25Z,8,Item,2020-02-18T07:36:25Z,12,12,1.0,False,,0,0,,,,
