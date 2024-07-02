@@ -1,27 +1,84 @@
-from flask import Flask, request, jsonify
+def create_multi_vector_retriever(
+    vectorstore, image_summaries, images, file_metadata, deliverables_list_metadata, index
+):
+    """
+    Create a multi-vector retriever.
 
-# from processing_multi_vector_retriever import process_question
+    Args:
+        vectorstore (Vectorstore): Vectorstore object.
+        image_summaries (List[str]): Summaries of image elements.
+        images (List[str]): Image elements.
+        file_metadata (dict): Metadata for the file.
+        deliverables_list_metadata (dict): Deliverables list metadata
+    """
+    current_dir = os.getcwd()
+    docstore_path = os.path.join(current_dir, "docstore_1.pkl")
+    existing_store = load_docstore(docstore_path)
 
-app = Flask(__name__)
+    # store = existing_store if existing_store else InMemoryStore()
 
-@app.route("/", methods=["POST"])
-def process():
-    data = request.get_json()
-    question = data.get("question")
-    chatHistory = data.get("chat_history", [])
-    permissions = data.get("userPermissions")
-    filters = data.get("filters",[])
+    store = InMemoryStore()
 
-    if not question:
-        return jsonify({"error": "No question provided"}), 400
 
-    try:
-        # response, sources = process_question(question, chatHistory, permissions, filters)
-        # return jsonify({"response": response, "sources":sources})
-        print(question,chatHistory,permissions,filters)
-        return jsonify({"response":"Done"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    id_key = "GV_Test_MV_1"
+    retriever = MultiVectorRetriever(
+        vectorstore=vectorstore, docstore=store, id_key=id_key
+    )
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000 , debug=True)
+    def add_documents(retriever, doc_summaries, doc_contents):
+        doc_ids = [str(uuid.uuid4()) for _ in doc_contents]
+        summary_docs = [
+            Document(
+                page_content=s,
+                metadata={
+                    id_key: doc_ids[i],
+                    "id": file_metadata["ID"],
+                    "Title": deliverables_list_metadata["Title"],
+                    "ContentTags": deliverables_list_metadata["ContentTags"],
+                    "Abstract": deliverables_list_metadata["Abstract"],
+                    "Region": deliverables_list_metadata["Region"],
+                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
+                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
+                    "Country": deliverables_list_metadata["Country"],
+                    "Country_x003a_CountryFusionID": deliverables_list_metadata["Country_x003a_CountryFusionID"],
+                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
+                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
+                    "DeliverablePermissions": deliverables_list_metadata["DeliverablePermissions"],
+                    "source": file_metadata["WebUrl"],
+                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
+                },
+            )
+            for i, s in enumerate(doc_summaries)
+        ]
+        retriever.vectorstore.add_documents(summary_docs)
+        full_docs = [
+            Document(
+                page_content=s,
+                metadata={
+                    id_key: doc_ids[i],
+                    "id": file_metadata["ID"],
+                    "Title": deliverables_list_metadata["Title"],
+                    "ContentTags": deliverables_list_metadata["ContentTags"],
+                    "Abstract": deliverables_list_metadata["Abstract"],
+                    "Region": deliverables_list_metadata["Region"],
+                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
+                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
+                    "Country": deliverables_list_metadata["Country"],
+                    "Country_x003a_CountryFusionID": deliverables_list_metadata["Country_x003a_CountryFusionID"],
+                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
+                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
+                    "DeliverablePermissions": deliverables_list_metadata["DeliverablePermissions"],
+                    "source": file_metadata["WebUrl"],
+                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
+                },
+            )
+            for i, s in enumerate(doc_contents)
+        ]
+        retriever.docstore.mset(list(zip(doc_ids, full_docs)))
+
+    if image_summaries:
+        add_documents(retriever, image_summaries, images)
+
+    save_docstore(retriever.docstore, docstore_path)
+
+    logging.info(f"Ingestion Done {file_metadata['Name']}")
