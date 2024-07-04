@@ -1,29 +1,13 @@
+Hi Team,
 
-def multi_modal_rag_chain_gpt(retriever):
-    """Multi-modal RAG chain"""
-    llm_gpt = AzureChatOpenAI(
-        openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-        azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
-    )   
-    
-    context_and_question = RunnableParallel(
-        context=retriever | RunnableLambda(split_image_text_types),
-        question=RunnablePassthrough()
-    )
-    
-    def combine_prompts(inputs):
-        return {
-            "llm_input": img_prompt_func_gpt(inputs),
-            "sources": inputs["context"]["sources"]
-        }
-    
-    chain = (
-        context_and_question
-        | RunnableLambda(combine_prompts)
-        | {
-            "answer": RunnablePassthrough(input_key="llm_input") | llm_gpt | StrOutputParser(),
-            "sources": lambda x: x["sources"]
-        }
-    )
-    
-    return chain
+I have created a folder named retriever in the LLM Machine at the path /home/Mayank.Sharma/GV_Test/retriever.
+
+To execute the Python file, follow these steps:
+
+Activate the conda environment.
+Navigate to the directory /home/Mayank.Sharma/GV_Test/retriever.
+Install the dependencies by running pip install -r requirements.txt.
+To get answers to your questions:
+
+Place your question in a CSV file.
+A new CSV file named answer.csv will be created with all the relevant information regarding your question.
