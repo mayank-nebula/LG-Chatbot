@@ -1,6 +1,6 @@
 Hi Team,
 
-I have created a folder named retriever in the LLM Machine at the path /home/Mayank.Sharma/GV_Test/retriever.
+I have created a folder named retriever in the LLM Machine(52.158.238.161) at the path /home/Mayank.Sharma/GV_Test/retriever.
 
 To execute the Python file, follow these steps:
 
