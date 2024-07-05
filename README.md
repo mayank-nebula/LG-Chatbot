@@ -102,7 +102,6 @@ def split_image_text_types(docs):
                 continue
 
     hasDocs = len(b64_images) > 0 or len(texts) > 0
-
     return {
         "images": b64_images,
         "texts": texts,
@@ -112,6 +111,7 @@ def split_image_text_types(docs):
 
 def img_prompt_func(data_dict):
     """Join the context into a single string"""
+    hasDocs = data_dict["context"]["hasDocs"]
     if hasDocs:
         formatted_texts = "\n".join(data_dict["context"]["texts"])
         chat_history = "\n".join([f"Q: {chat['user']}\nA: {chat['ai']}"for chat in data_dict["context"]["chat_history"]])
@@ -164,6 +164,7 @@ def img_prompt_func(data_dict):
     else:
         return [HumanMessage(content=f"Please answer this question to the best of your ability: {data_dict['question']}")]
 
+    # return {"prompt": prompt, "hasDocs": hasDocs}
 
 def multi_modal_rag_chain_source(retriever, chatHistory):
     """Multi-modal RAG chain"""
@@ -174,9 +175,10 @@ def multi_modal_rag_chain_source(retriever, chatHistory):
             "texts": data_dict.get("texts", []),
             "images": data_dict.get("images", []),
             "chat_history": chatHistory,
+            "hasDocs": data_dict.get("hasDocs", False)
         }
         return context
-
+    
     chain = (
         {
             "context": retriever | RunnableLambda(split_image_text_types) | RunnableLambda(combined_context),
