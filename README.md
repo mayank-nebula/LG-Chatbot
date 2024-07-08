@@ -1,282 +1,285 @@
+import io
+import re
 import os
 import base64
-import shutil
 import pickle
 import json
-import time
-import concurrent.futures
-import uuid
-import logging
+
 import chromadb
 from chromadb.config import Settings
+from PIL import Image
 from dotenv import load_dotenv
-from pdf2image import convert_from_path
-from langchain.retrievers.multi_vector import MultiVectorRetriever
-from langchain.storage import InMemoryStore
-from langchain_core.messages import HumanMessage
-from langchain_core.documents import Document
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.chat_models import ChatOllama
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.documents import Document
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.runnables import RunnableParallel
 from langchain_community.vectorstores import Chroma
+from langchain.retrievers.multi_vector import MultiVectorRetriever
+from langchain_openai import ChatOpenAI
 
 settings = Settings(anonymized_telemetry=False)
 load_dotenv()
 
-with open("config.json", "r") as confile_file:
+with open('config.json', 'r') as confile_file:
     config = json.load(confile_file)
 
-base_url = config["ollama"]["base_url"]
-nomic = config["ollama"]["embeddings"]["nomic"]
-llava3 = config["ollama"]["models"]["llava-34B"]
-llama3 = config["ollama"]["models"]["llama3-8B"]
+base_url = config['ollama']['base_url']
+nomic = config['ollama']['embeddings']['nomic']
+llava_llama3 = config['ollama']['models']['llava-llama3-fp16']
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+# os.environ["AZURE_OPENAI_API_KEY"] = "1f6a8e246c994010831185febfe6b079"
+# os.environ["AZURE_OPENAI_ENDPOINT"] = "https://hls-scientia-openai-dev-eus.openai.azure.com/"
+# os.environ["AZURE_OPENAI_API_VERSION"] = "2024-02-01"
+# os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"] = "gpt-4o-2024-05-13"
+
+current_dir = os.getcwd()
+user_permissions = []
+sources = set()
+chroma_client = chromadb.HttpClient(host="localhost", port=8000, settings=settings)
+
+embeddings = OllamaEmbeddings(base_url = base_url, model=nomic)
+vectorstore = Chroma(
+    collection_name="GV_Test_MV_1", client=chroma_client, embedding_function=embeddings
 )
 
-# Constants
-output_path = os.path.join(os.getcwd(), "output")
-CHROMA_CLIENT = chromadb.HttpClient(host="10.1.0.4", port=8000, settings=settings)
+docstore_path = os.path.join(current_dir, "docstore_1.pkl")
+
+with open(docstore_path, "rb") as f:
+    loaded_docstore = pickle.load(f)
+
+retriever = MultiVectorRetriever(
+    vectorstore=vectorstore, docstore=loaded_docstore, id_key="GV_Test_MV_1"
+)
+
+def looks_like_base64(sb):
+    """Check if the string looks like base64"""
+    return re.match("^[A-Za-z0-9+/]+[=]{0,2}$", sb) is not None
 
 
-def create_output_directory():
-    """Create the output directory if it doesn't exist."""
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-
-def pdf_to_images(fpath, fname):
-    """Convert PowerPoint to images."""
-    create_output_directory()
-
-    images = convert_from_path(os.path.join(fpath, fname))
-
-    for i, image in enumerate(images):
-        slide_image_path = os.path.join(output_path, f"slide_{i + 1}.png")
-        image.save(slide_image_path, "PNG")
-
-    logging.info("Slides extracted")
-
-
-def encode_image(image_path):
-    """
-    Encode image to base64 string.
-
-    Args:
-        image_path (str): Path to the image file.
-
-    Returns:
-        str: Base64 encoded image string.
-    """
-
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
-
-
-def image_summarize(img_base64, prompt):
-    """
-    Summarize an image using Google Generative AI.
-
-    Args:
-        img_base64 (str): Base64 encoded image string.
-        prompt (str): Prompt for summarization.
-
-    Returns:
-        str: Image summary.
-    """
-
-    chat = ChatOllama(model=llava3, base_url=base_url, temperature=0)
-
-    msg = chat.invoke(
-        [
-            HumanMessage(
-                content=[
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": img_base64},
-                ]
-            )
-        ]
-    )
-    return msg.content
-
-
-def generate_img_summaries(path):
-    """
-    Generate image summaries and base64 encoded strings for images.
-
-    Returns:
-        tuple: Tuple containing lists of base64 encoded images and their summaries.
-    """
-    img_base64_list = []
-    image_summaries = []
-    # image_summaries = {}
-    # img_base64_list = {}
-    prompt = """You are an assistant tasked with summarizing images for retrieval. \
-    These summaries will be embedded and used to retrieve the raw image. \
-    Give a concise summary of the image that is well optimized for retrieval."""
-    for img_file in os.listdir(path):
-        if img_file.endswith((".jpg", ".png")):
-            img_path = os.path.join(path, img_file)
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(encode_image, img_path)
-                try:
-                    base64_image = future.result(timeout=30)  # Timeout set to 30 seconds
-                except concurrent.futures.TimeoutError:
-                    return False
-
-            # img_base64_list[img_file] = base64_image
-            img_base64_list.append(base64_image)
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(image_summarize, base64_image, prompt)
-                try:
-                    summary = future.result(timeout=60)  # Timeout set to 60 seconds
-                except concurrent.futures.TimeoutError:
-                    return False
-            # image_summaries[img_file] = summary
-            image_summaries.append(summary)
-    return img_base64_list, image_summaries
-
-
-def save_docstore(docstore, path):
-    """Save the docstore to the specified path."""
-    with open(path, "wb") as f:
-        pickle.dump(docstore, f)
-
-
-def load_docstore(path):
-    """Load the docstore from the specified path."""
-    if os.path.exists(path):
-        with open(path, "rb") as f:
-            return pickle.load(f)
-    return None
-
-
-def create_multi_vector_retriever(
-    vectorstore, image_summaries, images, file_metadata, deliverables_list_metadata
-):
-    """
-    Create a multi-vector retriever.
-
-    Args:
-        vectorstore (Vectorstore): Vectorstore object.
-        image_summaries (List[str]): Summaries of image elements.
-        images (List[str]): Image elements.
-        file_metadata (dict): Metadata for the file.
-        deliverables_list_metadata (dict): Deliverables list metadata
-    """
-    current_dir = os.getcwd()
-    docstore_path = os.path.join(current_dir, "docstore_1.pkl")
-    existing_store = load_docstore(docstore_path)
-
-    store = existing_store if existing_store else InMemoryStore()
-    id_key = "GV_Test_MV_1"
-    retriever = MultiVectorRetriever(
-        vectorstore=vectorstore, docstore=store, id_key=id_key
-    )
-
-    def add_documents(retriever, doc_summaries, doc_contents):
-        doc_ids = [str(uuid.uuid4()) for _ in doc_contents]
-        summary_docs = [
-            Document(
-                page_content=s,
-                metadata={
-                    id_key: doc_ids[i],
-                    "id": file_metadata["ID"],
-                    "Title": deliverables_list_metadata["Title"],
-                    "ContentTags": deliverables_list_metadata["ContentTags"],
-                    "Abstract": deliverables_list_metadata["Abstract"],
-                    "Region": deliverables_list_metadata["Region"],
-                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
-                    "Country": deliverables_list_metadata["Country"],
-                    "Country_x003a_CountryFusionID": deliverables_list_metadata["Country_x003a_CountryFusionID"],
-                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
-                    "DeliverablePermissions": deliverables_list_metadata["DeliverablePermissions"],
-                    "source": file_metadata["WebUrl"],
-                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                },
-            )
-            for i, s in enumerate(doc_summaries)
-        ]
-        retriever.vectorstore.add_documents(summary_docs)
-        full_docs = [
-            Document(
-                page_content=s,
-                metadata={
-                    id_key: doc_ids[i],
-                    "id": file_metadata["ID"],
-                    "Title": deliverables_list_metadata["Title"],
-                    "ContentTags": deliverables_list_metadata["ContentTags"],
-                    "Abstract": deliverables_list_metadata["Abstract"],
-                    "Region": deliverables_list_metadata["Region"],
-                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
-                    "Country": deliverables_list_metadata["Country"],
-                    "Country_x003a_CountryFusionID": deliverables_list_metadata["Country_x003a_CountryFusionID"],
-                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
-                    "DeliverablePermissions": deliverables_list_metadata["DeliverablePermissions"],
-                    "source": file_metadata["WebUrl"],
-                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                },
-            )
-            for i, s in enumerate(doc_contents)
-        ]
-        retriever.docstore.mset(list(zip(doc_ids, full_docs)))
-
-    if image_summaries:
-        add_documents(retriever, image_summaries, images)
-
-    save_docstore(retriever.docstore, docstore_path)
-
-    logging.info(f"Ingestion Done {file_metadata['Name']}")
-
-
-def pdf_ppt_ingestion_MV(fname, file_metadata, deliverables_list_metadata):
-    """
-    Ingest PowerPoint file.
-
-    Args:
-        fname (str): PowerPoint file name.
-    """
+def is_image_data(b64data):
+    """Check if the base64 data is an image by looking at the start of the data"""
+    image_signatures = {
+        b"\xff\xd8\xff": "jpg",
+        b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a": "png",
+        b"\x47\x49\x46\x38": "gif",
+        b"\x52\x49\x46\x46": "webp",
+    }
     try:
-        current_folder = os.getcwd()
-        parent_folder = os.path.dirname(current_folder)
-        fpath = os.path.join(parent_folder, current_folder, "files_to_ingest")
-
-        pdf_to_images(fpath, fname)
-
-        result = generate_img_summaries(output_path)
-
-        if result is False:
-            shutil.rmtree(output_path)
-            raise Exception("Failed to generate Image Summaries")
-
-        img_base64_list, image_summaries = result
-        shutil.rmtree(output_path)
-
-        # img_base64_list, image_summaries = generate_img_summaries(output_path)
-        # shutil.rmtree(output_path)
-
-        embeddings = OllamaEmbeddings(base_url=base_url, model=nomic)
-        vectorstore = Chroma(
-            collection_name="GV_Test_MV_1",
-            client=CHROMA_CLIENT,
-            embedding_function=embeddings,
-        )
-
-        create_multi_vector_retriever(
-            vectorstore,
-            image_summaries,
-            img_base64_list,
-            file_metadata,
-            deliverables_list_metadata,
-        )
-        return True
-    except Exception as e:
-        logging.error(f"Error in PowerPoint ingestion: {e}")
+        header = base64.b64decode(b64data)[:8]
+        for sig, format in image_signatures.items():
+            if header.startswith(sig):
+                return True
         return False
+    except Exception:
+        return False
+
+
+def resize_base64_image(base64_string, size=(128, 128)):
+    """Resize an image encoded as a Base64 string"""
+    img_data = base64.b64decode(base64_string)
+    img = Image.open(io.BytesIO(img_data))
+    resized_img = img.resize(size, Image.LANCZOS)
+    buffered = io.BytesIO()
+    resized_img.save(buffered, format=img.format)
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+
+def split_image_text_types(docs):
+    """Split base64-encoded images, texts, and metadata"""
+    b64_images = []
+    texts = []
+    for doc in docs:
+        if isinstance(doc, Document):
+            file_permission = doc.metadata["DeliverablePermissions"]
+            file_permission_list = file_permission.split(';')
+
+            if not file_permission_list or any(element in file_permission_list for element in user_permissions):
+                doc_content = doc.page_content
+                sources.add(doc.metadata["source"])
+                if looks_like_base64(doc_content) and is_image_data(doc_content):
+                    doc_content = resize_base64_image(doc_content, size=(1300, 600))
+                    b64_images.append(doc_content)
+                else:
+                    texts.append(doc_content)
+            else:
+                continue
+
+    return {
+        "images": b64_images,
+        "texts": texts,
+    }
+
+
+def img_prompt_func(data_dict):
+    """Join the context into a single string"""
+    formatted_texts = "\n".join(data_dict["context"]["texts"])
+    chat_history = "\n".join([f"Q: {chat['user']}\nA: {chat['ai']}"for chat in data_dict["context"]["chat_history"]])
+
+    messages = []
+
+    if data_dict["context"]["images"]:
+        for image in data_dict["context"]["images"]:
+            image_message = {
+                "type": "image_url",
+                "image_url": image,
+            }
+            messages.append(image_message)
+
+    text_message = {
+        "type": "text",
+        "text": (
+            "You are an advanced AI assistant with multimodal capabilities, designed to provide accurate and insightful responses based on given context, previous conversations, and visual information.\n\n"
+            "Role and Capabilities:\n"
+            "1. Analyze and interpret text, and images (including photographs, graphs, and charts).\n"
+            "2. Maintain context from previous conversations to ensure coherent and relevant responses.\n"
+            "3. Synthesize information from multiple sources to provide comprehensive answers.\n\n"
+
+            "Instructions:\n"
+            "1. Carefully examine all provided information: text, and images.\n"
+            "2. Consider the chat history to maintain conversation continuity.\n"
+            "3. Provide a well-structured, accurate response that directly addresses the user's question.\n"
+            "4. If certain information is missing or unclear, acknowledge this in your response.\n"
+            "5. Do not mention anything about the data sources or related information.\n"
+            "6. Do not say anything like 'the user\'s question was' or related to this in the answer.\n"
+            "7. If you dont know the answer for the question. Do not answer from the provided content.\n"
+            "8. If you use the information from the provided context or images, start your response with '[USED_CONTEXT]'. Otherwise, start with '[NO_CONEXT_USED]'.\n\n"
+
+            f"User's question: {data_dict['question']}\n\n"
+
+            "Previous conversation:\n"
+            f"{chat_history}\n\n"
+
+            "Current context (text and/or tables):\n"
+            f"{formatted_texts}\n\n"
+
+            "Based on all this information, please provide a comprehensive and accurate response to the user's question."
+        ),
+    }
+    messages.append(text_message)
+
+    return [HumanMessage(content=messages)]
+
+def multi_modal_rag_chain_source(retriever, chatHistory):
+    """Multi-modal RAG chain"""
+    model = ChatOllama(model=llava_llama3, base_url = base_url, temperature=0)
+
+    # AzureChatOpenAI(
+    #     openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+    #     azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+    #     temperature = 0
+    # ) 
+
+    def combined_context(data_dict):
+        context = {
+            "texts": data_dict.get("texts", []),
+            "images": data_dict.get("images", []),
+            "chat_history": chatHistory,
+        }
+        return context
+    
+    chain = (
+        {
+            "context": retriever | RunnableLambda(split_image_text_types) | RunnableLambda(combined_context),
+            "question": RunnablePassthrough()
+        }
+        | RunnableLambda(img_prompt_func)
+        | model
+        | StrOutputParser()
+    )
+
+    return chain
+
+
+def create_retriever(filters):
+    if not filters:
+        retriever = MultiVectorRetriever(
+            vectorstore=vectorstore, docstore=loaded_docstore, id_key="GV_Test_MV_1",
+        )
+        return retriever
+
+    if len(filters) == 1:
+        filter_condition = {"Title":filters[0]}
+    elif isinstance(filters, list):
+        or_conditions = [
+            {"Title":v} for v in filters
+        ]
+        filter_condition = {"$or":or_conditions}
+    
+    search_kwargs = {"filter" : filter_condition}
+    retriever = MultiVectorRetriever(
+        vectorstore=vectorstore, docstore=loaded_docstore, id_key="GV_Test_MV_1",
+        search_kwargs=search_kwargs
+    )
+    return retriever
+
+# def use_gpt3_5(question, chatHistory):
+#     gpt3_5 = ChatOpenAI(model='gpt-3.5-turbo')
+
+#     formatted_history = []
+#     for chat in chatHistory:
+#         formatted_history.append(HumanMessage(content=chat['user']))
+#         formatted_history.append(AIMessage(content=chat['ai']))
+    
+#     formatted_history.append(HumanMessage(content=question))
+
+#     response = gpt3_5(formatted_history)
+
+#     return response.content
+
+# def is_general_chat(question):
+#     general_chat_patterns = [
+#         r'\b(hi|hello|hey|greetings|good morning|good afternoon|good evening)\b',
+#         r'\bhow are you\b',
+#         r'\bnice to meet you\b',
+#         r'\bwhat\'s up\b',
+#         r'\bhow\'s it going\b'
+#     ]
+    
+#     question_lower = question.lower()
+#     return any(re.search(pattern, question_lower) for pattern in general_chat_patterns)
+
+# def use_primary_llm(question, chatHistory):
+#     model = ChatOllama(model=llava_llama3, base_url=base_url)
+    
+#     formatted_history = []
+#     for chat in chatHistory:
+#         formatted_history.append(HumanMessage(content=chat['user']))
+#         formatted_history.append(AIMessage(content=chat['ai']))
+    
+#     formatted_history.append(HumanMessage(content=question))
+    
+#     system_message = SystemMessage(content=
+#         "You are a friendly and helpful AI assistant. Please respond naturally to the user's message or question. "
+#         "If it's a greeting or general chat, respond in a conversational manner. "
+#         "If it's a question, provide a helpful and concise answer."
+#     )
+    
+#     full_conversation = [system_message] + formatted_history
+#     response = model.invoke(full_conversation)
+#     return response.content
+
+
+
+def process_question(question, chatHistory, permissions, filters):
+    """Process a question and return the answer"""
+    global user_permissions
+
+    # if is_general_chat(question):
+    #     response = use_primary_llm(question, chatHistory)
+    #     return response, []
+
+    user_permissions = permissions.copy()
+    retriever = create_retriever(filters)
+    
+    chain = multi_modal_rag_chain_source(retriever, chatHistory)
+    response = chain.invoke(question)
+
+    if response.startswith('[USED_CONTEXT]'):
+        response = response.replace('[USED_CONTEXT]', '',1).strip()
+        return response, list(sources)
+    else:
+        # gpt_response = use_gpt3_5(question, chat_history)
+        return 'gpt_response', ['Response generated by GPT3.5']
