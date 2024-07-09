@@ -39,7 +39,7 @@ AZURE_OPENAI_SETTINGS = {
 }
 
 # Initialize global variables
-global_sources, global_sources_link, global_ids = [], [], []
+global_sources, global_sources_link, global_ids, global_text_chunks, global_image_chunks = [], [], [], [], []
 
 # MSAL authentication details
 tenant_id = os.getenv('TENANT_ID')
@@ -101,7 +101,7 @@ def resize_base64_image(base64_string, size=(128, 128)):
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 def split_image_text_types(docs):
-    global global_sources, global_sources_link, global_ids
+    global global_sources, global_sources_link, global_ids, global_text_chunks, global_image_chunks
     b64_images, texts = [], []
     sources, sources_link, sources_ids = set(), set(), set()
     for doc in docs:
@@ -118,6 +118,8 @@ def split_image_text_types(docs):
     global_sources = list(sources)
     global_sources_link = list(sources_link)
     global_ids = list(sources_ids)
+    global_text_chunks = texts
+    global_image_chunks = b64_images
     return {"images": b64_images, "texts": texts}
 
 def create_img_prompt_gpt(data_dict):
