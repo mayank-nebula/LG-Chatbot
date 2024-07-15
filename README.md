@@ -1,1 +1,8 @@
-"page_content": "{\"summary\": \"Title : GAE294MCK.01222013.GPH - BMS VF_Background and Overview_01222013\\nAbstract : The document discusses about the profile of BMS company. It provides complete background and the context in terms of different business segments, company's market presence, sales and revenue figures.\\nSummary : Perspectives on industry partner trajectories and priorities are discussed. Bristol-Myers Squibb is mentioned as a company profile, with the note that this information is confidential and proprietary.\", \"content\": \"Perspectives on industry partner trajectories and priorities\\nBristol-Myers Squibb\\nBritol-Myers Squibb\\nCompany Profiles\\nCONFIDENTIAL AND PROPRIETARY\"}"
+full_data_to_save = [
+            {
+                "summary": f.page_content["summary"],
+                "content": f.page_content["content"],
+                "metadata": f.metadata,
+            }
+            for f in full_docs
+        ]
