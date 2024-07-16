@@ -39,3 +39,8 @@ def question_generation(context):
 first_key = next(iter(combined_summary_by_title))
 chain = question_generation(combined_summary_by_title[first_key])
 cleaned_chain = chain.replace('\n', '')
+cleaned_json_chain = json.loads(cleaned_chain)
+file_path = "test.json"
+data_to_save = {first_key: cleaned_json_chain}
+with open(file_path, 'w') as file:
+    json.dump(data_to_save, file, indent=4)
