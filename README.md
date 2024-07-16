@@ -3,7 +3,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
 def question_generation(context):
-    prompt_text = f"""
+    prompt_text = """
     Instructions:
     1. Assume the persona of a knowledgeable and experienced educator who specializes in generating comprehensive and insightful questions based on provided content.
     2. Read the provided context carefully.
@@ -13,7 +13,6 @@ def question_generation(context):
 
     Context:
     {element}
-
     Generate the following types of questions:
     1. Factual Questions: Ask about specific details or facts mentioned in the context.
     2. Analytical Questions: Require analyzing information from the context to derive insights or conclusions.
@@ -27,12 +26,16 @@ def question_generation(context):
     10. Synthesis Questions: Require combining elements from the context to form a new idea or perspective.
 
     Please proceed to generate 20 questions in JSON format with keys Sl_no, Question, Question_Type.
-    You need to provide 20 questions
+    You need to provide 20 questions.
     """
 
-    llm = ChatOllama(model = "llama3-gradient:latest", base_url="http://10.0.0.4:11434", temperature=0, num_ctx=64000, format="json")
+    llm = ChatOllama(model = "dolphin-llama3:latest", base_url="http://10.0.0.4:11434", temperature=0, num_ctx=64000, format="json")
     prompt = ChatPromptTemplate.from_template(prompt_text)
 
     chain = prompt | llm | StrOutputParser()
-    question = chain.invoke({"element": context})
-    return question
+    result = chain.invoke({"element": context})
+    return result
+
+first_key = next(iter(combined_summary_by_title))
+chain = question_generation(combined_summary_by_title[first_key])
+cleaned_chain = chain.replace('\n', '')
