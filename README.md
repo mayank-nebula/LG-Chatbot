@@ -1,15 +1,36 @@
-if filters:
-    retriever = create_retriever(filters, stores)
-else:
-    retriever = retriever_gpt if stores == "GPT" else retriever_ollama
+def split_image_text_types(docs):
+    """Split base64-encoded images, texts, and metadata"""
+    b64_images = []
+    texts = []
+    for doc in docs:
+        if isinstance(doc, Document):
+            file_permission = doc.metadata["DeliverablePermissions"]
+            file_permission_list = file_permission.split(";")
 
-llm_to_use = llm_gpt if llm == "GPT" else llm_ollama
+            if not file_permission_list or any(
+                element in file_permission_list for element in user_permissions
+            ):
+                doc_content = doc.page_content
+                title = doc.metadata["Title"]
+                link = doc.metadata["source"]
 
-if image:
-    chain = multi_modal_rag_chain_source(retriever, chatHistory, llm_to_use, llm)
-else:
-    chain = multi_modal_rag_chain_source_1(retriever, chatHistory, llm_to_use)
+                if title in sources:
+                    if link in sources[title]:
+                        continue
+                    else:
+                        sources[title].append(link)
+                else:
+                    sources[title] = link
 
-response = chain.invoke(question)
+                if looks_like_base64(doc_content) and is_image_data(doc_content):
+                    doc_content = resize_base64_image(doc_content, size=(1300, 600))
+                    b64_images.append(doc_content)
+                else:
+                    texts.append(doc_content)
+            else:
+                continue
 
-return response, sources
+    return {
+        "images": b64_images,
+        "texts": texts,
+    }
