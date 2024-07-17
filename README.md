@@ -18,21 +18,29 @@ def process_directory(directory):
         with open(json_file, 'r') as f:
             text_chunks = json.load(f)
 
-        # Find images in the subdirectory named 'images' within the selected folder
+        # Find the images folder within the selected folder
         image_dir = os.path.join(os.path.dirname(json_file), 'images')
-        image_files = []
-        if os.path.exists(image_dir):
-            image_files = glob(os.path.join(image_dir, '*.jpg')) + \
-                          glob(os.path.join(image_dir, '*.png'))
+        image_folder = image_dir if os.path.exists(image_dir) else ''
 
-        for image_file in image_files:
-            data.append({
-                'folder_name': os.path.basename(directory),  # Main folder name (xyz)
-                'text_chunks': json.dumps(text_chunks),  # Convert dict to string for CSV
-                'image': image_file
-            })
+        data.append({
+            'folder_name': os.path.basename(directory),  # Main folder name (xyz)
+            'text_chunks': json.dumps(text_chunks),  # Convert dict to string for CSV
+            'images_folder': image_folder
+        })
         
         # Since we only want one entry per xyz folder, we break after processing the first json file
         break
 
     return data
+
+def main(root_directory):
+    all_data = []
+
+    # Process each subfolder in the root directory
+    for subfolder in next(os.walk(root_directory))[1]:
+        subfolder_path = os.path.join(root_directory, subfolder)
+        all_data.extend(process_directory(subfolder_path))
+
+    # Create a DataFrame and write to CSV
+    df = pd.DataFrame(all_data)
+    df.to_csv('output.csv', index=False)
