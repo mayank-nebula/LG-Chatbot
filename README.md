@@ -1,46 +1,107 @@
-def process_directory(directory):
-    data = []
+def add_documents(retriever, doc_summaries, doc_contents):
+        doc_ids = [str(uuid.uuid4()) for _ in doc_contents]
+        summary_docs = [
+            Document(
+                page_content=s,
+                metadata={
+                    id_key: doc_ids[i],
+                    "id": file_metadata["ID"],
+                    "Title": title,
+                    "ContentTags": deliverables_list_metadata["ContentTags"],
+                    "Abstract": deliverables_list_metadata["Abstract"],
+                    "Region": deliverables_list_metadata["Region"],
+                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
+                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
+                    "Country": deliverables_list_metadata["Country"],
+                    "Country_x003a_CountryFusionID": deliverables_list_metadata[
+                        "Country_x003a_CountryFusionID"
+                    ],
+                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
+                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
+                    "DeliverablePermissions": deliverables_list_metadata[
+                        "DeliverablePermissions"
+                    ],
+                    "source": file_metadata["WebUrl"],
+                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
+                    "slide_number": img_name,
+                },
+            )
+            for i, (img_name, s) in enumerate(doc_summaries.items())
+        ]
+        retriever.vectorstore.add_documents(summary_docs)
+        full_docs = [
+            Document(
+                page_content=json.dumps(
+                    {"summary": doc_summaries[img_name], "content": s}
+                ),
+                metadata={
+                    id_key: doc_ids[i],
+                    "id": file_metadata["ID"],
+                    "Title": title,
+                    "ContentTags": deliverables_list_metadata["ContentTags"],
+                    "Abstract": deliverables_list_metadata["Abstract"],
+                    "Region": deliverables_list_metadata["Region"],
+                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
+                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
+                    "Country": deliverables_list_metadata["Country"],
+                    "Country_x003a_CountryFusionID": deliverables_list_metadata[
+                        "Country_x003a_CountryFusionID"
+                    ],
+                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
+                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
+                    "DeliverablePermissions": deliverables_list_metadata[
+                        "DeliverablePermissions"
+                    ],
+                    "source": file_metadata["WebUrl"],
+                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
+                    "slide_number": img_name,
+                },
+            )
+            for i, (img_name, s) in enumerate(doc_contents.items())
+        ]
+        retriever.docstore.mset(list(zip(doc_ids, full_docs)))
 
-    # Check for subfolders GPT and LLava
-    gpt_path = os.path.join(directory, 'GPT')
-    llava_path = os.path.join(directory, 'LLava')
-    selected_folder = directory  # Default to the main directory
 
-    if os.path.isdir(gpt_path):
-        selected_folder = gpt_path
-    elif os.path.isdir(llava_path):
-        selected_folder = llava_path
 
-    # Find the text_chunks.json file in the selected folder
-    json_files = find_files(selected_folder, 'text_chunks.json')
+def split_image_text_types(docs):
+    """Split base64-encoded images, texts, and metadata"""
+    b64_images = []
+    texts = []
+    for doc in docs:
+        if isinstance(doc, Document):
+            file_permission = doc.metadata["DeliverablePermissions"]
+            file_permission_list = file_permission.split(";")
+            print(file_permission_list)
+            if not file_permission_list or any(
+                element in file_permission_list for element in user_permissions
+            ):
+                doc_content = doc.page_content
+                title = doc.metadata["Title"]
+                link = doc.metadata["source"]
+                slide_number = doc.metadata["slide_number"]
 
-    for json_file in json_files:
-        with open(json_file, 'r') as f:
-            text_chunks = json.load(f)
+                concatinated_title = f"{title} - {slide_number}"
 
-        # Find the images folder within the selected folder
-        image_dir = os.path.join(os.path.dirname(json_file), 'images')
-        image_folder = image_dir if os.path.exists(image_dir) else ''
+                if concatinated_title in sources:
+                    if link in sources[concatinated_title]:
+                        continue
+                    else:
+                        sources[concatinated_title].append(link)
+                else:
+                    sources[concatinated_title] = link
 
-        data.append({
-            'folder_name': os.path.basename(directory),  # Main folder name (xyz)
-            'text_chunks': json.dumps(text_chunks),  # Convert dict to string for CSV
-            'images_folder': image_folder
-        })
+                if looks_like_base64(doc_content) and is_image_data(doc_content):
+                    doc_content = resize_base64_image(doc_content, size=(1300, 600))
+                    b64_images.append(doc_content)
+                else:
+                    texts.append(doc_content)
+            else:
+                continue
+
+    return {
+        "images": b64_images,
+        "texts": texts,
+    }
+
+
         
-        # Since we only want one entry per xyz folder, we break after processing the first json file
-        break
-
-    return data
-
-def main(root_directory):
-    all_data = []
-
-    # Process each subfolder in the root directory
-    for subfolder in next(os.walk(root_directory))[1]:
-        subfolder_path = os.path.join(root_directory, subfolder)
-        all_data.extend(process_directory(subfolder_path))
-
-    # Create a DataFrame and write to CSV
-    df = pd.DataFrame(all_data)
-    df.to_csv('output.csv', index=False)
