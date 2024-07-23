@@ -1,6 +1,8 @@
-"Please answer the following question based on the given conversation history.\n"
-        "If the answer is not in the conversation history, respond with 'I am not able to provide a response as it is not there in the conversation history'.\n\n"
-        f"User's question: {data_dict.get('question', 'No question provided')}\n\n"
-        "Conversation history:\n"
-        f"{chat_history if chat_history else 'No previous conversation.'}\n\n"
-        "Please provide your response below:\n"
+class Message(BaseModel):
+    question: str
+    chatHistory: List[str] = []
+    permissions: List[str] = []
+    filters: List[str] = []
+    stores: str = "GPT"
+    image: str = "No"
+    llm: str = "GPT"
