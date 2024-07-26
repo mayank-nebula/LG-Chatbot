@@ -1,27 +1,30 @@
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, AsyncGenerator
-import os
-import re
-import json
-import pandas as pd
-from pymongo import MongoClient
-from dotenv import load_dotenv
-from langchain.schema import HumanMessage
-from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_community.chat_models import ChatOllama
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain.retrievers.multi_vector import MultiVectorRetriever
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
-from chromadb.config import Settings
-import base64
-from PIL import Image
-import io
-import pickle
-import uvicorn
+model = AzureChatOpenAI(
+            api_key=os.environ["AZURE_OPENAI_API_KEY"],
+            openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+            azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+            api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+        )
+        chat_history = "\n".join(
+            [
+                f"Human: {chat['user']}\nAssistant: {chat['ai']}"
+                for chat in message.chatHistory
+            ]
+        )
+
+        prompt_text = """
+            Please answer the following question based on the given conversation history. \
+            Use your own knowledge to answer the question \
+            Conversation history \
+            {chat_history if chat_history else 'No previous conversation.'}
+            User Question : \
+            {element}
+        """
+
+    
+
+        prompt = ChatPromptTemplate.from_template(prompt_text)
+
+        chain = {"element": lambda x: x} | prompt | model | StrOutputParser()
+
+        async for chunk in chain.astream(question):
+            yield f"{chunk}"
