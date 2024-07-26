@@ -16,7 +16,13 @@
         document.getElementById("topic-form").addEventListener("submit", async function(event) {
             event.preventDefault();
             const topic = document.getElementById("topic").value;
-            const response = await fetch(`http://localhost:6969/generate/${topic}`);
+            const response = await fetch(`http://localhost:6969/generate`,{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: topic })
+            });
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
             const resultDiv = document.getElementById("result");
