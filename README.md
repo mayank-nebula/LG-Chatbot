@@ -1,16 +1,17 @@
-import json
-import csv
+import pandas as pd
 
-# Load JSON data
-with open('data.json', 'r') as json_file:
-    data = json.load(json_file)
+# Load the CSV files
+keys = pd.read_csv('keys.csv')
+finals = pd.read_csv('finals.csv')
 
-# Extract keys
-keys = list(data.keys())
+# Ensure the 'sl. no.' columns are properly named
+keys.rename(columns={'sl. no.': 'sl_no', 'key': 'key'}, inplace=True)
+finals.rename(columns={'sl. no.': 'sl_no'}, inplace=True)
 
-# Write to CSV file
-with open('keys.csv', 'w', newline='') as csv_file:
-    writer = csv.writer(csv_file)
-    writer.writerow(['Serial Number', 'Key'])  # Header
-    for idx, key in enumerate(keys, start=1):
-        writer.writerow([idx, key])
+# Merge the dataframes on 'sl_no' column
+merged_df = pd.merge(finals, keys[['sl_no', 'key']], on='sl_no', how='left')
+
+# Save the result to a new CSV file
+merged_df.to_csv('finals_with_keys.csv', index=False)
+
+print("Merged CSV saved as 'finals_with_keys.csv'")
