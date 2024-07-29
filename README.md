@@ -1,4 +1,4 @@
-exports.postRegenerate = async (req, res, next) => {
+exports.postExistingChatting = async (req, res, next) => {
   const question = req.body.question;
   const chatId = req.body.chatId;
   let chat_history = req.body.chatHistory.slice() || [];
@@ -7,6 +7,8 @@ exports.postRegenerate = async (req, res, next) => {
   const stores = req.body.stores;
   const image = req.body.image;
   const llm = req.body.llm;
+  const regenerate = req.body.regenerate || "No";
+  const feedbackRegenerate = req.body.feedbackRegenerate || "No";
   try {
     const userPermissions = await getUserPermissions('/home/Mayank.Sharma/GV_Test/backend/express/utils/users_permission.csv', '194') //Need to change 232 to userLookupId (userLookupId)
     const response = await Chat.findOne({ _id: chatId });
@@ -15,6 +17,19 @@ exports.postRegenerate = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
+    if (regenerate === "Yes") {
+      if (response.length > 0) {
+        response.chats.pop();
+      }
+    }
+
+    if (feedbackRegenerate === "Yes") {
+      if (response.length > 0) {
+        const lastChat = response.chats[response.chats.length - 1];
+        lastChat.flag = true;
+      }
+    }
+
     const flaskResponse = await axios.post("/flask", {
       question,
       chat_history,
@@ -24,6 +39,7 @@ exports.postRegenerate = async (req, res, next) => {
       image,
       llm
     });
+
     const aiResponse = flaskResponse.data.response;
     const sources = flaskResponse.data.sources || [];
     response.chats.push({
