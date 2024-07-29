@@ -1,12 +1,11 @@
-const userSchema = new Schema({
-  documentName: {
-    type: String,
-    required: true,
-  },
-  tags: {
-    type: [String],
-    required: true,
-  },
-}, { timestamps: true });
+exports.postFilteredQuestion = async (req, res, next) => {
+  try {
 
-module.exports = mongoose.model("User", userSchema);
+  } catch (err) {
+    console.log(err);
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+}
