@@ -1,54 +1,64 @@
-exports.postExistingChatting = async (req, res, next) => {
-  const question = req.body.question;
-  const chatId = req.body.chatId;
-  let chat_history = req.body.chatHistory.slice() || [];
-  // const userLookupId = req.body.userLookupId
-  const filters = req.body.filters || [];
-  const stores = req.body.stores;
-  const image = req.body.image;
-  const llm = req.body.llm;
-  const regenerate = req.body.regenerate || "No";
-  const feedbackRegenerate = req.body.feedbackRegenerate || "No";
+const mongoose = require("mongoose");
+
+const Schema = mongoose.Schema;
+
+const chatSchema = new Schema({
+  userEmailId: {
+    type: String,
+    required: true,
+  },
+  title: {
+    type: String,
+    required: true,
+  },
+  chats: [
+    {
+      user: { type: String, required: true },
+      ai: { type: String, required: true },
+      sources: {
+        type: Object,
+        required: false,
+        default: {}
+      },
+      feedback: {
+        type: String,
+        required: false
+      },
+      reason: {
+        type: String,
+        required: false
+      },
+      flag: {
+        type: String,
+        required: false
+      }
+    },
+  ],
+  bookmark: {
+    type: Boolean,
+    required: false,
+    deafult: false
+  }
+}, { timestamps: true });
+
+module.exports = mongoose.model("Chats", chatSchema);
+
+
+exports.getSpecificChat = async (req, res, next) => {
+  const chatId = req.query.chatId;
   try {
-    const userPermissions = await getUserPermissions('/home/Mayank.Sharma/GV_Test/backend/express/utils/users_permission.csv', '194') //Need to change 232 to userLookupId (userLookupId)
-    const response = await Chat.findOne({ _id: chatId });
+    const response = await Chat.findOne({ _id: chatId, userEmailId: req.query.userEmailId });
     if (!response) {
       const error = new Error("Chat Not Found");
       error.statusCode = 404;
       throw error;
     }
-    if (regenerate === "Yes") {
-      if (response.length > 0) {
-        response.chats.pop();
-      }
-    }
-
-    if (feedbackRegenerate === "Yes") {
-      if (response.length > 0) {
-        const lastChat = response.chats[response.chats.length - 1];
-        lastChat.flag = true;
-      }
-    }
-
-    const flaskResponse = await axios.post("/flask", {
-      question,
-      chat_history,
-      userPermissions,
-      filters,
-      stores,
-      image,
-      llm
-    });
-
-    const aiResponse = flaskResponse.data.response;
-    const sources = flaskResponse.data.sources || [];
-    response.chats.push({
-      user: question, ai: aiResponse, sources: sources
-    });
-    await response.save();
-    res.status(200).json({
-      ai: aiResponse,
-      sources: sources,
+    res.status(201).json({
+      message: "Chat extracted.",
+      title: response.title,
+      chats: response.chats,
+      updatedAt: response.updatedAt,
+      createdAt: response.createdAt
     });
   } catch (err) {
     console.log(err);
