@@ -1,27 +1,34 @@
-exports.getAllChats = async (req, res, next) => {
+exports.postExistingChatting = async (req, res, next) => {
+  const question = req.body.question;
+  const chatId = req.body.chatId;
+  let chat_history = req.body.chatHistory.slice() || [];
+  // const userLookupId = req.body.userLookupId
+  const filters = req.body.filters || [];
+  const stores = req.body.stores;
+  const image = req.body.image;
+  const llm = req.body.llm;
   try {
-    const userEmailId = req.query.userEmailId;
-    const fullName = req.query.userName;
-    // const userLookupId = req.query.userLookupId
-    const user = await User.findOne({ email: userEmailId });
-    if (!user) {
-      const permission = await getUserPermissions('/home/Mayank.Sharma/GV_Test/backend/express/utils/users_permission.csv', '194') //Need to change 232 to userLookupId (userLookupId)
-      const newUser = new User({
-        userFullName: fullName,
-        email: userEmailId,
-        userPermissions: permission
-      });
-      await newUser.save();
-      res.status(200).json({ chats: [], message: "new user created" });
-    }
-    else {
-      const chats = await Chat.find({ userEmailId: userEmailId }).sort({ _id: -1 });
-      const chatList = chats.map((chat) => ({
-        id: chat._id,
-        title: chat.title,
-      }));
-      res.status(200).json({ chats: chatList });
-    }
+    const userPermissions = await getUserPermissions('/home/Mayank.Sharma/GV_Test/backend/express/utils/users_permission.csv', '194') //Need to change 232 to userLookupId (userLookupId)
+    const response = await Chat.findOne({ _id: chatId });
+    const flaskResponse = await axios.post("/flask", {
+      question,
+      chat_history,
+      userPermissions,
+      filters,
+      stores,
+      image,
+      llm
+    });
+    const aiResponse = flaskResponse.data.response;
+    const sources = flaskResponse.data.sources || [];
+    response.chats.push({
+      user: question, ai: aiResponse, sources: sources
+    });
+    await response.save();
+    res.status(200).json({
+      ai: aiResponse,
+      sources: sources,
+    });
   } catch (err) {
     console.log(err);
     if (!err.statusCode) {
