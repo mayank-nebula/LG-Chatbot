@@ -1,8 +1,26 @@
-if message.feedbackRegenerate == "Yes":
-                chat = collection_chat.find_one({"_id": message.chatId})
-                if chat and "chats" in chat and len(chat["chats"]) > 0:
-                    last_chat_index = len(chat["chats"]) - 1
-                    collection_chat.update_one(
-                        {"_id": message.chatId, f"chats.{last_chat_index}.flag": {"$exists": False}},
-                        {"$set": {f"chats.{last_chat_index}.flag": True}}
-                    )
+https://20.191.112.232:8080/api/delete-chat/${chatId}
+
+router.delete("/delete-chat", chattingController.deleteChat);
+exports.deleteChat = async (req, res, next) => {
+  const chatId = req.body.chatId;
+  try {
+    const deletedDocument = await Chat.findByIdAndDelete(chatId);
+    if (!deletedDocument) {
+      const error = new Error("Chat Not Found");
+      error.statusCode = 404;
+      throw error;
+    }
+    res.status(200).json({
+      message: "Chat Deleted"
+    })
+  } catch (err) {
+    console.log(err);
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+}
+
+
+66a8647af58c3fbe904d6184
