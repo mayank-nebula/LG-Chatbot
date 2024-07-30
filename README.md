@@ -7,12 +7,17 @@ exports.postQuestionsToMongo = async (req, res) => {
         .pipe(csv())
         .on("data", (row) => {
           const documentName = row["key"];
-          const question = row["Question"];
+          const questionText = row["Question"];
           
+          if (!documentName || !questionText) {
+            console.warn("Skipping row due to missing data:", row);
+            return;
+          }
+
           if (documentMap.has(documentName)) {
-            documentMap.get(documentName).push({ question });
+            documentMap.get(documentName).push({ question: questionText });
           } else {
-            documentMap.set(documentName, [{ question }]);
+            documentMap.set(documentName, [{ question: questionText }]);
           }
         })
         .on("end", resolve)
@@ -21,17 +26,23 @@ exports.postQuestionsToMongo = async (req, res) => {
 
     const savedDocuments = await Promise.all(
       Array.from(documentMap).map(async ([documentName, questions]) => {
+        if (questions.length === 0) {
+          console.warn(`Skipping document ${documentName} due to no valid questions`);
+          return null;
+        }
         const questionDoc = new Question({ documentName, questions });
         return questionDoc.save();
       })
     );
 
+    const successfulSaves = savedDocuments.filter(doc => doc !== null);
+
     res.status(200).json({ 
       message: "Documents Added Successfully", 
-      count: savedDocuments.length 
+      count: successfulSaves.length 
     });
   } catch (err) {
     console.error("Error processing CSV or saving to database:", err);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 };
