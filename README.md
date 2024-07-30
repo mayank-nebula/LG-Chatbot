@@ -1,70 +1,27 @@
-const mongoose = require("mongoose");
-const fs = require("fs");
-const csv = require("csv-parser");
-const path = require("path");
+exports.getLastChatSources = async (req, res, next) => {
+  const chatId = req.query.chatId;
 
-// Connect to MongoDB
-mongoose.connect("mongodb://localhost:27017/yourdatabase", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+  try {
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      const error = new Error('Chat not found');
+      error.statusCode = 404;
+      throw error;
+    }
 
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", function() {
-  console.log("Connected to MongoDB");
-});
+    const lastChat = chat.chats[chat.chats.length - 1];
+    if (!lastChat) {
+      const error = new Error('No chats found in this chat document');
+      error.statusCode = 404;
+      throw error;
+    }
 
-// Define the schema and model
-const userSchema = new mongoose.Schema(
-  {
-    documentName: {
-      type: String,
-      required: true,
-    },
-    tags: {
-      type: [String],
-      required: true,
-    },
-  },
-  { timestamps: true }
-);
-
-const User = mongoose.model("User", userSchema);
-
-// Function to process the CSV file
-const importCSV = (filePath) => {
-  const documentMap = new Map();
-
-  fs.createReadStream(filePath)
-    .pipe(csv())
-    .on("data", (row) => {
-      const documentName = row["DocumentName"];
-      const question = row["Question"];
-
-      if (documentMap.has(documentName)) {
-        documentMap.get(documentName).add(question);
-      } else {
-        documentMap.set(documentName, new Set([question]));
-      }
-    })
-    .on("end", async () => {
-      for (const [documentName, questionsSet] of documentMap) {
-        const tags = Array.from(questionsSet);
-
-        const user = new User({
-          documentName,
-          tags,
-        });
-
-        try {
-          await user.save();
-          console.log(`Inserted: ${documentName}`);
-        } catch (error) {
-          console.error(`Error inserting ${documentName}: `, error);
-        }
-      }
-
-      db.close();
-    });
+    res.status(200).json({ sources: lastChat.sources });
+  } catch (err) {
+    console.log(err);
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
