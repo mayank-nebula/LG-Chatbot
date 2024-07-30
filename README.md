@@ -10,22 +10,18 @@ exports.getQuestionsByDocumentNames = async (req, res) => {
     // Find all documents that match the provided document names
     const documents = await Question.find({ documentName: { $in: documentNames } });
 
-    // Create a map of document name to questions for easy access
-    const resultMap = documents.reduce((acc, doc) => {
-      acc[doc.documentName] = doc.questions;
-      return acc;
-    }, {});
+    // Extract all questions into a single array
+    const allQuestions = documents.reduce((acc, doc) => {
+      return acc.concat(doc.questions);
+    }, []);
 
-    // Prepare the response, including info about missing documents
-    const response = documentNames.map(name => ({
-      documentName: name,
-      questions: resultMap[name] || [],
-      found: !!resultMap[name]
-    }));
+    // Remove duplicates if needed
+    const uniqueQuestions = [...new Set(allQuestions)];
 
     res.status(200).json({
       message: "Questions retrieved successfully",
-      results: response
+      totalQuestions: uniqueQuestions.length,
+      questions: uniqueQuestions
     });
 
   } catch (err) {
