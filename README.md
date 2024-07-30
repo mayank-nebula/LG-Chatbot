@@ -40,30 +40,19 @@
             if (done) break;
             const chunk = decoder.decode(value);
 
-            // Split the chunk into potential JSON objects
-            const parts = chunk.split('}{').map((part, index, array) => {
-              if (index === 0) return part + '}';
-              if (index === array.length - 1) return '{' + part;
-              return '{' + part + '}';
-            });
-
-            parts.forEach(part => {
-              try {
-                const parsed = JSON.parse(part);
-                if (parsed.type === 'text') {
-                  fullText += parsed.content;
-                } else if (parsed.type === 'sources') {
-                  sources = parsed.content;
-                } else if (parsed.type === 'chatId') {
-                  chatId = parsed.content;
-                }
-              } catch (e) {
-                console.error('Failed to parse part:', part, e);
+            try {
+              const parsed = JSON.parse(chunk);
+              if (parsed.type === 'text') {
+                fullText += parsed.content;
+                resultDiv.innerHTML = marked.parse(fullText);
+              } else if (parsed.type === 'sources') {
+                sources = parsed.content;
+              } else if (parsed.type === 'chatId') {
+                chatId = parsed.content;
               }
-            });
-
-            // Update resultDiv with the new fullText
-            resultDiv.innerHTML = marked.parse(fullText);
+            } catch (e) {
+              console.error('Failed to parse chunk:', chunk, e);
+            }
           }
 
           // Format and display sources and chatId
