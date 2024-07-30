@@ -1,48 +1,35 @@
-exports.postQuestionsToMongo = async (req, res) => {
-  const documentMap = new Map();
-
+exports.getQuestionsByDocumentNames = async (req, res) => {
   try {
-    await new Promise((resolve, reject) => {
-      fs.createReadStream('/home/Mayank.Sharma/GV_Test/backend/express/utils/finals_with_keys.csv')
-        .pipe(csv())
-        .on("data", (row) => {
-          const documentName = row["key"];
-          const question = row["Question"];
-          
-          if (!documentName || !question) {
-            console.warn("Skipping row due to missing data:", row);
-            return;
-          }
+    // Ensure the request body contains a list of document names
+    if (!req.body.documentNames || !Array.isArray(req.body.documentNames)) {
+      return res.status(400).json({ message: "Please provide an array of document names in the request body." });
+    }
 
-          if (documentMap.has(documentName)) {
-            documentMap.get(documentName).push(question);
-          } else {
-            documentMap.set(documentName, [question]);
-          }
-        })
-        .on("end", resolve)
-        .on("error", reject);
+    const { documentNames } = req.body;
+
+    // Find all documents that match the provided document names
+    const documents = await Question.find({ documentName: { $in: documentNames } });
+
+    // Create a map of document name to questions for easy access
+    const resultMap = documents.reduce((acc, doc) => {
+      acc[doc.documentName] = doc.questions;
+      return acc;
+    }, {});
+
+    // Prepare the response, including info about missing documents
+    const response = documentNames.map(name => ({
+      documentName: name,
+      questions: resultMap[name] || [],
+      found: !!resultMap[name]
+    }));
+
+    res.status(200).json({
+      message: "Questions retrieved successfully",
+      results: response
     });
 
-    const savedDocuments = await Promise.all(
-      Array.from(documentMap).map(async ([documentName, questions]) => {
-        if (questions.length === 0) {
-          console.warn(`Skipping document ${documentName} due to no valid questions`);
-          return null;
-        }
-        const questionDoc = new Question({ documentName, questions });
-        return questionDoc.save();
-      })
-    );
-
-    const successfulSaves = savedDocuments.filter(doc => doc !== null);
-
-    res.status(200).json({ 
-      message: "Documents Added Successfully", 
-      count: successfulSaves.length 
-    });
   } catch (err) {
-    console.error("Error processing CSV or saving to database:", err);
+    console.error("Error retrieving questions:", err);
     res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 };
