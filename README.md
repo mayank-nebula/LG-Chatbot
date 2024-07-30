@@ -1,70 +1,59 @@
-server {
-    listen 80;
-    server_name your_domain.com;
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Markdown Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  </head>
 
-    # Redirect all HTTP requests to HTTPS
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
+  <body>
+    <h1>Markdown Generator</h1>
+    <form id="topic-form">
+      <label for="topic">Enter a topic:</label>
+      <input type="text" id="topic" name="topic" />
+      <button type="submit">Generate</button>
+    </form>
+    <div id="result"></div>
+    <script>
+      document
+        .getElementById("topic-form")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+          const topic = document.getElementById("topic").value;
+          const response = await fetch("https://20.191.112.232/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ question: topic }),
+          });
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          const resultDiv = document.getElementById("result");
+          let result = "";
 
-server {
-    listen 443 ssl;
-    server_name your_domain.com;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            result += decoder.decode(value, { stream: true });
+            // Update result with streaming content
+            resultDiv.innerHTML = marked.parse(result);
+          }
 
-    ssl_certificate /home/kamal/projects/florence/certs/certificate.pem;
-    ssl_certificate_key /home/kamal/projects/florence/certs/private-key.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256";
-
-    location / {
-        proxy_pass http://127.0.0.1:6969;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Disable buffering to enable streaming
-        proxy_buffering off;
-        proxy_cache off;
-        proxy_request_buffering off;
-    }
-}
-
-
-
-
-
-[Unit]
-Description=Gunicorn instance to serve FastAPI
-After=network.target
-
-[Service]
-User=kamal
-Group=www-data
-WorkingDirectory=/home/kamal/projects/florence
-Environment="PATH=/home/kamal/anaconda3/envs/conda/bin:/home/kamal/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-ExecStart=/home/kamal/anaconda3/envs/conda/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --host 0.0.0.0 --port 6969 
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-
+          // Handle the final accumulated result
+          const parsedResponse = JSON.parse(result);
+          const { content, chatId, sources } = parsedResponse;
+          
+          // Display the content
+          resultDiv.innerHTML = marked.parse(content);
+          
+          // Log chatId and sources for now (you can handle it as needed)
+          console.log("Chat ID:", chatId);
+          console.log("Sources:", sources);
+        });
+    </script>
+  </body>
+</html>
 
 
 
-
-# Create a directory to store the certificate and key
-mkdir ~/certs
-cd ~/certs
-
-# Generate the private key
-openssl genrsa -out private-key.pem 2048
-
-# Generate the certificate signing request (CSR)
-openssl req -new -key private-key.pem -out csr.pem
-
-# Generate the self-signed certificate
-openssl x509 -req -days 365 -in csr.pem -signkey private-key.pem -out certificate.pem
+"type": "text", "content": ""}{"type": "text", "content": "B"}{"type": "text", "content": "rist"}{"type": "text", "content": "ol"}{"type": "text", "content": "-"}{"type": "text", "content": "My"}{"type": "text", "content": "ers"}{"type": "text", "content": " Squ"}{"type": "text", "content": "ibb"}{"type": "text", "content": "'s"}{"type": "text", "content": " current"}{"type": "text", "content": " focus"}{"type": "text", "content": " as"}{"type": "text", "content": " it"}{"type": "text", "content": " continues"}{"type": "text", "content": " to"}{"type": "text", "content": " develop"}{"type": "text", "content": " a"}{"type": "text", "content": " more"}{"type": "text", "content": " bi"}{"type": "text", "content": "oph"}{"type": "text", "content": "armaceutical"}{"type": "text", "content": " business"}{"type": "text", "content": " is"}{"type": "text", "content": " multif"}{"type": "text", "content": "aceted"}{"type": "text", "content": "."}{"type": "text", "content": " The"}{"type": "text", "content": " company"}{"type": "text", "content": " is"}{"type": "text", "content": " transitioning"}{"type": "text", "content": " from"}{"type": "text", "content": " a"}{"type": "text", "content": " diversified"}{"type": "text", "content": " health"}{"type": "text", "content": " and"}{"type": "text", "content": " personal"}{"type": "text", "content": " care"}{"type": "text", "content": " company"}{"type": "text", "content": " to"}{"type": "text", "content": " a"}{"type": "text", "content": " research"}{"type": "text", "content": "-focused"}{"type": "text", "content": ","}{"type": "text", "content": " pure"}{"type": "text", "content": " bi"}{"type": "text", "content": "oph"}{"type": "text", "content": "armaceutical"}{"type": "text", "content": " entity"}{"type": "text", "content": "."}{"type": "text", "content": " This"}{"type": "text", "content": " transformation"}{"type": "text", "content": " involves"}{"type": "text", "content": " div"}{"type": "text", "content": "esting"}{"type": "text", "content": " most"}{"type": "text", "content": " of"}{"type": "text", "content": " its"}{"type": "text", "content": " non"}{"type": "text", "content": "-core"}{"type": "text", "content": " businesses"}{"type": "text", "content": " and"}{"type": "text", "content": " concentrating"}{"type": "text", "content": " on"}{"type": "text", "content": " developing"}{"type": "text", "content": " a"}{"type": "text", "content": " mixture"}{"type": "text", "content": " of"}{"type": "text", "content": " chemical"}{"type": "text", "content": "-based"}{"type": "text", "content": " pills"}{"type": "text", "content": " and"}{"type": "text", "content": " biolog"}{"type": "text", "content": "ic"}{"type": "text", "content": " drugs"}{"type": "text", "content": " manufactured"}{"type": "text", "content": " in"}{"type": "text", "content": " living"}{"type": "text", "content": " cells"}{"type": "text", "content": "."}{"type": "text", "content": " These"}{"type": "text", "content": " efforts"}{"type": "text", "content": " span"}{"type": "text", "content": " a"}{"type": "text", "content": " range"}{"type": "text", "content": " of"}{"type": "text", "content": " diseases"}{"type": "text", "content": ","}{"type": "text", "content": " including"}{"type": "text", "content": " diabetes"}{"type": "text", "content": ","}{"type": "text", "content": " rheumatoid"}{"type": "text", "content": " arthritis"}{"type": "text", "content": ","}{"type": "text", "content": " cancers"}{"type": "text", "content": ","}{"type": "text", "content": " HIV"}{"type": "text", "content": ","}{"type": "text", "content": " and"}{"type": "text", "content": " hepatitis"}{"type": "text", "content": " C"}{"type": "text", "content": ".\n\n"}{"type": "text", "content": "Key"}{"type": "text", "content": " areas"}{"type": "text", "content": " of"}{"type": "text", "content": " focus"}{"type": "text", "content": " include"}{"type": "text", "content": ":\n\n"}{"type": "text", "content": "1"}{"type": "text", "content": "."}{"type": "text", "content": " "}{"type": "text", "content": "On"}{"type": "text", "content": "cology"}{"type": "text", "content": ""}{"type": "text", "content": ":"}{"type": "text", "content": " Bristol"}{"type": "text", "content": "-"}{"type": "text", "content": "My"}{"type": "text", "content": "ers"}{"type": "text", "content": " Squ"}{"type": "text", "content": "ibb"}{"type": "text", "content": " has"}{"type": "text", "content": " identified"}{"type": "text", "content": " oncology"}{"type": "text", "content": " as"}{"type": "text", "content": " an"}{"type": "text", "content": " area"}{"type": "text", "content": " with"}{"type": "text", "content": " significant"}{"type": "text", "content": " unmet"}{"type": "text", "content": " medical"}{"type": "text", "content": " needs"}{"type": "text", "content": " and"}{"type": "text", "content": " is"}{"type": "text", "content": " heavily"}{"type": "text", "content": " investing"}{"type": "text", "content": " in"}{"type": "text", "content": " the"}{"type": "text", "content": " development"}{"type": "text", "content": " and"}{"type": "text", "content": " discovery"}{"type": "text", "content": " of"}{"type": "text", "content": " next"}{"type": "text", "content": "-generation"}{"type": "text", "content": " cancer"}{"type": "text", "content": " treatments"}{"type": "text", "content": ".\n\n"}{"type": "text", "content": "2"}{"type": "text", "content": "."}{"type": "text", "content": " "}{"type": "text", "content": "Di"}{"type": "text", "content": "abetes"}{"type": "text", "content": ""}{"type": "text", "content": ":"}{"type": "text", "content": " The"}{"type": "text", "content": " company"}{"type": "text", "content": " is"}{"type": "text", "content": " bol"}{"type": "text", "content": "st"}{"type": "text", "content": "ering"}{"type": "text", "content": " its"}{"type": "text", "content": " diabetes"}{"type": "text", "content": " franchise"}{"type": "text", "content": " through"}{"type": "text", "content": " strategic"}{"type": "text", "content": " alliances"}{"type": "text", "content": ","}{"type": "text", "content": " such"}{"type": "text", "content": " as"}{"type": "text", "content": " the"}{"type": "text", "content": " collaboration"}{"type": "text", "content": " with"}{"type": "text", "content": " Astra"}{"type": "text", "content": "Zeneca"}{"type": "text", "content": " and"}{"type": "text", "content": " the"}{"type": "text", "content": " acquisition"}{"type": "text", "content": " of"}{"type": "text", "content": " Am"}{"type": "text", "content": "yl"}{"type": "text", "content": "in"}{"type": "text", "content": " Pharmaceuticals"}{"type": "text", "content": "."}{"type": "text", "content": " This"}{"type": "text", "content": " partnership"}{"type": "text", "content": " focuses"}{"type": "text", "content": " on"}{"type": "text", "content": " the"}{"type": "text", "content": " research"}{"type": "text", "content": ","}{"type": "text", "content": " development"}{"type": "text", "content": ","}{"type": "text", "content": " and"}{"type": "text", "content": " commercialization"}{"type": "text", "content": " of"}{"type": "text", "content": " innovative"}{"type": "text", "content": " medicines"}{"type": "text", "content": " for"}{"type": "text", "content": " type"}{"type": "text", "content": " "}{"type": "text", "content": "2"}{"type": "text", "content": " diabetes"}{"type": "text", "content": ".\n\n"}{"type": "text", "content": "3"}{"type": "text", "content": "."}{"type": "text", "content": " "}{"type": "text", "content": "H"}{"type": "text", "content": "ep"}{"type": "text", "content": "atitis"}{"type": "text", "content": " C"}{"type": "text", "content": ""}{"type": "text", "content": ":"}{"type": "text", "content": " Bristol"}{"type": "text", "content": "-"}{"type": "text", "content": "My"}{"type": "text", "content": "ers"}{"type": "text", "content": " Squ"}{"type": "text", "content": "ibb"}{"type": "text", "content": " is"}{"type": "text", "content": " developing"}{"type": "text", "content": " experimental"}{"type": "text", "content": " hepatitis"}{"type": "text", "content": " C"}{"type": "text", "content": " drugs"}{"type": "text", "content": " aimed"}{"type": "text", "content": " at"}{"type": "text", "content": " replacing"}{"type": "text", "content": " the"}{"type": "text", "content": " current"}{"type": "text", "content": " difficult"}{"type": "text", "content": " treatment"}{"type": "text", "content": " reg"}{"type": "text", "content": "imens"}{"type": "text", "content": " with"}{"type": "text", "content": " more"}{"type": "text", "content": " toler"}{"type": "text", "content": "able"}{"type": "text", "content": " and"}{"type": "text", "content": " effective"}{"type": "text", "content": " pill"}{"type": "text", "content": "-based"}{"type": "text", "content": " therapies"}{"type": "text", "content": ".\n\n"}{"type": "text", "content": "4"}{"type": "text", "content": "."}{"type": "text", "content": " "}{"type": "text", "content": "Business"}{"type": "text", "content": " Development"}{"type": "text", "content": ""}{"type": "text", "content": ":"}{"type": "text", "content": " The"}{"type": "text", "content": " company"}{"type": "text", "content": " sees"}{"type": "text", "content": " business"}{"type": "text", "content": " development"}{"type": "text", "content": " as"}{"type": "text", "content": " a"}{"type": "text", "content": " key"}{"type": "text", "content": " component"}{"type": "text", "content": " of"}{"type": "text", "content": " its"}{"type": "text", "content": " strategy"}{"type": "text", "content": ","}{"type": "text", "content": " focusing"}{"type": "text", "content": " on"}{"type": "text", "content": " evaluating"}{"type": "text", "content": " and"}{"type": "text", "content": " executing"}{"type": "text", "content": " transactions"}{"type": "text", "content": " to"}{"type": "text", "content": " build"}{"type": "text", "content": " a"}{"type": "text", "content": " differentiated"}{"type": "text", "content": " capability"}{"type": "text", "content": " in"}{"type": "text", "content": " securing"}{"type": "text", "content": " and"}{"type": "text", "content": " maintaining"}{"type": "text", "content": " innovative"}{"type": "text", "content": " analysts"}{"type": "text", "content": ".\n\n"}{"type": "text", "content": "5"}{"type": "text", "content": "."}{"type": "text", "content": " "}{"type": "text", "content": "Emer"}{"type": "text", "content": "ging"}{"type": "text", "content": " Markets"}{"type": "text", "content": ""}{"type": "text", "content": ":"}{"type": "text", "content": " While"}{"type": "text", "content": " maintaining"}{"type": "text", "content": " a"}{"type": "text", "content": " presence"}{"type": "text", "content": " in"}{"type": "text", "content": " key"}{"type": "text", "content": " emerging"}{"type": "text", "content": " markets"}{"type": "text", "content": " like"}{"type": "text", "content": " China"}{"type": "text", "content": ","}{"type": "text", "content": " Brazil"}{"type": "text", "content": ","}{"type": "text", "content": " and"}{"type": "text", "content": " Mexico"}{"type": "text", "content": ","}{"type": "text", "content": " Bristol"}{"type": "text", "content": "-"}{"type": "text", "content": "My"}{"type": "text", "content": "ers"}{"type": "text", "content": " Squ"}{"type": "text", "content": "ibb"}{"type": "text", "content": " is"}{"type": "text", "content": " using"}{"type": "text", "content": " partnerships"}{"type": "text", "content": " to"}{"type": "text", "content": " increase"}{"type": "text", "content": " the"}{"type": "text", "content": " penetration"}{"type": "text", "content": " of"}{"type": "text", "content": " their"}{"type": "text", "content": " innovative"}{"type": "text", "content": " products"}{"type": "text", "content": "."}{"type": "text", "content": " The"}{"type": "text", "content": " company"}{"type": "text", "content": " is"}{"type": "text", "content": " also"}{"type": "text", "content": " se"}{"type": "text", "content": "eding"}{"type": "text", "content": " companies"}{"type": "text", "content": " in"}{"type": "text", "content": " these"}{"type": "text", "content": " markets"}{"type": "text", "content": " with"}{"type": "text", "content": " investig"}{"type": "text", "content": "ational"}{"type": "text", "content": " medicines"}{"type": "text", "content": " to"}{"type": "text", "content": " produce"}{"type": "text", "content": " high"}{"type": "text", "content": "-quality"}{"type": "text", "content": " data"}{"type": "text", "content": " for"}{"type": "text", "content": " further"}{"type": "text", "content": " development"}{"type": "text", "content": " and"}{"type": "text", "content": " commercialization"}{"type": "text", "content": ".\n\n"}{"type": "text", "content": "6"}{"type": "text", "content": "."}{"type": "text", "content": " "}{"type": "text", "content": "Cost"}{"type": "text", "content": " Efficiency"}{"type": "text", "content": ""}{"type": "text", "content": ":"}{"type": "text", "content": " The"}{"type": "text", "content": " transformation"}{"type": "text", "content": " has"}{"type": "text", "content": " also"}{"type": "text", "content": " led"}{"type": "text", "content": " to"}{"type": "text", "content": " increased"}{"type": "text", "content": " productivity"}{"type": "text", "content": " and"}{"type": "text", "content": " significant"}{"type": "text", "content": " cost"}{"type": "text", "content": " savings"}{"type": "text", "content": ","}{"type": "text", "content": " with"}{"type": "text", "content": " about"}{"type": "text", "content": " $"}{"type": "text", "content": "2"}{"type": "text", "content": " billion"}{"type": "text", "content": " in"}{"type": "text", "content": " annual"}{"type": "text", "content": " savings"}{"type": "text", "content": " achieved"}{"type": "text", "content": " so"}{"type": "text", "content": " far"}{"type": "text", "content": ","}{"type": "text", "content": " which"}{"type": "text", "content": " has"}{"type": "text", "content": " boosted"}{"type": "text", "content": " the"}{"type": "text", "content": " company's"}{"type": "text", "content": " profit"}{"type": "text", "content": ".\n\n"}{"type": "text", "content": "Overall"}{"type": "text", "content": ","}{"type": "text", "content": " Bristol"}{"type": "text", "content": "-"}{"type": "text", "content": "My"}{"type": "text", "content": "ers"}{"type": "text", "content": " Squ"}{"type": "text", "content": "ibb"}{"type": "text", "content": " is"}{"type": "text", "content": " focusing"}{"type": "text", "content": " on"}{"type": "text", "content": " leveraging"}{"type": "text", "content": " its"}{"type": "text", "content": " strengths"}{"type": "text", "content": " in"}{"type": "text", "content": " research"}{"type": "text", "content": " and"}{"type": "text", "content": " development"}{"type": "text", "content": ","}{"type": "text", "content": " strategic"}{"type": "text", "content": " partnerships"}{"type": "text", "content": ","}{"type": "text", "content": " and"}{"type": "text", "content": " business"}{"type": "text", "content": " development"}{"type": "text", "content": " to"}{"type": "text", "content": " drive"}{"type": "text", "content": " growth"}{"type": "text", "content": " and"}{"type": "text", "content": " innovation"}{"type": "text", "content": " in"}{"type": "text", "content": " the"}{"type": "text", "content": " bi"}{"type": "text", "content": "oph"}{"type": "text", "content": "armaceutical"}{"type": "text", "content": " sector"}{"type": "text", "content": "."}{"type": "text", "content": ""}{"type": "soruces", "content": {"GAE294MCK.01222013.GPH - BMS VF_Background and Overview_01222013 - slide_2, slide_4, slide_5, slide_6": "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/Doc.aspx?sourcedoc=%7B8E8648FF-AC29-46DE-8023-5401F92886C7%7D&file=GAE294MCK.01222013.GPH%20-%20BMS%20VF_Background%20and%20Overview_01222013.doc&action=default&mobileredirect=true"}}{"type": "chatId", "content": "66a89b4df3e724ea9d5ae72b"}
