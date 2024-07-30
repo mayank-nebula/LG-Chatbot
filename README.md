@@ -4,7 +4,6 @@
     <title>Markdown Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   </head>
-
   <body>
     <h1>Markdown Generator</h1>
     <form id="topic-form">
@@ -17,46 +16,68 @@
       document.getElementById("topic-form").addEventListener("submit", async function (event) {
         event.preventDefault();
         const topic = document.getElementById("topic").value;
-        const response = await fetch("https://20.191.112.232/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ question: topic }),
-        });
-        
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
         const resultDiv = document.getElementById("result");
-        let buffer = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
+        try {
+          const response = await fetch(`https://localhost:443/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic }),
+          });
 
-          let boundary = buffer.lastIndexOf('}');
-          if (boundary !== -1) {
-            let toProcess = buffer.slice(0, boundary + 1);
-            buffer = buffer.slice(boundary + 1);
-
-            let items = toProcess.split('}{').join('}\n{').split('\n');
-            for (let item of items) {
-              if (item.trim()) {
-                let parsedChunk;
-                try {
-                  parsedChunk = JSON.parse(item);
-                } catch (e) {
-                  console.error("Error parsing chunk:", e);
-                  continue;
-                }
-
-                if (parsedChunk.type === "text") {
-                  resultDiv.innerHTML += marked.parse(parsedChunk.content);
-                }
-              }
-            }
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
           }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let fullText = '';
+          let sources = '';
+          let chatId = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+
+            // Split the chunk into potential JSON objects
+            const parts = chunk.split('}{').map((part, index, array) => {
+              if (index === 0) return part + '}';
+              if (index === array.length - 1) return '{' + part;
+              return '{' + part + '}';
+            });
+
+            parts.forEach(part => {
+              try {
+                const parsed = JSON.parse(part);
+                if (parsed.type === 'text') {
+                  fullText += parsed.content;
+                } else if (parsed.type === 'sources') {
+                  sources = parsed.content;
+                } else if (parsed.type === 'chatId') {
+                  chatId = parsed.content;
+                }
+              } catch (e) {
+                console.error('Failed to parse part:', part, e);
+              }
+            });
+
+            // Update resultDiv with the new fullText
+            resultDiv.innerHTML = marked.parse(fullText);
+          }
+
+          // Format and display sources and chatId
+          if (sources) {
+            console.log('Sources:', sources);
+            // You can update your UI to show sources here
+          }
+
+          if (chatId) {
+            console.log('Chat ID:', chatId);
+            // You can update your UI to show chatId here
+          }
+        } catch (error) {
+          console.error('Error:', error);
         }
       });
     </script>
