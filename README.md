@@ -7,17 +7,17 @@ exports.postQuestionsToMongo = async (req, res) => {
         .pipe(csv())
         .on("data", (row) => {
           const documentName = row["key"];
-          const questionText = row["Question"];
+          const question = row["Question"];
           
-          if (!documentName || !questionText) {
+          if (!documentName || !question) {
             console.warn("Skipping row due to missing data:", row);
             return;
           }
 
           if (documentMap.has(documentName)) {
-            documentMap.get(documentName).push({ question: questionText });
+            documentMap.get(documentName).push(question);
           } else {
-            documentMap.set(documentName, [{ question: questionText }]);
+            documentMap.set(documentName, [question]);
           }
         })
         .on("end", resolve)
