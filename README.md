@@ -29,31 +29,26 @@
           const reader = response.body.getReader();
           const decoder = new TextDecoder("utf-8");
           const resultDiv = document.getElementById("result");
-          let resultText = "";
-          let sources = null;
-          let chatId = null;
+          let result = "";
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            const chunk = decoder.decode(value);
-            const jsonChunk = JSON.parse(chunk);
-
-            if (jsonChunk.type === "text") {
-              resultText += jsonChunk.content;
-              resultDiv.innerHTML = marked.parse(resultText);
-            } else if (jsonChunk.type === "sources") {
-              sources = jsonChunk.content;
-              const sourcesDiv = document.createElement("div");
-              sourcesDiv.innerHTML = `<h2>Sources</h2><pre>${JSON.stringify(sources, null, 2)}</pre>`;
-              resultDiv.appendChild(sourcesDiv);
-            } else if (jsonChunk.type === "chatId") {
-              chatId = jsonChunk.content;
-              const chatIdDiv = document.createElement("div");
-              chatIdDiv.innerHTML = `<h2>Chat ID</h2><p>${chatId}</p>`;
-              resultDiv.appendChild(chatIdDiv);
-            }
+            result += decoder.decode(value, { stream: true });
+            // Update result with streaming content
+            resultDiv.innerHTML = marked.parse(result);
           }
+
+          // Handle the final accumulated result
+          const parsedResponse = JSON.parse(result);
+          const { content, chatId, sources } = parsedResponse;
+          
+          // Display the content
+          resultDiv.innerHTML = marked.parse(content);
+          
+          // Log chatId and sources for now (you can handle it as needed)
+          console.log("Chat ID:", chatId);
+          console.log("Sources:", sources);
         });
     </script>
   </body>
