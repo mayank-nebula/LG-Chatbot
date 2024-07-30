@@ -1,4 +1,8 @@
-if (feedbackRegenerate === "Yes" && response.chats.length > 0) {
-      const lastChat = response.chats[response.chats.length - 1];
-      lastChat.flag = true;
-    }
+if message.feedbackRegenerate == "Yes":
+                chat = collection_chat.find_one({"_id": message.chatId})
+                if chat and "chats" in chat and len(chat["chats"]) > 0:
+                    last_chat_index = len(chat["chats"]) - 1
+                    collection_chat.update_one(
+                        {"_id": message.chatId, f"chats.{last_chat_index}.flag": {"$exists": False}},
+                        {"$set": {f"chats.{last_chat_index}.flag": True}}
+                    )
