@@ -23,36 +23,60 @@
         },
         body: JSON.stringify({ question: topic }),
       });
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       const resultDiv = document.getElementById("result");
-      let result = "";
+      let partialChunk = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        result += chunk;
+        partialChunk += decoder.decode(value, { stream: true });
 
-        // Split the result into individual JSON objects
-        const objects = result.split('\n').filter(obj => obj.trim().length > 0);
-        result = ""; // Reset result to handle incomplete JSON objects
+        // Process each complete JSON object
+        let boundary = partialChunk.lastIndexOf("}\n{") + 1;  // Assuming each JSON object is separated by a newline
+        if (boundary === 0) boundary = partialChunk.lastIndexOf("}") + 1;  // In case there is no "\n{" separator
 
-        // Process each JSON object
-        objects.forEach(obj => {
-          try {
-            const parsedResponse = JSON.parse(obj);
-            if (parsedResponse.type === "text") {
-              resultDiv.innerHTML += marked.parse(parsedResponse.content);
-            } else if (parsedResponse.type === "sources" || parsedResponse.type === "chatId") {
-              console.log(`${parsedResponse.type}:`, parsedResponse.content);
+        while (boundary > 0) {
+          const completeChunk = partialChunk.slice(0, boundary);
+          partialChunk = partialChunk.slice(boundary);
+
+          completeChunk.split("\n").forEach(obj => {
+            if (obj.trim().length > 0) {
+              try {
+                const parsedResponse = JSON.parse(obj);
+                if (parsedResponse.type === "text") {
+                  resultDiv.innerHTML += marked.parse(parsedResponse.content);
+                } else if (parsedResponse.type === "sources" || parsedResponse.type === "chatId") {
+                  console.log(`${parsedResponse.type}:`, parsedResponse.content);
+                }
+              } catch (e) {
+                // Handle JSON parsing error
+                console.error("Error parsing JSON chunk:", obj, e);
+              }
             }
-          } catch (e) {
-            // Incomplete JSON object, add it back to the result
-            result = obj;
+          });
+
+          boundary = partialChunk.lastIndexOf("}\n{") + 1;
+          if (boundary === 0) boundary = partialChunk.lastIndexOf("}") + 1;
+        }
+      }
+
+      // Handle any remaining incomplete JSON object
+      if (partialChunk.trim().length > 0) {
+        try {
+          const parsedResponse = JSON.parse(partialChunk);
+          if (parsedResponse.type === "text") {
+            resultDiv.innerHTML += marked.parse(parsedResponse.content);
+          } else if (parsedResponse.type === "sources" || parsedResponse.type === "chatId") {
+            console.log(`${parsedResponse.type}:`, parsedResponse.content);
           }
-        });
+        } catch (e) {
+          // Handle JSON parsing error
+          console.error("Error parsing remaining JSON chunk:", partialChunk, e);
+        }
       }
     });
   </script>
