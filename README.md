@@ -1,3 +1,7 @@
+const fs = require("fs");
+const csv = require("csv-parser");
+const Question = require("../models/question");
+
 exports.postQuestionsToMongo = async (req, res, next) => {
   const documentMap = new Map();
   const filePath = '/home/Mayank.Sharma/GV_Test/backend/express/utils/finals_with_keys.csv';
@@ -9,18 +13,16 @@ exports.postQuestionsToMongo = async (req, res, next) => {
       const question = row["Question"];
 
       if (documentMap.has(documentName)) {
-        documentMap.get(documentName).add(question);
+        documentMap.get(documentName).push(question);
       } else {
-        documentMap.set(documentName, new Set([question]));
+        documentMap.set(documentName, [question]);
       }
     })
     .on("end", async () => {
       try {
         const bulkOperations = [];
 
-        documentMap.forEach((questionsSet, documentName) => {
-          const questions = Array.from(questionsSet);
-
+        documentMap.forEach((questions, documentName) => {
           bulkOperations.push({
             updateOne: {
               filter: { documentName },
@@ -35,7 +37,7 @@ exports.postQuestionsToMongo = async (req, res, next) => {
         }
 
         res.status(200).json({
-          message: "Documents Added or Updated Successfully"
+          message: "Documents added or updated successfully"
         });
       } catch (err) {
         console.error("Error saving documents: ", err);
