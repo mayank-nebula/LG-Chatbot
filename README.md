@@ -1,54 +1,31 @@
-exports.postExistingChatting = async (req, res, next) => {
-  const question = req.body.question;
+exports.putChatFeedbck = async (req, res, next) => {
+  const feedback = req.body.feedback;
   const chatId = req.body.chatId;
-  let chat_history = req.body.chatHistory.slice() || [];
-  // const userLookupId = req.body.userLookupId
-  const filters = req.body.filters || [];
-  const stores = req.body.stores;
-  const image = req.body.image;
-  const llm = req.body.llm;
-  const regenerate = req.body.regenerate || "No";
-  const feedbackRegenerate = req.body.feedbackRegenerate || "No";
+  const answer = req.body.answer;
+  //need to add messageId instead of answer
   const reason = req.body.reason || "";
-  // console.log(chatId)
+  console.log(feedback)
   try {
-    const userPermissions = await getUserPermissions('/home/Mayank.Sharma/GV_Test/backend/express/utils/users_permission.csv', '194') //Need to change 232 to userLookupId (userLookupId)
-    const response = await Chat.findOne({ _id: chatId });
-    if (!response) {
+    const chatDocument = await Chat.findById(chatId);
+    if (!chatDocument) {
       const error = new Error("Chat Not Found");
       error.statusCode = 404;
       throw error;
     }
-    if (regenerate === "Yes" && response.chats.length > 0) {
-      response.chats.pop();
+    const chat = chatDocument.chats.find(chat => chat.ai === answer);
+    if (!chat) {
+      const error = new Error("Answer Not Found in Chat");
+      error.statusCode = 404;
+      throw error;
     }
-    if (feedbackRegenerate === "Yes" && response.chats.length > 0) {
-      const lastChat = response.chats[response.chats.length - 1];
-      lastChat.flag = true;
+    chat.feedback = feedback;
+    if (reason.length > 0) {
+      chat.reason = reason;
     }
-    const flaskResponse = await axios.post("/flask", {
-      question,
-      chat_history,
-      userPermissions,
-      filters,
-      stores,
-      image,
-      llm,
-      chatId,
-      reason
-    });
-    const aiResponse = flaskResponse.data.response;
-    const sources = flaskResponse.data.sources || [];
-    response.chats.push({
-      user: question,
-      ai: aiResponse,
-      sources: sources
-    });
-    await response.save();
+    await chatDocument.save();
     res.status(200).json({
-      ai: aiResponse,
-      sources: sources,
-    });
+      message: "Feedback Updated",
+    })
   } catch (err) {
     console.log(err);
     if (!err.statusCode) {
@@ -56,3 +33,4 @@ exports.postExistingChatting = async (req, res, next) => {
     }
     next(err);
   }
+}
