@@ -1,28 +1,3 @@
-if message.regenerate == "Yes":
-                    collection_chat.update_one(
-                        {"_id": message.chatId}, {"$pop": {"chats": 1}}
-                    )
-
-                if message.feedbackRegenerate == "Yes":
-                    chat = collection_chat.find_one({"_id": message.chatId})
-                    if chat and "chats" in chat and len(chat["chats"]) > 0:
-                        last_chat_index = len(chat["chats"]) - 1
-                        collection_chat.update_one(
-                            {
-                                "_id": message.chatId,
-                                f"chats.{last_chat_index}.flag": {"$exists": False},
-                            },
-                            {"$set": {f"chats.{last_chat_index}.flag": True}},
-                        )
-
-                new_chat = {
-                    "_id": ObjectId(),
-                    "user": message.question,
-                    "ai": ai_text,
-                    "sources": sources,
-                }
-
-                collection_chat.update_one(
-                    {"_id": message.chatId}, {"$push": {"chats": new_chat}}
-                )
-                chat_id = message.chatId
+const filteredChats = response.chats.filter(chat => {
+      return !chat.flag || chat.flag === false;
+    })
