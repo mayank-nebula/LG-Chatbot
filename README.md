@@ -1,3 +1,1 @@
-const filteredChats = response.chats.filter(chat => {
-      return !chat.flag || chat.flag === false;
-    })
+            yield json.dumps({"type": "chatId", "content": str(chat_id)})
