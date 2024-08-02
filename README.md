@@ -1,32 +1,17 @@
-normal_RAGTool = Tool(
-    func=lambda query, chat_history, permissions=None, filters=None, stores=None, image=None, llm=None, chat_id=None, reason=None: normal_rag_api(
-        query,
-        chat_history,
-        permissions,
-        filters,
-        stores,
-        image,
-        llm,
-        chat_id,
-        reason,
-    ),
-    name="normal_RAGTool",
-    description="Use this normal_RAGTool for answering questions.",
+GPT3_5Tool = Tool(
+    func=gpt3_5_wrapper,
+    name="GPT3_5Tool",
+    description="This tool accesses external knowledge sources. Use ONLY when the user explicitly requests external information or when the query cannot be answered using the internal knowledge base. The user must clearly indicate they want to use external sources.",
 )
 
 summary_RAGTool = Tool(
-    func=lambda query, chat_history, llm, stores: summary_rag_api(
-        query,
-        chat_history,
-        llm,
-        stores,
-    ),
+    func=summary_rag_wrapper,
     name="summary_RAGTool",
-    description="Use this summary_RAGTool for addressing questions about the overall content, main ideas, or summary of an entire document.",
+    description="Use this tool for questions about overall content, main ideas, or summaries of entire documents within the internal knowledge base.",
 )
 
-GPT3_5Tool = Tool(
-    func=lambda query, chat_history: call_gpt3_5(query, chat_history),
-    name="GPT3_5Tool",
-    description="Use this GPT3_5Tool when explicitly requested by the user with '@GK / use external knowledge'. Otherwise, don't use it.",
+normal_RAGTool = Tool(
+    func=normal_rag_wrapper,
+    name="normal_RAGTool",
+    description="Primary tool for answering questions using the internal knowledge base. Use this tool for most queries that don't specifically request external information.",
 )
