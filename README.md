@@ -112,35 +112,32 @@ def summary_rag_api(
         raise ValueError(f"Error processing summary rag tool results: {e}")
 
 
+def gpt3_5_tool_func(query, chat_history):
+    return call_gpt3_5(query, chat_history)
+
+
+def summary_rag_tool_func(query, chat_history, llm, stores):
+    return summary_rag_api(query, chat_history, llm, stores)
+
+
+def normal_rag_tool_func(query, chat_history, permissions, filters, stores, image, llm, chat_id, reason):
+    return normal_rag_api(query, chat_history, permissions, filters, stores, image, llm, chat_id, reason)
+
+
 GPT3_5Tool = Tool(
-    func=lambda query, chat_history: call_gpt3_5(query, chat_history),
+    func=gpt3_5_tool_func,
     name="GPT3_5Tool",
     description="Use ONLY when: The user EXPLICITLY requests external knowledge using indicators like '@GK', 'use general knowledge, 'search from external sources', etc.",
 )
 
 summary_RAGTool = Tool(
-    func=lambda query, chat_history, llm, stores: summary_rag_api(
-        query,
-        chat_history,
-        llm,
-        stores,
-    ),
+    func=summary_rag_tool_func,
     name="summary_RAGTool",
     description="Use this tool for questions about overall content, main ideas, or summaries of entire documents within the internal knowledge base.",
 )
 
 normal_RAGTool = Tool(
-    func=lambda query, chat_history, permissions, filters, stores, image, llm, chat_id, reason: normal_rag_api(
-        query,
-        chat_history,
-        permissions,
-        filters,
-        stores,
-        image,
-        llm,
-        chat_id,
-        reason,
-    ),
+    func=normal_rag_tool_func,
     name="normal_RAGTool",
     description="Primary tool for answering questions using the internal knowledge base. Use this tool for all the queries that don't specifically request external information.",
 )
@@ -311,8 +308,3 @@ def process():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
-
-
-
-TypeError: <lambda>() missing 8 required positional arguments: 'chat_history', 'permissions', 'filters', 'stores', 'image', 'llm', 'chat_id', and 'reason'
