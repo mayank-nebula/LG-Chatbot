@@ -1,39 +1,22 @@
-normal_RAGTool = Tool(
-    func=lambda query: normal_rag_api(query, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason),
-    name="normal_RAGTool",
-    description="Use this normal_RAGTool for answering specific questions about particular parts or details or information within a document.",
-)
+def process_agent(agent_executor, user_input, chat_history, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason):
+    response = agent_executor.invoke(
+        {
+            "input": user_input,
+            "chat_history": (chat_history if chat_history else []),
+        }
+    )
+    return response["output"]
 
-summary_RAGTool = Tool(
-    func=lambda query: summary_rag_api(query, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason),
-    name="summary_RAGTool",
-    description="Use this summary_RAGTool for addressing questions about the overall content, main ideas, or summary of an entire document.",
-)
-
-GPT3_5Tool = Tool(
-    func=lambda query: call_gpt3_5(query, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason),
-    name="GPT3_5Tool",
-    description="Use this GPT3_5Tool for general knowledge questions, creative tasks, or when explicitly requested by the user with '@GK / use external knowledge' or similar indicators.",
-)
-
-
-def call_gpt3_5(query: str, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason):
-    print("hitting gpt rag")
-    # Use the parameters as needed
-    return
-
-def normal_rag_api(query: str, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason):
-    try:
-        print("Hitting normal rag")
-        # Use the parameters as needed
-        return
-    except Exception as e:
-        raise ValueError(f"Error processing normal rag tool results: {e}")
-
-def summary_rag_api(query: str, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason):
-    try:
-        print("Hitting summary rag")
-        # Use the parameters as needed
-        return
-    except Exception as e:
-        raise ValueError(f"Error processing summary rag tool results: {e}")
+if __name__ == "__main__":
+    user_input = input()
+    chat_history = []
+    chat_id = ""
+    filters = []
+    stores = "GPT"
+    image = "No"
+    llm = "GPT"
+    userEmailId = ""
+    regenerate = "No"
+    feedbackRegenerate = "No"
+    reason = ""
+    print(process_agent(agent_executor, user_input, chat_history, chat_id, filters, stores, image, llm, userEmailId, regenerate, feedbackRegenerate, reason))
