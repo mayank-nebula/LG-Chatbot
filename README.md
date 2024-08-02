@@ -15,7 +15,7 @@ normal_RAGTool = Tool(
 )
 
 summary_RAGTool = Tool(
-    func=lambda query, chat_history, stores, llm: summary_rag_api(
+    func=lambda query, chat_history, llm, stores: summary_rag_api(
         query,
         chat_history,
         llm,
@@ -30,3 +30,30 @@ GPT3_5Tool = Tool(
     name="GPT3_5Tool",
     description="Use this GPT3_5Tool when explicitly requested by the user with '@GK / use external knowledge'. Otherwise, don't use it.",
 )
+
+def process_agent(
+    agent_executor,
+    user_input,
+    chat_history,
+    chat_id,
+    filters,
+    stores,
+    image,
+    llm,
+    reason,
+    permissions,
+):
+    response = agent_executor.invoke(
+        {
+            "input": user_input,
+            "chat_history": chat_history,
+            "permissions": permissions,
+            "filters": filters,
+            "stores": stores,
+            "image": image,
+            "llm": llm,
+            "chat_id": chat_id,
+            "reason": reason,
+        }
+    )
+    return response["output"]
