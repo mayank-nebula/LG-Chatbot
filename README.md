@@ -2,7 +2,7 @@ import json
 import csv
 
 def remove_quotes(value):
-    """Remove quotes from a value if it is a string."""
+    """Remove quotes from a value if it is a string with surrounding quotes."""
     if isinstance(value, str):
         return value.strip('"')
     return value
