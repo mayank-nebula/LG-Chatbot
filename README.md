@@ -1,4 +1,5 @@
 import pandas as pd
+import csv
 
 # Read JSON data from a file
 input_file = 'input.json'  # replace with your input file name
@@ -11,7 +12,7 @@ with open(input_file, 'r') as file:
 # Convert to DataFrame
 df = pd.DataFrame(data)
 
-# Save to CSV
-df.to_csv(output_file, index=False)
+# Save to CSV with different quoting options
+df.to_csv(output_file, index=False, quoting=csv.QUOTE_MINIMAL)  # adjust quoting option as needed
 
 print(f"Data successfully written to {output_file}")
