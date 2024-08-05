@@ -1,52 +1,28 @@
-const fs = require('fs');
-const csv = require('csv-parser');
 const Question = require('./models/Question'); // Your mongoose model
 
-exports.postQuestionsToMongo = async (req, res) => {
-  const documentMap = new Map();
-
+exports.getRandomQuestions = async (req, res) => {
   try {
-    await new Promise((resolve, reject) => {
-      fs.createReadStream('/home/Mayank.Sharma/GV_Test/backend/express/utils/finals_with_keys.csv')
-        .pipe(csv())
-        .on("data", (row) => {
-          const documentName = row["key"];
-          const question = row["Question"];
-          
-          if (!documentName || !question) {
-            console.warn("Skipping row due to missing data:", row);
-            return;
-          }
+    // Aggregate pipeline to get random questions
+    const randomQuestions = await Question.aggregate([
+      // Unwind the questions array to create a document for each question
+      { $unwind: "$questions" },
+      // Sample 10 random questions
+      { $sample: { size: 10 } },
+      // Project to get only the question field
+      { $project: { _id: 0, question: "$questions" } }
+    ]);
 
-          if (documentMap.has(documentName)) {
-            documentMap.get(documentName).push(question);
-          } else {
-            documentMap.set(documentName, [question]);
-          }
-        })
-        .on("end", resolve)
-        .on("error", reject);
+    // Extract questions from the result
+    const questions = randomQuestions.map(item => item.question);
+
+    res.status(200).json({
+      message: "Random questions retrieved successfully",
+      totalQuestions: questions.length,
+      questions: questions
     });
 
-    const savedDocuments = await Promise.all(
-      Array.from(documentMap).map(async ([documentName, questions]) => {
-        if (questions.length === 0) {
-          console.warn(`Skipping document ${documentName} due to no valid questions`);
-          return null;
-        }
-        const questionDoc = new Question({ documentName, questions });
-        return questionDoc.save();
-      })
-    );
-
-    const successfulSaves = savedDocuments.filter(doc => doc !== null);
-
-    res.status(200).json({ 
-      message: "Documents Added Successfully", 
-      count: successfulSaves.length 
-    });
   } catch (err) {
-    console.error("Error processing CSV or saving to database:", err);
+    console.error("Error retrieving random questions:", err);
     res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 };
