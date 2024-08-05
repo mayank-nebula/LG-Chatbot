@@ -1,18 +1,52 @@
-import pandas as pd
-import csv
+const fs = require('fs');
+const csv = require('csv-parser');
+const Question = require('./models/Question'); // Your mongoose model
 
-# Read JSON data from a file
-input_file = 'input.json'  # replace with your input file name
-output_file = 'output.csv'  # replace with your desired output file name
+exports.postQuestionsToMongo = async (req, res) => {
+  const documentMap = new Map();
 
-# Read the JSON file
-with open(input_file, 'r') as file:
-    data = pd.read_json(file)
+  try {
+    await new Promise((resolve, reject) => {
+      fs.createReadStream('/home/Mayank.Sharma/GV_Test/backend/express/utils/finals_with_keys.csv')
+        .pipe(csv())
+        .on("data", (row) => {
+          const documentName = row["key"];
+          const question = row["Question"];
+          
+          if (!documentName || !question) {
+            console.warn("Skipping row due to missing data:", row);
+            return;
+          }
 
-# Convert to DataFrame
-df = pd.DataFrame(data)
+          if (documentMap.has(documentName)) {
+            documentMap.get(documentName).push(question);
+          } else {
+            documentMap.set(documentName, [question]);
+          }
+        })
+        .on("end", resolve)
+        .on("error", reject);
+    });
 
-# Save to CSV with different quoting options
-df.to_csv(output_file, index=False, quoting=csv.QUOTE_MINIMAL)  # adjust quoting option as needed
+    const savedDocuments = await Promise.all(
+      Array.from(documentMap).map(async ([documentName, questions]) => {
+        if (questions.length === 0) {
+          console.warn(`Skipping document ${documentName} due to no valid questions`);
+          return null;
+        }
+        const questionDoc = new Question({ documentName, questions });
+        return questionDoc.save();
+      })
+    );
 
-print(f"Data successfully written to {output_file}")
+    const successfulSaves = savedDocuments.filter(doc => doc !== null);
+
+    res.status(200).json({ 
+      message: "Documents Added Successfully", 
+      count: successfulSaves.length 
+    });
+  } catch (err) {
+    console.error("Error processing CSV or saving to database:", err);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
