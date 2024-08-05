@@ -1,6 +1,12 @@
 import json
 import csv
 
+def remove_quotes(value):
+    """Remove quotes from a value if it is a string."""
+    if isinstance(value, str):
+        return value.strip('"')
+    return value
+
 # Load the JSON data from the file
 with open('data.json', 'r') as json_file:
     json_data = json.load(json_file)
@@ -16,6 +22,7 @@ with open('output.csv', 'w', newline='') as csv_file:
 
     # Write the data rows
     for item in json_data:
-        csv_writer.writerow(item.values())
+        row = [remove_quotes(value) for value in item.values()]
+        csv_writer.writerow(row)
 
 print("CSV file has been created successfully.")
