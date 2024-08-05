@@ -1,28 +1,64 @@
-const Question = require('./models/Question'); // Your mongoose model
+if message.chatId:
+                if message.regenerate == "Yes":
+                    collection_chat.update_one(
+                        {"_id": ObjectId(message.chatId)},
+                        {
+                            "$pop": {"chats": 1},
+                            "$set": {"updatedAt": datetime.utcnow()},
+                        },
+                    )
 
-exports.getRandomQuestions = async (req, res) => {
-  try {
-    // Aggregate pipeline to get random questions
-    const randomQuestions = await Question.aggregate([
-      // Unwind the questions array to create a document for each question
-      { $unwind: "$questions" },
-      // Sample 10 random questions
-      { $sample: { size: 10 } },
-      // Project to get only the question field
-      { $project: { _id: 0, question: "$questions" } }
-    ]);
+                if message.feedbackRegenerate == "Yes":
+                    chat = collection_chat.find_one({"_id": ObjectId(message.chatId)})
+                    if chat and "chats" in chat and len(chat["chats"]) > 0:
+                        last_chat_index = len(chat["chats"]) - 1
+                        collection_chat.update_one(
+                            {
+                                "_id": ObjectId(message.chatId),
+                                f"chats.{last_chat_index}.flag": {"$exists": False},
+                            },
+                            {
+                                "$set": {
+                                    f"chats.{last_chat_index}.flag": True,
+                                    "updatedAt": datetime.utcnow(),
+                                }
+                            },
+                        )
 
-    // Extract questions from the result
-    const questions = randomQuestions.map(item => item.question);
+                new_chat = {
+                    "_id": ObjectId(),
+                    "user": message.question,
+                    "ai": ai_text,
+                    "sources": sources,
+                }
 
-    res.status(200).json({
-      message: "Random questions retrieved successfully",
-      totalQuestions: questions.length,
-      questions: questions
-    });
+                collection_chat.update_one(
+                    {"_id": ObjectId(message.chatId)},
+                    {
+                        "$push": {"chats": new_chat},
+                        "$set": {"updatedAt": datetime.utcnow()},
+                    },
+                )
+                chat_id = ObjectId(message.chatId)
+            else:
+                title = create_new_title(message.question, message.llm)
+                new_chat = {
+                    "userEmailId": message.userEmailId,
+                    "title": title,
+                    "chats": [
+                        {
+                            "_id": ObjectId(),
+                            "user": message.question,
+                            "ai": ai_text,
+                            "sources": sources,
+                        }
+                    ],
+                    "createdAt": datetime.utcnow(),
+                    "updatedAt": datetime.utcnow(),
+                }
+                inserted_chat = collection_chat.insert_one(new_chat)
+                chat_id = inserted_chat.inserted_id
 
-  } catch (err) {
-    console.error("Error retrieving random questions:", err);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
-  }
-};
+            chat = collection_chat.find_one({"_id": chat_id})
+            if chat and "chats" in chat:
+                message_id = chat["chats"][-1]["_id"]
