@@ -1,12 +1,21 @@
-slide_number = doc.metadata.get("slide_number", "")
+import json
+import csv
 
-existing_key = next(
-    (k for k in sources.keys() if k.startswith(title)), None
-)
+# Load the JSON data from the file
+with open('data.json', 'r') as json_file:
+    json_data = json.load(json_file)
 
-if existing_key:
-    new_key = existing_key + (f", {slide_number}" if slide_number else "")
-    sources[new_key] = sources.pop(existing_key)
-else:
-    new_key = f"{title}" + (f" - {slide_number}" if slide_number else "")
-    sources[new_key] = link
+# Open a CSV file for writing
+with open('output.csv', 'w', newline='') as csv_file:
+    # Create a CSV writer object
+    csv_writer = csv.writer(csv_file)
+
+    # Write the header row (keys of the first dictionary in the list)
+    header = json_data[0].keys()
+    csv_writer.writerow(header)
+
+    # Write the data rows
+    for item in json_data:
+        csv_writer.writerow(item.values())
+
+print("CSV file has been created successfully.")
