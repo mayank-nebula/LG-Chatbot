@@ -1,46 +1,87 @@
-def split_image_text_types(docs):
-    """Split base64-encoded images, texts, and metadata"""
-    global sources, count_restriction
-    count_restriction = 0
-    b64_images = []
-    texts = []
-    summary = []
-    for doc in docs:
-        if isinstance(doc, Document):
-            file_permission = doc.metadata["DeliverablePermissions"]
-            file_permission_list = file_permission.split(";")
-            if not file_permission_list or any(
-                element in file_permission_list for element in user_permissions
-            ):
-                count_restriction += 1
-                doc_content = json.loads(doc.page_content)
-                title = doc.metadata["Title"]
-                link = doc.metadata["source"]
-                slide_number = doc.metadata.get("slide_number", "")
+import uuid
 
-                existing_key = next(
-                    (k for k in sources.keys() if k.startswith(title)), None
-                )
+from langchain.retrievers.multi_vector import MultiVectorRetriever
+from langchain_community.storage import RedisStore
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
+from langchain_community.embeddings import OllamaEmbeddings
+from chromadb.config import Settings
+import chromadb
 
-                if existing_key:
-                    new_key = existing_key + (
-                        f", {slide_number}" if slide_number else ""
-                    )
-                    sources[new_key] = sources.pop(existing_key)
-                else:
-                    new_key = f"{title}" + (
-                        f" - {slide_number}" if slide_number else ""
-                    )
-                    sources[new_key] = link
+kv_store = RedisStore(redis_url="redis://10.1.0.4:6379/15")
 
-                if looks_like_base64(doc_content["content"]):
-                    resized_image = resize_base64_image(
-                        doc_content["content"], size=(250, 250)
-                    )
-                    b64_images.append(resized_image)
-                    summary.append(doc_content["summary"])
-                else:
-                    texts.append(doc_content["content"])
-            else:
-                continue
-    return {"images": b64_images, "texts": texts, "summary": summary}
+
+settings = Settings(anonymized_telemetry=False)
+
+
+CHROMA_CLIENT = chromadb.HttpClient(host="10.1.0.4", port=8000, settings=settings)
+
+
+def create_multi_vector_retriever(
+    vectorstore, text_summaries, texts, table_summaries, tables, image_summaries, images
+):
+    """
+    Create retriever that indexes summaries, but returns raw images or texts
+    """
+
+    # Initialize the storage layer
+
+    id_key = "testing_redis"
+
+    # Create the multi-vector retriever
+    retriever = MultiVectorRetriever(
+        vectorstore=vectorstore,
+        docstore=kv_store,
+        id_key=id_key,
+    )
+
+    # Helper function to add documents to the vectorstore and docstore
+    def add_documents(retriever, doc_summaries, doc_contents):
+        doc_ids = [str(uuid.uuid4()) for _ in doc_contents]
+        summary_docs = [
+            Document(page_content=s, metadata={id_key: doc_ids[i]})
+            for i, s in enumerate(doc_summaries)
+        ]
+        retriever.vectorstore.add_documents(summary_docs)
+        full_docs = [
+            Document(page_content=s, metadata={id_key: doc_ids[i]})
+            for i, s in enumerate(doc_contents)
+        ]
+        retriever.docstore.mset(list(zip(doc_ids, full_docs)))
+
+    # Add texts, tables, and images
+    # Check that text_summaries is not empty before adding
+    if text_summaries:
+        add_documents(retriever, text_summaries, texts)
+    # Check that table_summaries is not empty before adding
+    if table_summaries:
+        add_documents(retriever, table_summaries, tables)
+    # Check that image_summaries is not empty before adding
+    if image_summaries:
+        add_documents(retriever, image_summaries, images)
+
+    return retriever
+
+embeddings = OllamaEmbeddings(model="nomic-embed-text:latest")
+
+# The vectorstore to use to index the summaries
+vectorstore = Chroma(
+    collection_name="testing_redis",
+    embedding_function=embeddings,
+    client=CHROMA_CLIENT,
+)
+
+# Create retriever
+retriever_multi_vector_img = create_multi_vector_retriever(
+    vectorstore,
+    text_summaries,
+    texts,
+    table_summaries,
+    tables,
+    image_summaries,
+    img_base64_list,
+)
+
+
+
+Invalid input of type: 'Document'. Convert to a bytes, string, int or float first
