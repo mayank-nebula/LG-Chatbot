@@ -1,48 +1,45 @@
-async def content_generator_summary(question: str) -> AsyncGenerator[str, None]:
+    async def content_generator_salutation(question: str) -> AsyncGenerator[str, None]:
         try:
+            formatted_chat_history = (
+                format_chat_history(message.chatHistory)
+                if message.chatHistory
+                else "No Previous Conversation"
+            )
             ai_text = ""
             token_count = 0
-            token_count_reason = "Question Answer from Summary RAG"
-            global user_permissions, sources
-            user_permissions = get_user_permissions(message.userLookupId)
-            sources.clear()
+            token_count_reason = "Question Answer for Salutation"
 
-            search_kwargs = (
-                create_search_kwargs(message.filters) if message.filters else {}
-            )
-            retriever = MultiVectorRetriever(
-                vectorstore=(
-                    vectorstore_gpt_summary
-                    if message.stores == "GPT"
-                    else vectorstore_ollama_summary
-                ),
-                docstore=(
-                    loaded_docstore_gpt_summary
-                    if message.stores == "GPT"
-                    else loaded_docstore_ollama_summary
-                ),
-                id_key=(
-                    "GV_Test_OCR_50_GPT_summary"
-                    if message.stores == "GPT"
-                    else "GV_Test_OCR_50_ollama_summary"
-                ),
-                search_kwargs=search_kwargs,
-            )
-
-            llm_to_use = (
-                llm_gpt
+            model = (
+                AzureChatOpenAI(
+                    api_key=os.environ["AZURE_OPENAI_API_KEY"],
+                    openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                    azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+                    api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                )
                 if message.llm == "GPT"
-                else ChatOllama(temperature=0, model=llama3_1, base_url=base_url)
+                else ChatOllama(base_url=base_url, model=llama3_1)
             )
 
-            chain = multi_modal_rag_chain_source(
-                retriever,
-                llm_to_use,
-                message.llm,
-                "No",
-                message.filters,
-                message.chatHistory,
-                "No",
+            prompt_text = """
+                The following is a conversation with a highly intelligent AI assistant. \
+                The assistant is helpful, knowledgeable, and polite. The assistant always takes into account the previous interactions in the conversation to provide relevant and context-aware responses. \
+                When the user greets the assistant, the assistant should respond with an appropriate salutation and a brief summary or reference to the last topic discussed, ensuring a smooth and coherent continuation of the conversation.\
+                Conversation history \
+                {chat_history}
+                User Question : \
+                {question}
+            """
+
+            prompt = ChatPromptTemplate.from_template(prompt_text)
+
+            chain = (
+                {
+                    "chat_history": lambda _: formatted_chat_history,
+                    "question": lambda x: x,
+                }
+                | prompt
+                | model
+                | StrOutputParser()
             )
 
             async for chunk in chain.astream(question):
@@ -51,10 +48,7 @@ async def content_generator_summary(question: str) -> AsyncGenerator[str, None]:
                     token_count += len(encoding.encode(chunk))
                 yield json.dumps({"type": "text", "content": chunk})
 
-            if count_restriction < 4:
-                sources.update({"Note: This is a Restricted Answer": ""})
-
-            chat_id, message_id = update_chat(message, ai_text, sources)
+            chat_id, message_id = update_chat(message, ai_text)
 
             if message.llm == "GPT":
                 count_tokens(
@@ -67,8 +61,4 @@ async def content_generator_summary(question: str) -> AsyncGenerator[str, None]:
 
             yield json.dumps({"type": "chatId", "content": str(chat_id)})
             yield json.dumps({"type": "messageId", "content": str(message_id)})
-            yield json.dumps({"type": "sources", "content": sources})
-
-        except Exception as e:
-            logging.error(f"An Error Occurred: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+            yield json.dumps({"type": "sources", "content": None})
