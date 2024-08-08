@@ -1,86 +1,45 @@
-const mongoose = require("mongoose");
+def split_image_text_types(docs):
+    """Split base64-encoded images, texts, and metadata"""
+    global sources, count_restriction
+    count_restriction = 0
+    b64_images = []
+    texts = []
+    summary = []
+    for doc in docs:
+        if isinstance(doc, Document):
+            file_permission = doc.metadata["DeliverablePermissions"]
+            file_permission_list = file_permission.split(";")
+            if not file_permission_list or any(
+                element in file_permission_list for element in user_permissions
+            ):
+                count_restriction += 1
+                doc_content = json.loads(doc.page_content)
+                title = doc.metadata["Title"]
+                link = doc.metadata["source"]
+                slide_number = doc.metadata.get("slide_number", "")
 
-const Schema = mongoose.Schema;
+                existing_key = next(
+                    (k for k in sources.keys() if k.startswith(title)), None
+                )
 
-const chatSchema = new Schema({
-  userEmailId: {
-    type: String,
-    required: true,
-  },
-  title: {
-    type: String,
-    required: true,
-  },
-  chats: [
-    {
-      user: { type: String, required: true },
-      ai: { type: String, required: true },
-      sources: {
-        type: Object,
-        required: false,
-        default: {}
-      },
-      feedback: {
-        type: String,
-        required: false
-      },
-      reason: {
-        type: String,
-        required: false
-      },
-      flag: {
-        type: Boolean,
-        required: false
-      }
-    },
-  ],
-  bookmark: {
-    type: Boolean,
-    required: false,
-    default: false
-  }
-}, { timestamps: true });
+                if existing_key:
+                    new_key = existing_key + (
+                        f", {slide_number}" if slide_number else ""
+                    )
+                    sources[new_key] = sources.pop(existing_key)
+                else:
+                    new_key = f"{title}" + (
+                        f" - {slide_number}" if slide_number else ""
+                    )
+                    sources[new_key] = link
 
-module.exports = mongoose.model("Chats", chatSchema);
-
-
-
-const mongoose = require("mongoose");
-
-const Schema = mongoose.Schema;
-
-const questionSchema = new Schema({
-    documentName: {
-        type: String,
-        required: true,
-    },
-    questions: [
-        String
-    ]
-}, { timestamps: true });
-
-module.exports = mongoose.model("Questions", questionSchema);
-
-
-
-const mongoose = require("mongoose");
-
-const Schema = mongoose.Schema;
-
-const userSchema = new Schema({
-  email: {
-    type: String,
-    required: true,
-  },
-  userFullName: {
-    type: String,
-    required: true,
-  },
-  userPermissions: {
-    type: [String],
-    required: true,
-  }
-}, { timestamps: true });
-
-module.exports = mongoose.model("User", userSchema);
-
+                if looks_like_base64(doc_content["content"]):
+                    resized_image = resize_base64_image(
+                        doc_content["content"], size=(250, 250)
+                    )
+                    b64_images.append(resized_image)
+                    summary.append(doc_content["summary"])
+                else:
+                    texts.append(doc_content["content"])
+            else:
+                continue
