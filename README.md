@@ -1,29 +1,93 @@
-Prerequisites
-PuTTY Installation: Ensure that PuTTY is installed on your local machine. You can download it from the official PuTTY website.
-Private Key File: You will need the private key file (.ppk) that corresponds to the public key used when creating the VM. If you have the private key in OpenSSH format (.pem), it must be converted to .ppk format using PuTTYgen.
-Steps to Connect
-Open PuTTY:
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from transformers import DetrImageProcessor, DetrForObjectDetection
+import torch
+from PIL import Image, ImageDraw, ImageFont
+import os
+import numpy as np
+import logging
+import uvicorn
 
-Launch the PuTTY application on your local machine.
-Configure the Session:
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-In the "Host Name (or IP address)" field, enter the public IP address of the VM if it has one. If the VM does not have a public IP, you'll need to connect via a VPN or Azure Bastion.
-Ensure the "Port" field is set to 22, which is the default port for SSH.
-Load the Private Key:
+app = FastAPI()
 
-In the "Category" pane, navigate to Connection > SSH > Auth.
-Click on the "Browse" button next to the "Private key file for authentication" field.
-Select the .ppk file that corresponds to the VM's SSH key.
-Set Username:
+# Load the processor and model
+model_name = "TahaDouaji/detr-doc-table-detection"
+processor = DetrImageProcessor.from_pretrained(model_name)
+model = DetrForObjectDetection.from_pretrained(model_name)
+model.eval()
 
-Navigate back to the "Session" category.
-In the "Saved Sessions" field, you can enter a name for this session if you want to save these settings for future use.
-In the "Host Name" field, append @ followed by the VM’s username (e.g., azureuser@<VM_IP>).
-Connect to the VM:
+# Function to draw bounding boxes
+def draw_boxes(image, boxes, labels, scores, id2label):
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default()
 
-Click the "Open" button to initiate the connection.
-The first time you connect, you may see a security alert regarding the host key. Accept it by clicking "Yes."
-Authenticate:
+    for box, label, score in zip(boxes, labels, scores):
+        box = [round(i, 2) for i in box.tolist()]
+        draw.rectangle(box, outline="red", width=3)
+        draw.text((box[0], box[1]), f"{id2label[label.item()]}: {round(score.item(), 3)}", fill="red", font=font)
 
-Once the SSH connection is established, you may be prompted for a passphrase if your private key is passphrase-protected.
-After successful authentication, you will have shell access to the VM.
+    return image
+
+# Function to crop and save detected tables
+def crop_and_save(image, boxes, output_dir):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    cropped_images = []
+    for idx, box in enumerate(boxes):
+        box = [round(i, 2) for i in box.tolist()]
+        cropped_image = image.crop(box)
+        cropped_image_path = os.path.join(output_dir, f"table_{idx+1}.png")
+        cropped_image.save(cropped_image_path)
+        cropped_images.append(cropped_image_path)
+        logger.info(f"Cropped image saved to {cropped_image_path}")
+    
+    return cropped_images
+
+@app.post("/detect-tables")
+async def detect_tables(file: UploadFile = File(...), output_dir: str = Form(...)):
+    try:
+        # Load and validate the image
+        image = Image.open(file.file).convert('RGB')
+
+        # Convert the image to a numpy array
+        image_array = np.array(image)
+
+        # Prepare inputs and perform inference
+        inputs = processor(images=image_array, return_tensors="pt")
+        outputs = model(**inputs)
+
+        # Post-process the outputs to get the bounding boxes and labels
+        target_sizes = torch.tensor([image.size[::-1]])
+        results = processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.85)[0]
+
+        # Print the detected tables
+        for score, label, box in zip(results["scores"], results["labels"], results["boxes"]):
+            box = [round(i, 2) for i in box.tolist()]
+            logger.info(
+                f"Detected {model.config.id2label[label.item()]} with confidence "
+                f"{round(score.item(), 3)} at location {box}"
+            )
+
+        # Draw the bounding boxes on the image
+        image_with_boxes = draw_boxes(image.copy(), results["boxes"], results["labels"], results["scores"], model.config.id2label)
+
+        # Save the image with bounding boxes
+        output_path = 'image_with_boxes.png'
+        image_with_boxes.save(output_path)
+
+        # Crop and save the detected tables
+        cropped_images = crop_and_save(image, results["boxes"], output_dir)
+
+        return {"message": "Tables detected and processed successfully", "cropped_images": cropped_images}
+    
+    except Exception as e:
+        logger.error(f"Internal server error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# Run the FastAPI app with Uvicorn
+if __name__ == "__main__":
+    uvicorn.run("image2table:app", host="0.0.0.0", port=8183)
