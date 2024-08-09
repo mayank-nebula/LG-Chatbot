@@ -1,17 +1,13 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from transformers import DetrImageProcessor, DetrForObjectDetection
 import torch
 from PIL import Image, ImageDraw, ImageFont
 import os
 import numpy as np
 import logging
-import uvicorn
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-app = FastAPI()
 
 # Load the processor and model
 model_name = "TahaDouaji/detr-doc-table-detection"
@@ -47,11 +43,10 @@ def crop_and_save(image, boxes, output_dir):
     
     return cropped_images
 
-@app.post("/detect-tables")
-async def detect_tables(file: UploadFile = File(...), output_dir: str = Form(...)):
+def detect_tables(image_path, output_dir):
     try:
         # Load and validate the image
-        image = Image.open(file.file).convert('RGB')
+        image = Image.open(image_path).convert('RGB')
 
         # Convert the image to a numpy array
         image_array = np.array(image)
@@ -76,8 +71,9 @@ async def detect_tables(file: UploadFile = File(...), output_dir: str = Form(...
         image_with_boxes = draw_boxes(image.copy(), results["boxes"], results["labels"], results["scores"], model.config.id2label)
 
         # Save the image with bounding boxes
-        output_path = 'image_with_boxes.png'
+        output_path = os.path.join(output_dir, 'image_with_boxes.png')
         image_with_boxes.save(output_path)
+        logger.info(f"Image with bounding boxes saved to {output_path}")
 
         # Crop and save the detected tables
         cropped_images = crop_and_save(image, results["boxes"], output_dir)
@@ -85,19 +81,5 @@ async def detect_tables(file: UploadFile = File(...), output_dir: str = Form(...
         return {"message": "Tables detected and processed successfully", "cropped_images": cropped_images}
     
     except Exception as e:
-        logger.error(f"Internal server error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-# Run the FastAPI app with Uvicorn
-if __name__ == "__main__":
-    uvicorn.run("image2table:app", host="0.0.0.0", port=8183)
-
-
-
-def send_image_for_detection(api_url, image_path, output_dir):
-    with open(image_path, "rb") as image_file:
-        files = {"file": image_file}
-        data = {"output_dir": output_dir}
-        response = requests.post(api_url, files=files, data=data)
-        response.raise_for_status()
-        return response.json()
+        logger.error(f"Error in detecting tables: {e}")
+        raise RuntimeError("Error in detecting tables") from e
