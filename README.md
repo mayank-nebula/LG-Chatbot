@@ -91,3 +91,13 @@ async def detect_tables(file: UploadFile = File(...), output_dir: str = Form(...
 # Run the FastAPI app with Uvicorn
 if __name__ == "__main__":
     uvicorn.run("image2table:app", host="0.0.0.0", port=8183)
+
+
+
+def send_image_for_detection(api_url, image_path, output_dir):
+    with open(image_path, "rb") as image_file:
+        files = {"file": image_file}
+        data = {"output_dir": output_dir}
+        response = requests.post(api_url, files=files, data=data)
+        response.raise_for_status()
+        return response.json()
