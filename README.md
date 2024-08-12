@@ -1,51 +1,14 @@
-const mongoose = require("mongoose");
-
-const Schema = mongoose.Schema;
-
-const chatSchema = new Schema(
-  {
-    userEmailId: {
-      type: String,
-      required: true,
-    },
-    title: {
-      type: String,
-      required: true,
-    },
-    chats: [
-      {
-        user: { type: String, required: true },
-        ai: { type: String, required: true },
-        sources: {
-          type: Object,
-          required: false,
-          default: {},
-        },
-        feedback: {
-          type: String,
-          required: false,
-        },
-        reason: {
-          type: String,
-          required: false,
-        },
-        flag: {
-          type: Boolean,
-          required: false,
-        },
-      },
-    ],
-    bookmark: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-  },
-  { timestamps: true }
-);
-
-module.exports = mongoose.model("Chats", chatSchema);
-
-//region, strategyArea, country, documentType
-filtersMetadata
-[{"country":[""]},{"strategyArea":["",""]}]
+class Message(BaseModel):
+    question: str
+    chatId: str = ""
+    chatHistory: List[Any] = []
+    filters: List[str] = []
+    stores: str = "GPT"
+    image: str = "Yes"
+    llm: str = "GPT"
+    userEmailId: str = ""
+    regenerate: str = "No"
+    feedbackRegenerate: str = "No"
+    reason: str = ""
+    userLookupId: int = 194
+    filtersMetadata: List[Dict[str, List[str]]] = None
