@@ -21,24 +21,42 @@ const certificate = fs.readFileSync(
 
 app.use(helmet());
 app.use(compression());
+
 app.use(
   cors({
-    origin: [
-      "https://evalueserveglobal.sharepoint.com",
-      "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/workbench.aspx",
-      "https://gatesventures.sharepoint.com",
-    ],
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "https://evalueserveglobal.sharepoint.com",
+        "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/workbench.aspx",
+        "https://gatesventures.sharepoint.com",
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+
 app.use(bodyParser.json());
+
+// Custom middleware to validate the Origin header
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  next();
+  const allowedOrigins = [
+    "https://evalueserveglobal.sharepoint.com",
+    "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/workbench.aspx",
+    "https://gatesventures.sharepoint.com",
+  ];
+  const origin = req.get('Origin');
+  if (allowedOrigins.includes(origin)) {
+    next();
+  } else {
+    res.status(403).json({ message: "Access Denied: Invalid Origin" });
+  }
 });
 
 app.use("/api", chatRoutes);
