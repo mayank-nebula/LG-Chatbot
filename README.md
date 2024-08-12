@@ -1,3 +1,40 @@
+app = FastAPI()
+
+allowed_origins = [
+    "https://evalueserveglobal.sharepoint.com",
+    "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/workbench.aspx",
+    "https://gatesventures.sharepoint.com",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+client = MongoClient("mongodb://localhost:27017/")
+db = client["GV_Test"]
+collection_user = db["users"]
+collection_chat = db["chats"]
+
+
+class Message(BaseModel):
+    question: str
+    chatId: str = ""
+    chatHistory: List[Any] = []
+    filters: List[str] = []
+    stores: str = "GPT"
+    image: str = "Yes"
+    llm: str = "GPT"
+    userEmailId: str = ""
+    regenerate: str = "No"
+    feedbackRegenerate: str = "No"
+    reason: str = ""
+    userLookupId: int = 194
+    filtersMetadata: List[Dict[str, List[str]]] = None
+
 @app.middleware("https")
 async def validate_origins(request: Request, call_next):
     origin = request.headers.get("origin")
