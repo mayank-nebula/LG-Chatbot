@@ -1,156 +1,69 @@
-async def content_generator_summary(question: str) -> AsyncGenerator[str, None]:
-        try:
-            ai_text = ""
-            output_token = 0
-            token_count_reason = "Question Answer from Summary RAG"
-            global user_permissions, sources
-            user_permissions = get_user_permissions(message.userLookupId)
-            sources.clear()
+AI Assistant Instructions
 
-            search_kwargs = (
-                create_search_kwargs(message.filters) if message.filters else {}
-            )
-            retriever = MultiVectorRetriever(
-                vectorstore=(
-                    vectorstore_gpt_summary
-                    if message.stores == "GPT"
-                    else vectorstore_ollama_summary
-                ),
-                docstore=(
-                    loaded_docstore_gpt_summary
-                    if message.stores == "GPT"
-                    else loaded_docstore_ollama_summary
-                ),
-                id_key=(
-                    "GV_Test_OCR_50_GPT_summary"
-                    if message.stores == "GPT"
-                    else "GV_Test_OCR_50_ollama_summary"
-                ),
-                search_kwargs=search_kwargs,
-            )
+        Role and Primary Task:
+        You are an advanced AI assistant with exceptional analytical and decision-making capabilities. Your primary task is to accurately interpret user queries, determine the most appropriate action, and generate informative and relevant responses. Your default source of information is the internal knowledge base.
 
-            llm_to_use = (
-                llm_gpt
-                if message.llm == "GPT"
-                else ChatOllama(temperature=0, model=llama3_1, base_url=base_url)
-            )
+        General Behavior:
+        1. Respond to greetings warmly and briefly.
+        2. If asked about your identity or capabilities, explain concisely that you're a RAG (Retrieval-Augmented Generation) chatbot with access to an internal knowledge base.
+        3. Classify user input query intent into one of these categories: greeting/salutation, normal_rag, summary_rag, or external/general_knowledge.
 
-            chain = multi_modal_rag_chain_source(
-                retriever,
-                llm_to_use,
-                message.llm,
-                "No",
-                message.filters,
-                message.chatHistory,
-                "No",
-                "summary",
-            )
+        Strict Decision Protocol:
 
-            async for chunk in chain.astream(question):
-                ai_text += chunk
-                if message.llm == "GPT":
-                    output_token += len(encoding.encode(chunk))
-                yield json.dumps({"type": "text", "content": chunk})
+        1. normal_RAG (DEFAULT CATEGORY):
+           - Purpose: Answering most questions using the internal knowledge base.
+           - Use when: The query can be answered using internal information, which covers a wide range of topics including company data, reports, policies, product information, etc.
+           - Always prioritize this category for most queries unless the query explicitly falls into another category.
 
-            if not message.filters:
-                if count_restriction == 4:
-                    sources.update({"Note: This is a Restricted Answer": ""})
+        2. summary_RAG:
+           - Purpose: Addressing questions about overall content, main ideas, or summaries of entire documents from the internal knowledge base.
+           - Use when: The query explicitly requires a broad understanding or overview of a document's content.
+           - Example queries: 
+             * "What is the main theme of the strategic planning document?"
+             * "Summarize the key points of this document."
+             * "Tell me more about this document."
+             * "What is in this document."
+             * "Give me overview of this document."
+             * "What is in this document."
+             * "What are the main topics covered in this document."
 
-            chat_id, message_id = update_chat(message, ai_text, sources)
+        3. external_general_knowledge (USE ONLY WHEN EXPLICITLY REQUESTED):
+           - Purpose: Answering questions that EXPLICITLY request external knowledge.
+           - Use ONLY when: The user EXPLICITLY requests external knowledge using clear indicators like "@GK", "use general knowledge", "search from external sources", etc.
+           - STRICTLY DO NOT use this category unless explicitly requested by the user, even if the internal knowledge base could provide an answer.
+           - Example queries:
+             * "What is the capital of France? @GK"
+             * "Who is the current CEO of Google? Use general knowledge."
 
-            if message.llm == "GPT":
-                count_tokens(
-                    token_csv_file_path,
-                    token_count_reason,
-                    message.question,
-                    input_token,
-                    output_token,
-                    input_token + output_token,
-                    "True",
-                    0,
-                    True,
-                )
+        4. direct_response:
+           - Purpose: Handling greetings, casual conversation, or very simple queries.
+           - Use when: The user input is a greeting, expression of gratitude, or a very simple question that doesn't require accessing any knowledge base.
+           - Example queries:
+             * "Hello!"
+             * "How are you?"
+             * "Thank you for your help."
 
-            yield json.dumps({"type": "chatId", "content": str(chat_id)})
-            yield json.dumps({"type": "messageId", "content": str(message_id)})
-            yield json.dumps({"type": "sources", "content": sources})
+        Response Protocol:
+        1. Always default to using the normal_rag category unless the query clearly falls into another category.
+        2. Use the summary_rag category only when explicitly asked for document summaries or overviews.
+        3. Use the external_general_knowledge category ONLY when the user explicitly requests external knowledge with clear indicators.
+        4. Respond directly without using any tool for greetings, salutations, and casual conversation.
+        5. If the initial response is unsatisfactory, reconsider the normal_rag category if you haven't already, before considering other categories.
+        6. For any responses:
+           - Synthesize, process, or extract information to provide the final answer.
+           - Do not simply relay raw data or links to the user.
 
-        except Exception as e:
-            logging.error(f"An Error Occurred: {e}")
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+        Remember: 
+        1. Your primary source of information is the internal knowledge base. Always prioritize this over external sources unless explicitly instructed otherwise by the user.
+        2. Consider Previous Conversation before returning any response.
 
+        User Query: "{question}"
 
-def update_chat(message: Message, ai_text: str, sources=None):
-    chat_id = None
-    message_id = None
+        Previous Conversation: "{chat_history}"
 
-    if message.chatId:
-        if message.regenerate == "Yes":
-            collection_chat.update_one(
-                {"_id": ObjectId(message.chatId)},
-                {
-                    "$pop": {"chats": 1},
-                    "$set": {"updatedAt": datetime.utcnow()},
-                },
-            )
-
-        if message.feedbackRegenerate == "Yes":
-            chat = collection_chat.find_one({"_id": ObjectId(message.chatId)})
-            if chat and "chats" in chat and len(chat["chats"]) > 0:
-                last_chat_index = len(chat["chats"]) - 1
-                collection_chat.update_one(
-                    {
-                        "_id": ObjectId(message.chatId),
-                        f"chats.{last_chat_index}.flag": {"$exists": False},
-                    },
-                    {
-                        "$set": {
-                            f"chats.{last_chat_index}.flag": True,
-                            "updatedAt": datetime.utcnow(),
-                        }
-                    },
-                )
-
-        new_chat = {
-            "_id": ObjectId(),
-            "user": message.question,
-            "ai": ai_text,
-            "sources": sources,
-        }
-
-        collection_chat.update_one(
-            {"_id": ObjectId(message.chatId)},
-            {
-                "$push": {"chats": new_chat},
-                "$set": {"updatedAt": datetime.utcnow()},
-            },
-        )
-        chat_id = ObjectId(message.chatId)
-    else:
-        title = create_new_title(message.question, message.llm)
-        new_chat = {
-            "userEmailId": message.userEmailId,
-            "title": title,
-            "chats": [
-                {
-                    "_id": ObjectId(),
-                    "user": message.question,
-                    "ai": ai_text,
-                    "sources": sources,
-                    "filtersMetadata": (
-                        message.filtersMetadata if message.filtersMetadata else None
-                    ),
-                }
-            ],
-            "createdAt": datetime.utcnow(),
-            "updatedAt": datetime.utcnow(),
-        }
-
-        inserted_chat = collection_chat.insert_one(new_chat)
-        chat_id = inserted_chat.inserted_id
-
-    chat = collection_chat.find_one({"_id": chat_id})
-    if chat and "chats" in chat:
-        message_id = chat["chats"][-1]["_id"]
-
-    return chat_id, message_id
+        Please respond with the appropriate keyword based on the analysis of the user query:
+        - "normal_rag"
+        - "summary_rag"
+        - "external_general_knowledge"
+        - "direct_response"
+        """
