@@ -1,9 +1,95 @@
-Hi Team,
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const https = require("https");
+const path = require("path");
 
-I'll need each of your individual SharePoint IDs. To find your ID, please follow these steps:
+const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
+const helmet = require("helmet");
+const compression = require("compression");
+require("dotenv").config();
 
-Open the provided URL.
-Right-click on the page and select "Inspect" to open the developer tools.
-Go to the "Console" tab.
-Reload the page.
-You'll see a log labeled "Current User Info"—that's where you'll find your ID. Please share it with me.
+const app = express();
+const allowedOrigins = [
+  "https://evalueserveglobal.sharepoint.com",
+  "https://gatesventures.sharepoint.com",
+];
+
+const chatRoutes = require("./routes/chatting");
+const documentRoutes = require("./routes/document");
+const privateKey = fs.readFileSync(path.join(__dirname, "certs", "server.key"));
+const certificate = fs.readFileSync(
+  path.join(__dirname, "certs", "server.cert")
+);
+
+app.use(helmet());
+app.use(compression());
+app.use(bodyParser.json());
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Security-Header"],
+    credentials: true,
+  })
+);
+
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       const allowedOrigins = [
+//         "https://evalueserveglobal.sharepoint.com",
+//         "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/workbench.aspx",
+//         "https://gatesventures.sharepoint.com",
+//       ];
+//       if (allowedOrigins.includes(origin)) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("Access Denied: Authentication Failed"));
+//       }
+//     },
+//     methods: ["GET", "POST", "PUT", "DELETE"],
+//     allowedHeaders: ["Content-Type", "Authorization", "X-Security-Header"],
+//     credentials: true,
+//   })
+// );
+
+// app.use((req, res, next) => {
+//   const security_header = req.get("X-Security-Header");
+//   if (security_header && security_header === process.env.SECURITY_HEADER) {
+//     next();
+//   } else {
+//     res.status(403).json({ message: "Access Denied: Authentication Failed" });
+//   }
+// });
+
+app.use("/api", chatRoutes);
+app.use("/api", documentRoutes);
+app.use("/", (req, res) => {
+  res.status(200).json({
+    message: "Welcome to Express Server",
+  });
+});
+
+app.use((error, req, res, next) => {
+  console.log(error);
+  const statusCode = error.statusCode || 500;
+  const message = error.message;
+  res.status(statusCode).json({
+    message: message,
+  });
+});
+
+mongoose
+  .connect(process.env.MONGO_API_KEY)
+  .then((result) => {
+    const server = https
+      .createServer({ key: privateKey, cert: certificate }, app)
+      .listen(8080, "0.0.0.0", () => {
+        console.log("Server is running on port 8080");
+      });
+    console.log("Database Connected");
+  })
+  .catch((err) => console.log(err));
