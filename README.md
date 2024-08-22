@@ -8,28 +8,24 @@ def read_json_file(file_path):
     return data
 
 def merge_json_objects(data):
-    merged_data = defaultdict(lambda: {"metadata": {}, "content": []})
+    merged_data = defaultdict(lambda: {"page_content": "", "slides": []})
 
     for item in data:
         id_ = item["metadata"]["id"]
         slide_number = item["metadata"].get("slide_number", "")
         
-        # Ensure content is merged
-        merged_data[id_]["content"].extend(item.get("content", []))
-        
-        # Add metadata if not already present
-        if not merged_data[id_]["metadata"]:
-            merged_data[id_]["metadata"] = item["metadata"]
-        else:
-            merged_data[id_]["metadata"].update(item["metadata"])
+        # Store the metadata and content together
+        merged_data[id_]["slides"].append({"metadata": item["metadata"], "page_content": item["page_content"]})
 
-        # Organize slide, table, figure order
-        if slide_number:
-            merged_data[id_]["metadata"].setdefault("slides", []).append(slide_number)
-
-    # Sort slides, tables, figures
+    # Sort slides by slide_number
     for key in merged_data:
-        merged_data[key]["metadata"]["slides"].sort(key=lambda x: (re.sub(r'[^a-zA-Z]', '', x), int(re.sub(r'\D', '', x))))
+        merged_data[key]["slides"].sort(key=lambda x: (re.sub(r'[^a-zA-Z]', '', x["metadata"]["slide_number"]), int(re.sub(r'\D', '', x["metadata"]["slide_number"]))))
+        
+        # Concatenate page_content in order
+        merged_data[key]["page_content"] = ' '.join([slide["page_content"] for slide in merged_data[key]["slides"]])
+
+        # Optionally, keep slides list or remove it
+        del merged_data[key]["slides"]  # Remove if you only need merged content and not individual slides
 
     return list(merged_data.values())
 
