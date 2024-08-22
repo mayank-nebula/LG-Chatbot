@@ -1,0 +1,96 @@
+CONVERSION_TIMEOUT = 60
+
+
+def convert_doc_to_file(fpath, fname):
+    try:
+        if fname.endswith(".doc"):
+            docx_fname = os.path.splitext(fname)[0] + ".docx"
+            docx_file = os.path.join(fpath, docx_fname)
+            subprocess.run(
+                ["unoconv", "-f", "docx", "-o", docx_file, os.path.join(fpath, fname)],
+                timeout=CONVERSION_TIMEOUT,
+            )
+
+            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
+            pdf_file = os.path.join(fpath, pdf_fname)
+            subprocess.run(
+                [
+                    "unoconv",
+                    "-f",
+                    "pdf",
+                    "-o",
+                    pdf_file,
+                    os.path.join(fpath, docx_fname),
+                ],
+                timeout=CONVERSION_TIMEOUT,
+            )
+
+            os.remove(docx_file)
+            logging.info("PDF File Created")
+            return True
+
+        elif fname.endswith(".docx"):
+            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
+            pdf_file = os.path.join(fpath, pdf_fname)
+            subprocess.run(
+                ["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath, fname)],
+                timeout=CONVERSION_TIMEOUT,
+            )
+
+            logging.info("PDF File Created")
+            return True
+
+    except subprocess.TimeoutExpired:
+        logging.error(f"Conversion of {fname} can't be done.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+
+    return False
+
+
+def convert_ppt_to_file(fpath, fname):
+    try:
+        if fname.endswith(".ppt"):
+            pptx_fname = os.path.splitext(fname)[0] + ".pptx"
+            pptx_file = os.path.join(fpath, pptx_fname)
+            subprocess.run(
+                ["unoconv", "-f", "pptx", "-o", pptx_file, os.path.join(fpath, fname)],
+                timeout=CONVERSION_TIMEOUT,
+            )
+
+            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
+            pdf_file = os.path.join(fpath, pdf_fname)
+            subprocess.run(
+                [
+                    "unoconv",
+                    "-f",
+                    "pdf",
+                    "-o",
+                    pdf_file,
+                    os.path.join(fpath, pptx_fname),
+                ],
+                timeout=CONVERSION_TIMEOUT,
+            )
+
+            os.remove(pptx_file)
+            logging.info("PDF File Created")
+            return True
+
+        elif fname.endswith(".pptx"):
+            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
+            pdf_file = os.path.join(fpath, pdf_fname)
+            subprocess.run(
+                ["unoconv", "-f", "pdf", "-o", pdf_file, os.path.join(fpath, fname)],
+                timeout=CONVERSION_TIMEOUT,
+            )
+
+            logging.info("PDF File Created")
+            return True
+
+    except subprocess.TimeoutExpired:
+        logging.error(f"Conversion of {fname} can't be done.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+
+    return False
+
