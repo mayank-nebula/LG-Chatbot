@@ -1,3 +1,8 @@
+import os
+import uuid
+import pickle
+from collections import defaultdict
+
 def create_multi_vector_retriever(
     vectorstore,
     text_summaries,
@@ -8,23 +13,8 @@ def create_multi_vector_retriever(
     images,
     file_metadata,
     deliverables_list_metadata,
+    batch_size=75  # Process in batches of 75
 ):
-    """
-    Create a multi-vector retriever.
-
-    Args:
-        vectorstore (Vectorstore): Vectorstore object.
-        text_summaries (List[str]): Summaries of text elements.
-        texts (List[str]): Text elements.
-        table_summaries (List[str]): Summaries of table elements.
-        tables (List[str]): Table elements.
-        image_summaries (List[str]): Summaries of image elements.
-        images (List[str]): Image elements.
-        file_metadata (dict): Metadata for the file.
-        deliverables_list_metadata (dict): Deliverables list metadata
-
-    """
-
     current_dir = os.getcwd()
     docstore_path = os.path.join(
         current_dir,
@@ -32,7 +22,12 @@ def create_multi_vector_retriever(
         f"{deliverables_list_metadata['Title']}.pkl",
     )
 
-    store = InMemoryStore()
+    # Load existing docstore if it exists
+    if os.path.exists(docstore_path):
+        with open(docstore_path, 'rb') as f:
+            store = pickle.load(f)
+    else:
+        store = InMemoryStore()
 
     id_key = "GatesVentures_Scientia"
     retriever = MultiVectorRetriever(
@@ -40,65 +35,36 @@ def create_multi_vector_retriever(
     )
     title, _ = os.path.splitext(deliverables_list_metadata["FileLeafRef"])
 
-    def add_documents(retriever, doc_summaries, doc_contents):
-        doc_ids = [str(uuid.uuid4()) for _ in doc_contents]
-        summary_docs = [
-            Document(
-                page_content=s,
-                metadata={
-                    id_key: doc_ids[i],
-                    "id": file_metadata["ID"],
-                    "Title": title,
-                    "ContentTags": deliverables_list_metadata["ContentTags"],
-                    "Abstract": deliverables_list_metadata["Abstract"],
-                    "Region": deliverables_list_metadata["Region"],
-                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
-                    "Country": deliverables_list_metadata["Country"],
-                    "Country_x003a_CountryFusionID": deliverables_list_metadata[
-                        "Country_x003a_CountryFusionID"
-                    ],
-                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
-                    "DeliverablePermissions": deliverables_list_metadata[
-                        "DeliverablePermissions"
-                    ],
-                    "source": file_metadata["WebUrl"],
-                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                    "slide_number": img_name,
-                },
-            )
-            for i, (img_name, s) in enumerate(doc_summaries.items())
-        ]
-        retriever.vectorstore.add_documents(summary_docs)
-        full_docs = [
-            Document(
-                page_content=json.dumps(
-                    {"summary": doc_summaries[img_name], "content": s}
-                ),
-                metadata={
-                    id_key: doc_ids[i],
-                    "id": file_metadata["ID"],
-                    "Title": title,
-                    "ContentTags": deliverables_list_metadata["ContentTags"],
-                    "Abstract": deliverables_list_metadata["Abstract"],
-                    "Region": deliverables_list_metadata["Region"],
-                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
-                    "Country": deliverables_list_metadata["Country"],
-                    "Country_x003a_CountryFusionID": deliverables_list_metadata[
-                        "Country_x003a_CountryFusionID"
-                    ],
-                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
-                    "DeliverablePermissions": deliverables_list_metadata[
-                        "DeliverablePermissions"
-                    ],
-                    "source": file_metadata["WebUrl"],
-                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                    "slide_number": img_name,
-                },
-            )
-            for i, (img_name, s) in enumerate(doc_contents.items())
-        ]
-        retriever.docstore.mset(list(zip(doc_ids, full_docs)))
+    def add_documents_in_batches(retriever, doc_summaries, doc_contents):
+        for start_idx in range(0, len(doc_contents), batch_size):
+            end_idx = start_idx + batch_size
+            batch_summaries = {k: doc_summaries[k] for k in list(doc_summaries)[start_idx:end_idx]}
+            batch_contents = {k: doc_contents[k] for k in list(doc_contents)[start_idx:end_idx]}
+
+            doc_ids = [str(uuid.uuid4()) for _ in batch_contents]
+
+            summary_docs = [
+                Document(
+                    page_content=s,
+                    metadata={**file_metadata, **deliverables_list_metadata, "slide_number": img_name}
+                )
+                for img_name, s in batch_summaries.items()
+            ]
+            retriever.vectorstore.add_documents(summary_docs)
+
+            full_docs = [
+                Document(
+                    page_content=json.dumps({"summary": batch_summaries[img_name], "content": s}),
+                    metadata={**file_metadata, **deliverables_list_metadata, "slide_number": img_name}
+                )
+                for img_name, s in batch_contents.items()
+            ]
+            retriever.docstore.mset(list(zip(doc_ids, full_docs)))
+
+    add_documents_in_batches(retriever, text_summaries, texts)
+    add_documents_in_batches(retriever, table_summaries, tables)
+    add_documents_in_batches(retriever, image_summaries, images)
+
+    # Save the updated docstore back to the .pkl file
+    with open(docstore_path, 'wb') as f:
+        pickle.dump(store, f)
