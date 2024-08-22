@@ -1,70 +1,52 @@
-import os
-import uuid
-import pickle
+import json
 from collections import defaultdict
+import re
 
-def create_multi_vector_retriever(
-    vectorstore,
-    text_summaries,
-    texts,
-    table_summaries,
-    tables,
-    image_summaries,
-    images,
-    file_metadata,
-    deliverables_list_metadata,
-    batch_size=75  # Process in batches of 75
-):
-    current_dir = os.getcwd()
-    docstore_path = os.path.join(
-        current_dir,
-        "docstores_normal_rag",
-        f"{deliverables_list_metadata['Title']}.pkl",
-    )
+def read_json_file(file_path):
+    with open(file_path, 'r') as file:
+        data = [json.loads(line) for line in file]
+    return data
 
-    # Load existing docstore if it exists
-    if os.path.exists(docstore_path):
-        with open(docstore_path, 'rb') as f:
-            store = pickle.load(f)
-    else:
-        store = InMemoryStore()
+def merge_json_objects(data):
+    merged_data = defaultdict(lambda: {"metadata": {}, "content": []})
 
-    id_key = "GatesVentures_Scientia"
-    retriever = MultiVectorRetriever(
-        vectorstore=vectorstore, docstore=store, id_key=id_key
-    )
-    title, _ = os.path.splitext(deliverables_list_metadata["FileLeafRef"])
+    for item in data:
+        id_ = item["metadata"]["id"]
+        slide_number = item["metadata"].get("slide_number", "")
+        
+        # Ensure content is merged
+        merged_data[id_]["content"].extend(item.get("content", []))
+        
+        # Add metadata if not already present
+        if not merged_data[id_]["metadata"]:
+            merged_data[id_]["metadata"] = item["metadata"]
+        else:
+            merged_data[id_]["metadata"].update(item["metadata"])
 
-    def add_documents_in_batches(retriever, doc_summaries, doc_contents):
-        for start_idx in range(0, len(doc_contents), batch_size):
-            end_idx = start_idx + batch_size
-            batch_summaries = {k: doc_summaries[k] for k in list(doc_summaries)[start_idx:end_idx]}
-            batch_contents = {k: doc_contents[k] for k in list(doc_contents)[start_idx:end_idx]}
+        # Organize slide, table, figure order
+        if slide_number:
+            merged_data[id_]["metadata"].setdefault("slides", []).append(slide_number)
 
-            doc_ids = [str(uuid.uuid4()) for _ in batch_contents]
+    # Sort slides, tables, figures
+    for key in merged_data:
+        merged_data[key]["metadata"]["slides"].sort(key=lambda x: (re.sub(r'[^a-zA-Z]', '', x), int(re.sub(r'\D', '', x))))
 
-            summary_docs = [
-                Document(
-                    page_content=s,
-                    metadata={**file_metadata, **deliverables_list_metadata, "slide_number": img_name}
-                )
-                for img_name, s in batch_summaries.items()
-            ]
-            retriever.vectorstore.add_documents(summary_docs)
+    return list(merged_data.values())
 
-            full_docs = [
-                Document(
-                    page_content=json.dumps({"summary": batch_summaries[img_name], "content": s}),
-                    metadata={**file_metadata, **deliverables_list_metadata, "slide_number": img_name}
-                )
-                for img_name, s in batch_contents.items()
-            ]
-            retriever.docstore.mset(list(zip(doc_ids, full_docs)))
+def write_json_file(file_path, data):
+    with open(file_path, 'w') as file:
+        for item in data:
+            file.write(json.dumps(item) + '\n')
 
-    add_documents_in_batches(retriever, text_summaries, texts)
-    add_documents_in_batches(retriever, table_summaries, tables)
-    add_documents_in_batches(retriever, image_summaries, images)
-
-    # Save the updated docstore back to the .pkl file
-    with open(docstore_path, 'wb') as f:
-        pickle.dump(store, f)
+if __name__ == "__main__":
+    input_file_path = 'input.txt'
+    output_file_path = 'output.txt'
+    
+    # Step 1: Read JSON objects from file
+    data = read_json_file(input_file_path)
+    
+    # Step 2: Merge JSON objects by id
+    merged_data = merge_json_objects(data)
+    
+    # Step 3: Write merged data to output file
+    write_json_file(output_file_path, merged_data)
