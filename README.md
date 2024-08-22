@@ -7,8 +7,13 @@ def read_json_file(file_path):
         data = [json.loads(line) for line in file]
     return data
 
+def split_content_into_chunks(slides, chunk_size=75):
+    # Split slides into chunks of specified size
+    for i in range(0, len(slides), chunk_size):
+        yield slides[i:i + chunk_size]
+
 def merge_json_objects(data):
-    merged_data = defaultdict(lambda: {"page_content": "", "metadata": {}})
+    merged_data = defaultdict(lambda: {"metadata": {}, "page_content": {}})
 
     for item in data:
         id_ = item["metadata"]["id"]
@@ -26,13 +31,15 @@ def merge_json_objects(data):
             "page_content": item["page_content"]
         })
 
-    # Sort slides by slide_number and concatenate page_content
+    # Sort slides by slide_number and concatenate page_content in chunks
     for key in merged_data:
         slides = merged_data[key]["metadata"]["slides"]
         slides.sort(key=lambda x: (re.sub(r'[^a-zA-Z]', '', x["slide_number"]), int(re.sub(r'\D', '', x["slide_number"]))))
         
-        # Concatenate page_content in order
-        merged_data[key]["page_content"] = ' '.join([slide["page_content"] for slide in slides])
+        # Split slides into chunks and concatenate page_content
+        chunked_contents = split_content_into_chunks(slides)
+        for idx, chunk in enumerate(chunked_contents, 1):
+            merged_data[key]["page_content"][f"c{idx}"] = ' '.join([slide["page_content"] for slide in chunk])
         
         # Remove the temporary slides list
         del merged_data[key]["metadata"]["slides"]
@@ -51,7 +58,7 @@ if __name__ == "__main__":
     # Step 1: Read JSON objects from file
     data = read_json_file(input_file_path)
     
-    # Step 2: Merge JSON objects by id
+    # Step 2: Merge JSON objects by id and split content into chunks
     merged_data = merge_json_objects(data)
     
     # Step 3: Write merged data to output file
