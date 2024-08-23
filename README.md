@@ -1,11 +1,13 @@
-def remove_section_before_fileleafref(json_str):
-    # Remove everything from the start of the object up to "FileLeafRef"
-    pattern = r'^\{.*?(?="FileLeafRef")'
-    json_str = re.sub(pattern, '{', json_str, flags=re.DOTALL)
+def extract_fileleafref(json_str):
+    # Pattern to match "FileLeafRef" and its value
+    pattern = r'"FileLeafRef"\s*:\s*"([^"]*)"'
     
-    # Ensure the resulting string is valid JSON
-    try:
-        json_obj = json.loads(json_str)
-        return json.dumps(json_obj, ensure_ascii=False)
-    except json.JSONDecodeError:
-        return json_str 
+    # Search for the pattern in the string
+    match = re.search(pattern, json_str)
+    
+    if match:
+        # If found, return the value
+        return match.group(1)
+    else:
+        # If not found, return None or an appropriate message
+        return None
