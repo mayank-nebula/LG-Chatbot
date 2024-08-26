@@ -1,19 +1,41 @@
-def load_docstore_chunk(path, chunk_id):
-    if os.path.exists(os.path.join(path, chunk_id)):
-        with open(os.path.join(path, chunk_id), "rb") as f:
+import os
+import pickle
+
+import chromadb
+from chromadb.config import Settings
+
+settings = Settings(anonymized_telemetry=False)
+
+CHROMA_CLIENT = chromadb.HttpClient(host="10.1.0.4", port=8000, settings=settings)
+collection = CHROMA_CLIENT.get_or_create_collection(name="GatesVentures_Scientia")
+
+
+def load_docstore(path):
+    if os.path.exists(path):
+        with open(path, "rb") as f:
             return pickle.load(f)
     return None
 
 
-def load_full_docstore(path):
-    full_store = InMemoryStore()
-    for i in os.listdir(path):
-        chunk = load_docstore_chunk(path, i)
-        if chunk:
-            full_store.store.update(chunk.store)
-    return full_store
-
-
-def save_full_docstore(docstore, path):
+def save_docstore(docstore, path):
     with open(path, "wb") as f:
         pickle.dump(docstore, f)
+
+
+def delete_form_vectostore(file_id_list):
+    ids_to_delete_normal = []
+    ids_to_delete_summary = []
+    docstore_normal = load_docstore("GatesVentures_Scientia.pkl")
+    docstore_summary = load_docstore("GatesVentures_Scientia_Summary.pkl")
+    for id in file_id_list:
+        collection_result = collection.get(where={"id": id})
+        collection.delete(where={"id": id})
+        for metadata in collection_result["metadatas"]:
+            if metadata["GatesVentures_Scientia"]:
+                ids_to_delete_normal.append(metadata["GatesVentures_Scientia"])
+            elif metadata["GatesVentures_Scientia_Summary"]:
+                ids_to_delete_summary.append(metadata["GatesVentures_Scientia_Summary"])
+    docstore_normal.mdelete(ids_to_delete_normal)
+    docstore_summary.mdelete(ids_to_delete_summary)
+    save_docstore(docstore_normal, "GatesVentures_Scientia.pkl")
+    save_docstore(docstore_summary, "GatesVentures_Scientia_Summary.pkl")
