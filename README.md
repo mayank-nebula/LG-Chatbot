@@ -1,9 +1,9 @@
-full_store_normal_rag = load_full_docstore(
-            os.path.join(os.getcwd(), "docstores_normal_rag")
-        )
-        save_full_docstore(
-            full_store_normal_rag, os.path.join(os.getcwd(), "GatesVentures_Scientia.pkl")
-        )
+def load_docstore_chunk(path, chunk_id):
+    if os.path.exists(os.path.join(path, chunk_id)):
+        with open(os.path.join(path, chunk_id), "rb") as f:
+            return pickle.load(f)
+    return None
+
 
 def load_full_docstore(path):
     full_store = InMemoryStore()
