@@ -1,4 +1,27 @@
-ERROR: for fast_app_1  Cannot start service app: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: exec: "uvicorn": executable file not found in $PATH: unknown
+version: "3.3"
 
-ERROR: for app  Cannot start service app: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: exec: "uvicorn": executable file not found in $PATH: unknown
-ERROR: Encountered errors while bringing up the project.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "6969:6969"
+    environment:
+      ENV: production
+      MONGODB_COLLECTION: "${MONGODB_COLLECTION}"
+      MONGO_API_KEY: "${MONGO_API_KEY}"
+      AZURE_OPENAI_API_VERSION: "${AZURE_OPENAI_API_VERSION}"
+      AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_35: "${AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_35}"
+      AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_4O: "${AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_4O}"
+      AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_EMBEDDING: "${AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_EMBEDDING}"
+      AZURE_OPENAI_ENDPOINT: "${AZURE_OPENAI_ENDPOINT}"
+    volumes:
+      - ./certificates:/app/certificates
+      - ./csv:/app/csv
+      - ./docstores:/app/docstores
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+
+# remove extra_hosts in case of external mongo ip
