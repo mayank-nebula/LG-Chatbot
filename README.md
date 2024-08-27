@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "6969:6969"
+      - "8443:6969"
     environment:
       ENV: production
       MONGODB_COLLECTION: "${MONGODB_COLLECTION}"
@@ -16,31 +16,26 @@ services:
       AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_4O: "${AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_4O}"
       AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_EMBEDDING: "${AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_EMBEDDING}"
       AZURE_OPENAI_ENDPOINT: "${AZURE_OPENAI_ENDPOINT}"
+      # CHROMA_HOST: chroma
+      # CHROMA_PORT: 8000
     volumes:
       - ./certificates:/app/certificates
       - ./csv:/app/csv
       - ./docstores:/app/docstores
+    # depends_on:
+    #   - chroma
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
+  
+  # chroma:
+  #   image: chromadb/chroma:latest
+  #   volumes:
+  #     - chroma_data:/chroma/chroma
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - ALLOW_RESET=true
+  #   restart: always
 
 # remove extra_hosts in case of external mongo ip
-
-FROM python:3.11.9
-
-WORKDIR /app
-
-RUN python -m venv /app/venv
-RUN /app/venv/bin/pip install --upgrade pip
-
-COPY requirements.txt .
-RUN /app/venv/bin/pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-COPY ./certificates /app/certificates
-
-EXPOSE 6969
-
-CMD ["/bin/sh", "-c","source /app/venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 6969 --ssl-keyfile /app/certificates/private-key.pem --ssl-certfile /app/certificates/certificate.pem --workers 4"]
-
