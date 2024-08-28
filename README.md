@@ -1,5 +1,6 @@
 import json
 import os
+import csv
 from langchain.chains.summarize import load_summarize_chain
 from langchain_openai import AzureChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -9,17 +10,14 @@ import logging
 
 load_dotenv()
 
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
 
 def read_json_file(file_path):
     with open(file_path, "r") as file:
         data = [json.loads(line) for line in file]
     return data
-
 
 def append_to_dict(dict, key, value, metadata):
     unique_key = f"{key}_{metadata['id']}"
@@ -27,6 +25,10 @@ def append_to_dict(dict, key, value, metadata):
     with open("final_summary.txt", "a") as f:
         f.write(json.dumps(dict) + "\n")
 
+def save_failed_summary(file_id, error_message):
+    with open("failed_summaries.csv", "a", newline="") as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow([file_id, error_message])
 
 if __name__ == "__main__":
     data = read_json_file("summary_text_output.txt")
@@ -47,7 +49,7 @@ if __name__ == "__main__":
 
     combine_prompt_template = """
                           Write a comprehensive summary of the following text delimited by triple backquotes.
-                          Aim for a summary length of approximately 800 words with out missing the important information the text.
+                          Aim for a summary length of approximately 800 words without missing the important information in the text.
                           ```{text}```
                           COMPREHENSIVE SUMMARY:
                           """
@@ -64,26 +66,30 @@ if __name__ == "__main__":
     )
 
     try:
-        for individual_data in data[:3]:
-            logging.info(
-                f"Generating Summary of file {individual_data[metadata]['id']}"
-            )
+        for individual_data in data:
+            file_id = individual_data["metadata"]["id"]
+            logging.info(f"Generating Summary of file {file_id}")
             summarized_docs = {}
             summarized_docs_list = []
             title = individual_data["metadata"]["Title"]
             page_content = individual_data["page_content"]
             metadata = individual_data["metadata"]
-            for individual_batch_key, individual_batch_value in page_content.items():
-                doc = Document(page_content=individual_batch_value)
-                summary_result = summary_chain.invoke([doc])
-                summary = summary_result["output_text"]
-                summarized_docs_list.append(summary)
+            try:
+                for individual_batch_key, individual_batch_value in page_content.items():
+                    doc = Document(page_content=individual_batch_value)
+                    summary_result = summary_chain.invoke([doc])
+                    summary = summary_result["output_text"]
+                    summarized_docs_list.append(summary)
 
-            if len(summarized_docs_list) > 1:
-                final_summary = " ".join(summarized_docs_list)
-            else:
-                final_summary = summarized_docs_list[0]
+                if len(summarized_docs_list) > 1:
+                    final_summary = " ".join(summarized_docs_list)
+                else:
+                    final_summary = summarized_docs_list[0]
 
-            append_to_dict(summarized_docs, title, final_summary, metadata)
+                append_to_dict(summarized_docs, title, final_summary, metadata)
+            except Exception as e:
+                logging.error(f"Failed to generate summary for file {file_id}: {str(e)}")
+                save_failed_summary(file_id, str(e))
+
     except Exception as e:
-        logging.error(f"Failed to generate summary of the file {e}")
+        logging.error(f"Failed to process the data: {str(e)}")
