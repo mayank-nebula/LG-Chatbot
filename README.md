@@ -1,26 +1,21 @@
 import pandas as pd
-import os
 
-# Read the CSV files
-csv1 = pd.read_csv('file1.csv')  # Replace 'file1.csv' with your first CSV filename
-csv2 = pd.read_csv('file2.csv')  # Replace 'file2.csv' with your second CSV filename
+# Load the CSV files into DataFrames
+df1 = pd.read_csv('file1.csv')
+df2 = pd.read_csv('file2.csv')
 
-# Define the allowed file extensions
+# Define the allowed extensions
 allowed_extensions = ['.pdf', '.ppt', '.pptx', '.doc', '.docx']
 
-# Filter csv1 for allowed file extensions (case insensitive)
-csv1['Extension'] = csv1['Name'].str.split('.').str[-1].str.lower()
-csv1_filtered = csv1[csv1['Extension'].isin([ext[1:] for ext in allowed_extensions])]
+# Convert the 'Name' column to lowercase and filter rows based on allowed extensions
+df1_filtered = df1[df1['Name'].str.lower().str.endswith(tuple(allowed_extensions))]
 
-# Process FileLeafRef in csv2
-csv2['ProcessedName'] = csv2['FileLeafRef'].apply(lambda x: os.path.splitext(x)[0])
+# Select only the desired columns
+df1_selected = df1_filtered[['ID', 'Name']]
+df2_selected = df2[['Title', 'FileLeafRef']]
 
-# Merge the dataframes
-result = pd.merge(csv1_filtered, csv2[['ProcessedName', 'Title']], 
-                  left_on='Name', right_on='ProcessedName', how='inner')
+# Merge the DataFrames on the 'Name' column in df1 and 'FileLeafRef' column in df2
+merged_df = pd.merge(df1_selected, df2_selected, left_on='Name', right_on='FileLeafRef')
 
-# Select only the columns we need
-final_result = result[['Name', 'Title']]
-
-# Display the result
-print(final_result)
+# Save the merged DataFrame to a new CSV file
+merged_df.to_csv('merged_output.csv', index=False)
