@@ -1,95 +1,26 @@
-import json
+import pandas as pd
 import os
-import csv
-from langchain.chains.summarize import load_summarize_chain
-from langchain_openai import AzureChatOpenAI
-from langchain.prompts import PromptTemplate
-from dotenv import load_dotenv
-from langchain.docstore.document import Document
-import logging
 
-load_dotenv()
+# Read the CSV files
+csv1 = pd.read_csv('file1.csv')  # Replace 'file1.csv' with your first CSV filename
+csv2 = pd.read_csv('file2.csv')  # Replace 'file2.csv' with your second CSV filename
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# Define the allowed file extensions
+allowed_extensions = ['.pdf', '.ppt', '.pptx', '.doc', '.docx']
 
-def read_json_file(file_path):
-    with open(file_path, "r") as file:
-        data = [json.loads(line) for line in file]
-    return data
+# Filter csv1 for allowed file extensions (case insensitive)
+csv1['Extension'] = csv1['Name'].str.split('.').str[-1].str.lower()
+csv1_filtered = csv1[csv1['Extension'].isin([ext[1:] for ext in allowed_extensions])]
 
-def append_to_dict(dict, key, value, metadata):
-    unique_key = f"{key}_{metadata['id']}"
-    dict[unique_key] = {"page_content": value, "metadata": metadata}
-    with open("final_summary.txt", "a") as f:
-        f.write(json.dumps(dict) + "\n")
+# Process FileLeafRef in csv2
+csv2['ProcessedName'] = csv2['FileLeafRef'].apply(lambda x: os.path.splitext(x)[0])
 
-def save_failed_summary(file_id, error_message):
-    with open("failed_summaries.csv", "a", newline="") as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow([file_id, error_message])
+# Merge the dataframes
+result = pd.merge(csv1_filtered, csv2[['ProcessedName', 'Title']], 
+                  left_on='Name', right_on='ProcessedName', how='inner')
 
-if __name__ == "__main__":
-    data = read_json_file("summary_text_output.txt")
+# Select only the columns we need
+final_result = result[['Name', 'Title']]
 
-    llm_gpt = AzureChatOpenAI(
-        azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
-        openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-        max_retries=20,
-    )
-
-    map_prompt_template = """
-                          Write a detailed and elaborated summary of the following text that includes the main points and any important details.
-                          Aim for a summary length of approximately 1500 words
-                          {text}
-                          """
-
-    map_prompt = PromptTemplate(template=map_prompt_template, input_variables=["text"])
-
-    combine_prompt_template = """
-                          Write a comprehensive summary of the following text delimited by triple backquotes.
-                          Aim for a summary length of approximately 800 words without missing the important information in the text.
-                          ```{text}```
-                          COMPREHENSIVE SUMMARY:
-                          """
-
-    combine_prompt = PromptTemplate(
-        template=combine_prompt_template, input_variables=["text"]
-    )
-
-    summary_chain = load_summarize_chain(
-        llm_gpt,
-        chain_type="map_reduce",
-        map_prompt=map_prompt,
-        combine_prompt=combine_prompt,
-    )
-
-    try:
-        for individual_data in data:
-            file_id = individual_data["metadata"]["id"]
-            logging.info(f"Generating Summary of file {file_id}")
-            summarized_docs = {}
-            summarized_docs_list = []
-            title = individual_data["metadata"]["Title"]
-            page_content = individual_data["page_content"]
-            metadata = individual_data["metadata"]
-            try:
-                for individual_batch_key, individual_batch_value in page_content.items():
-                    doc = Document(page_content=individual_batch_value)
-                    summary_result = summary_chain.invoke([doc])
-                    summary = summary_result["output_text"]
-                    summarized_docs_list.append(summary)
-
-                if len(summarized_docs_list) > 1:
-                    final_summary = " ".join(summarized_docs_list)
-                else:
-                    final_summary = summarized_docs_list[0]
-
-                append_to_dict(summarized_docs, title, final_summary, metadata)
-            except Exception as e:
-                logging.error(f"Failed to generate summary for file {file_id}: {str(e)}")
-                save_failed_summary(file_id, str(e))
-
-    except Exception as e:
-        logging.error(f"Failed to process the data: {str(e)}")
+# Display the result
+print(final_result)
