@@ -1,24 +1,28 @@
-matched_rows = []
+from langchain.docstore.document import Document
 
-# Iterate over each row in df1_filtered
-for index, row in df1_filtered.iterrows():
-    name = row['Name']
-    
-    # Find the matching row in df2 based on FileLeafRef
-    match = df2[df2['FileLeafRef'] == name]
-    
-    if not match.empty:
-        # Extract relevant data from df1 and df2
-        matched_row = {
-            'ID': row['ID'],
-            'Name': row['Name'],
-            'Title': match.iloc[0]['Title'],
-            'FileLeafRef': match.iloc[0]['FileLeafRef']
-        }
-        matched_rows.append(matched_row)
 
-# Convert the list of matched rows into a DataFrame
-final_df = pd.DataFrame(matched_rows)
+def append_to_dict(dict, key, value, metadata):
+    unique_key = f"{key}_{metadata['id']}"
+    dict[unique_key] = {"page_content": value, "metadata": metadata}
+    with open("final_summary_1.txt", "a") as f:
+        f.write(json.dumps(dict) + "\n")
 
-# Save the final DataFrame to a new CSV file
-final_df.to_csv('matched_output.csv', index=False)
+
+for individual_data in data:
+    summarized_docs = {}
+    summarized_docs_list = []
+    title = individual_data["metadata"]["Title"]
+    page_content = individual_data["page_content"]
+    metadata = individual_data["metadata"]
+    for individual_batch_key, individual_batch_value in page_content.items():
+        doc = Document(page_content=individual_batch_value)
+        summary_result = summary_chain.invoke([doc])
+        summary = summary_result["output_text"]
+        summarized_docs_list.append(summary)
+
+    if len(summarized_docs_list) > 1:
+        final_summary = " ".join(summarized_docs_list)
+    else:
+        final_summary = summarized_docs_list[0]
+
+    append_to_dict(summarized_docs, title, final_summary, metadata)
