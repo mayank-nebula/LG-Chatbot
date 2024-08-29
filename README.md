@@ -56,14 +56,35 @@ def question_generation():
 if __name__ == "__main__":
     data = read_json_file("filtered_data.json")
     chain = question_generation()
-    for key, value in data[0]:
-        question_list = []
-        page_content = value["page_content"]
-        questions = chain.invoke({"element": page_content})
-        for question in questions:
-            question_list.append(question["Question"])
+
+    # Open the output file in append mode and start with an empty list
+    with open("output_documents.json", "w") as output_file:
+        json.dump([], output_file)
+
+    for key, value in data.items():
+        try:
+            question_list = []
+            page_content = value["page_content"]
+            questions = chain.invoke({"element": page_content})
+            for question in questions:
+                question_list.append(question["Question"])
+
+            document = {
+                "documentName": value['metadata']['Title'],
+                "questions": question_list
+            }
         
-        document = {
-            "documentName" : value['metadata']['Title'],
-            "questions": question_list
-        }
+        except Exception as e:
+            # If an error occurs, store the document name and the reason
+            document = {
+                "documentName": value['metadata']['Title'],
+                "reason": str(e)
+            }
+
+        # Open the file in read mode, load existing data, append new data, and write back to the file
+        with open("output_documents.json", "r+") as output_file:
+            existing_data = json.load(output_file)
+            existing_data.append(document)
+            output_file.seek(0)  # Go to the beginning of the file
+            json.dump(existing_data, output_file, indent=4)
+
