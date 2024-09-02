@@ -9,8 +9,9 @@ def load_large_file_into_shared_memory():
             # Check if the memory is fully initialized by checking the sentinel
             if shm.buf[0] != 1:
                 print("Shared memory not fully initialized. Waiting...")
-                while shm.buf[0] != 1:
-                    time.sleep(1)  # Polling delay
+                with condition:
+                    # Wait for the initialization signal
+                    condition.wait_for(lambda: shm.buf[0] == 1)
 
         except FileNotFoundError:
             # If not found, load the data and create shared memory
@@ -28,6 +29,10 @@ def load_large_file_into_shared_memory():
                 # Set the sentinel value to indicate full initialization
                 shm.buf[0] = 1
                 print(f"Loaded pkl file to shared memory: {SHM_NAME}.")
+
+                # Notify other workers that the memory is initialized
+                with condition:
+                    condition.notify_all()
                 
             except FileExistsError:
                 # If FileExistsError occurs, another worker already created the shared memory
@@ -35,8 +40,7 @@ def load_large_file_into_shared_memory():
                 print(f"Attached to newly created shared memory: {SHM_NAME}.")
                 
                 # Wait until the sentinel value indicates completion
-                while shm.buf[0] != 1:
-                    print("Waiting for shared memory to be fully initialized...")
-                    time.sleep(1)  # Polling delay
+                with condition:
+                    condition.wait_for(lambda: shm.buf[0] == 1)
 
         return shm
