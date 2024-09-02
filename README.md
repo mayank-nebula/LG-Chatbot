@@ -1,14 +1,22 @@
-def load_file_into_shared_memory(file_path, shm_name, shm_size):
-    """Loads a large pickle file into shared memory, only if it's not already loaded."""
+import sys
+from multiprocessing import shared_memory
+
+# Names of the shared memory blocks to clean up
+SHM_NAME_GPT = "docstore_shared_memory_gpt"
+SHM_NAME_GPT_SUMMARY = "docstore_shared_memory_gpt_summary"
+
+def cleanup_shared_memory(shm_name):
+    """Cleanup the shared memory object."""
     try:
-        # Attempt to attach to the existing shared memory block
         shm = shared_memory.SharedMemory(name=shm_name, create=False)
-        print(f"Attached to existing shared memory: {shm_name}.")
+        shm.close()
+        shm.unlink()
+        print(f"Successfully cleaned up shared memory: {shm_name}")
     except FileNotFoundError:
-        # Shared memory block doesn't exist, so load the file and create the block
-        with open(file_path, "rb") as f:
-            data = f.read()
-            shm = shared_memory.SharedMemory(name=shm_name, create=True, size=len(data))
-            shm.buf[:len(data)] = data  # Copy the data into shared memory
-            print(f"Loaded pickle file {file_path} into shared memory: {shm_name}.")
-    return shm
+        print(f"No shared memory block found with name: {shm_name}")
+    except Exception as e:
+        print(f"Error cleaning up shared memory {shm_name}: {e}")
+
+if __name__ == "__main__":
+    cleanup_shared_memory(SHM_NAME_GPT)
+    cleanup_shared_memory(SHM_NAME_GPT_SUMMARY)
