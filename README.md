@@ -1,16 +1,14 @@
-def load_large_file_into_shared_memory():
-    """Loads a large pickle file into shared memory."""
-    with open(os.path.join(current_dir, "docstores", "GatesVentures_Scientia.pkl"), "rb") as f:
-        data = f.read()
-        shm = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=len(data))
-        shm.buf[:len(data)] = data  # Copy the data into shared memory
+def load_file_into_shared_memory(file_path, shm_name, shm_size):
+    """Loads a large pickle file into shared memory, only if it's not already loaded."""
+    try:
+        # Attempt to attach to the existing shared memory block
+        shm = shared_memory.SharedMemory(name=shm_name, create=False)
+        print(f"Attached to existing shared memory: {shm_name}.")
+    except FileNotFoundError:
+        # Shared memory block doesn't exist, so load the file and create the block
+        with open(file_path, "rb") as f:
+            data = f.read()
+            shm = shared_memory.SharedMemory(name=shm_name, create=True, size=len(data))
+            shm.buf[:len(data)] = data  # Copy the data into shared memory
+            print(f"Loaded pickle file {file_path} into shared memory: {shm_name}.")
     return shm
-
-def load_shared_memory_into_object():
-    """Loads the shared memory data back into a Python object."""
-    shm = shared_memory.SharedMemory(name=SHM_NAME)
-    buffer = shm.buf[:]
-    return pickle.loads(buffer)
-
-# Load the file into shared memory
-shm = load_large_file_into_shared_memory()
