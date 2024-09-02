@@ -1,34 +1,23 @@
 def load_large_file_into_shared_memory():
+    global shm
     with shm_lock:
-        shm = None
-        max_retries = 5
-        retries = 0
+        try:
+            # Attempt to attach to existing shared memory
+            shm = shared_memory.SharedMemory(name=SHM_NAME, create=False)
+            print(f"Attached to existing shared memory: {SHM_NAME}.")
+        except FileNotFoundError:
+            # If not found, load the data and create shared memory
+            with open(os.path.join(current_dir, "docstores", "GatesVentures_Scientia.pkl"), "rb") as f:
+                data = f.read()
 
-        while retries < max_retries:
+            total_size = len(data)
             try:
+                # Create new shared memory and load the entire file into it
+                shm = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=total_size)
+                shm.buf[:total_size] = data
+                print(f"Loaded pkl file to shared memory: {SHM_NAME}.")
+            except FileExistsError:
+                # This case should be very rare and indicates an unexpected condition
                 shm = shared_memory.SharedMemory(name=SHM_NAME, create=False)
-                print(f"Attached to existing shared memory: {SHM_NAME}.")
-                break
-            except FileNotFoundError:
-                if retries == 0:  # Only the first attempt to load the data from file
-                    with open(
-                        os.path.join(current_dir, "docstores", "GatesVentures_Scientia.pkl"),
-                        "rb",
-                    ) as f:
-                        data = f.read()
-                try:
-                    shm = shared_memory.SharedMemory(
-                        name=SHM_NAME, create=True, size=len(data)
-                    )
-                    shm.buf[: len(data)] = data
-                    print(f"Loaded pkl file to shared memory: {SHM_NAME}.")
-                    break
-                except FileExistsError:
-                    print(f"Shared memory already exists, retrying... ({retries + 1})")
-                    time.sleep(0.1)  # Short delay before retrying
-                    retries += 1
-
-        if shm is None:
-            raise RuntimeError(f"Failed to attach to shared memory after {max_retries} retries.")
-
+                print(f"Attached to newly created shared memory: {SHM_NAME}.")
         return shm
