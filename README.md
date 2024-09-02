@@ -17,7 +17,7 @@ def load_large_file_into_shared_memory():
                 shm.buf[:total_size] = data
                 print(f"Loaded pkl file to shared memory: {SHM_NAME}.")
             except FileExistsError:
-                # If FileExistsError occurs, another worker already created the shared memory
+                # This case should be very rare and indicates an unexpected condition
                 shm = shared_memory.SharedMemory(name=SHM_NAME, create=False)
                 print(f"Attached to newly created shared memory: {SHM_NAME}.")
         return shm
