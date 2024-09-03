@@ -1,138 +1,28 @@
-def create_output_directory():
-    """
-    Creates the output directory if it doesn't exist.
-    """
-    ...
-
-def pdf_to_images(fpath, fname):
-    """
-    Converts a PDF file into images for each page and saves them to the output directory.
-    """
-    ...
-
-def encode_image(image_path):
-    """
-    Encodes an image to a base64 string.
-
-    Args:
-        image_path (str): Path to the image file.
-    """
-    ...
-
-def image_summarize(img_base64, prompt):
-    """
-    Summarizes the content of an image using a GPT model.
-
-    Args:
-        img_base64 (str): Base64 encoded image string.
-        prompt (str): Prompt for the model to generate the summary.
-    """
-    ...
-
-def generate_img_summaries(path, deliverables_list_metadata):
-    """
-    Generates summaries for images in a directory and returns them along with their base64 encodings.
-
-    Args:
-        path (str): Path to the directory containing images.
-        deliverables_list_metadata (dict): Metadata associated with the deliverables.
-    """
-    ...
-
-def save_docstore(docstore, path):
-    """
-    Saves a document store to a pickle file.
-
-    Args:
-        docstore (InMemoryStore): The document store to save.
-        path (str): Path where the pickle file will be saved.
-    """
-    ...
-
-def save_array_to_text(file_path, data_to_save):
-    """
-    Saves an array of data to a text file in JSON format.
-
-    Args:
-        file_path (str): Path to the text file.
-        data_to_save (list): List of data to save.
-    """
-    ...
-
-def create_multi_vector_retriever(
-    vectorstore,
-    vectorstore_summary,
-    image_summaries,
-    images,
-    file_metadata,
-    deliverables_list_metadata,
-    batch_size=75,
-):
-    """
-    Creates a MultiVectorRetriever for normal and summary RAG, and saves document stores.
-
-    Args:
-        vectorstore (Chroma): Chroma vector store for full documents.
-        vectorstore_summary (Chroma): Chroma vector store for summary documents.
-        image_summaries (dict): Summaries of the images.
-        images (dict): Base64 encoded images.
-        file_metadata (dict): Metadata of the file being processed.
-        deliverables_list_metadata (dict): Metadata of the deliverables list.
-        batch_size (int, optional): Number of documents to process in each batch. Defaults to 75.
-    """
-    ...
-
-def pdf_ppt_ingestion_MV(fname, file_metadata, deliverables_list_metadata):
-    """
-    Ingests a PDF or PPT file, extracts content, and creates vector stores for retrieval.
-
-    Args:
-        fname (str): Name of the file to ingest.
-        file_metadata (dict): Metadata of the file.
-        deliverables_list_metadata (dict): Metadata of the deliverables list.
-    """
-    ...
-
-
-
-
-
-
-
-
-
-
 import os
-import uuid
+import csv
 import json
-import base64
-import shutil
 import pickle
+import shutil
+from datetime import datetime, timedelta
+
+import msal
+
 import logging
-import concurrent.futures
-
-import chromadb
+import pandas as pd
 from dotenv import load_dotenv
-from chromadb.config import Settings
-from pdf2image import convert_from_path
 from langchain.storage import InMemoryStore
-from langchain_openai import AzureChatOpenAI
-from langchain_core.documents import Document
-from langchain_core.messages import HumanMessage
-from langchain_openai import AzureOpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain.retrievers.multi_vector import MultiVectorRetriever
+from office365.graph_client import GraphClient
 
-from create_summary import create_summary
-from question_generation import generate_and_save_questions
+from ingest_document import ingest_files
+from delete_vstore_dstore import delete_from_vectostore
 
-# Set up ChromaDB settings
-settings = Settings(anonymized_telemetry=False)
-
-# Load environment variables from a .env file
 load_dotenv()
 
-# Set up logging configuration to log to both a file and the console
+tenant_id = os.getenv("TENANT_ID")
+client_id = os.getenv("CLIENT_ID")
+site_url = os.getenv("SHAREPOINT_SITE")
+client_secret = os.getenv("CLIENT_SECRET")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -142,39 +32,466 @@ logging.basicConfig(
     ],
 )
 
-# Define paths for storing output and text files
-summary_text_path = "summary_text.txt"
-full_docs_text_path = "full_docs_text.txt"
-output_path = os.path.join(os.getcwd(), "output")
 
-# Initialize ChromaDB client
-CHROMA_CLIENT = chromadb.HttpClient(host="10.225.1.6", port=8000, settings=settings)
+TIMESTAMP_FILE = "last_run_timestamp.json"
 
-# Initialize Azure OpenAI GPT model for image summarization
-llm_gpt = AzureChatOpenAI(
-    openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-    azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
-    max_retries=20,
-)
+parent_dir = os.path.dirname(os.getcwd())
+express_folder = os.path.join(parent_dir, "express", "csv")
+fast_folder = os.path.join(parent_dir, "fast", "csv")
 
-# Function to create the output directory if it doesn't exist
-def create_output_directory():
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
 
-# Convert a PDF to images and save them in the output directory
-def pdf_to_images(fpath, fname):
-    create_output_directory()
-    images = convert_from_path(os.path.join(fpath, fname))
-    for i, image in enumerate(images):
-        slide_image_path = os.path.join(output_path, f"slide_{i + 1}.png")
-        image.save(slide_image_path, "PNG")
-    logging.info("Slides extracted")
+def acquire_token_func():
+    """
+    Acquire token via MSAL
+    """
+    logging.info("Acquiring access token...")
+    authority_url = f"https://login.microsoftonline.com/{tenant_id}"
+    app = msal.ConfidentialClientApplication(
+        authority=authority_url, client_id=client_id, client_credential=client_secret
+    )
+    token_response = app.acquire_token_for_client(
+        scopes=["https://graph.microsoft.com/.default"]
+    )
+    if "access_token" in token_response:
+        logging.info("Access token acquired.")
+        token_expires_at = datetime.now() + timedelta(
+            seconds=token_response["expires_in"]
+        )
+        return token_response, token_expires_at
+    else:
+        raise Exception(
+            "Failed to acquire token",
+            token_response.get("error"),
+            token_response.get("error_description"),
+        )
 
-# Encode an image file to base64 format
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
 
-# Summarize an image using Azure OpenAI GPT
-def image
+def get_site_id(client, site_url):
+    logging.info("Fetching site ID...")
+    site = client.sites.get_by_url(site_url).execute_query()
+    logging.info(f"Site ID fetched: {site.id}")
+    return site.id
+
+
+def get_last_run_timestamp():
+    if os.path.exists(TIMESTAMP_FILE):
+        with open(TIMESTAMP_FILE, "r") as file:
+            return datetime.fromisoformat(json.load(file)["last_run"])
+    else:
+        return None
+
+
+def update_last_run_timestamp():
+    with open(TIMESTAMP_FILE, "w") as file:
+        json.dump({"last_run": datetime.now().isoformat()}, file)
+    logging.info("Last run timestamp updated.")
+
+
+def load_existing_csv_data(csv_filename, colName):
+    if not os.path.isfile(csv_filename):
+        return {}
+    with open(csv_filename, mode="r", encoding="utf-8") as in_file:
+        reader = csv.DictReader(in_file)
+        return {row[colName]: row for row in reader}
+
+
+def save_to_csv(data, csv_filename, additional_folders=None):
+    if data:
+        with open(csv_filename, newline="", mode="w", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
+
+        if additional_folders:
+            for folder in additional_folders:
+                destination = os.path.join(folder, os.path.basename(csv_filename))
+                shutil.copy2(csv_filename, destination)
+
+        logging.info(f"CSV file {csv_filename} created.")
+
+
+def update_csv(existing_data, csv_filename):
+    if not existing_data:
+        logging.info(f"No data to update for {csv_filename}")
+        return
+
+    keys = list(next(iter(existing_data.values())).keys())
+    with open(csv_filename, mode="w", newline="", encoding="utf-8") as output_file:
+        dics_writer = csv.DictWriter(output_file, fieldnames=keys)
+        dics_writer.writeheader()
+        dics_writer.writerows(existing_data.values())
+    logging.info(f"CSV file {csv_filename} updated.")
+
+
+def stream_file_content(
+    site_id, drive_id, file_id, files_metadata, deliverables_list_metadata
+):
+    global token, token_expires_at, client
+
+    if token_expires_at < datetime.now() + timedelta(minutes=50):
+        logging.info("Refreshing access token...")
+        token, token_expires_at = acquire_token_func()
+        client = GraphClient(lambda: token)
+
+    if file_id not in files_metadata:
+        logging.info("File not found.")
+        return
+
+    target_folder = "files_to_ingest"
+    file_name = files_metadata[file_id]["Name"]
+
+    logging.info(f"Downloading file: {file_name}...")
+    response = (
+        client.sites[site_id]
+        .drives[drive_id]
+        .items[file_id]
+        .get_content()
+        .execute_query()
+    )
+
+    with open(os.path.join(target_folder, file_name), "wb") as file:
+        file.write(response.value)
+    logging.info(f"{file_name} saved.")
+
+    logging.info(f"Ingesting file: {file_name}...")
+    ingest_files(
+        file_name, files_metadata[file_id], deliverables_list_metadata[file_name]
+    )
+
+    os.remove(os.path.join(target_folder, file_name))
+    logging.info(f"{file_name} removed from local storage.")
+
+
+def traverse_folders_and_files(
+    site_id,
+    drive_id,
+    parent_id,
+    parent_path,
+    last_run,
+    existing_files,
+    created_files,
+    updated_files,
+    existing_folders,
+    created_folders,
+    updated_folders,
+):
+    global token, token_expires_at, client
+
+    if token_expires_at < datetime.now() + timedelta(minutes=5):
+        logging.info("Refreshing access token...")
+        token, token_expires_at = acquire_token_func()
+        client = GraphClient(lambda: token)
+
+    folder_items = (
+        client.sites[site_id]
+        .drives[drive_id]
+        .items[parent_id]
+        .children.get()
+        .top(10)
+        .execute_query()
+    )
+    current_file_ids = []
+    current_folder_ids = []
+
+    for item in folder_items:
+        item_path = parent_path + "/" + item.name
+        if item.is_folder:
+            folder_metadata = {
+                "ID": item.id,
+                "Name": item.name,
+                "Path": item_path,
+                "WebUrl": item.web_url,
+            }
+
+            if item.id in existing_folders:
+                if last_run and item.last_modified_datetime > last_run:
+                    updated_folders.append(item.id)
+            else:
+                created_folders.append(item.id)
+
+            existing_folders[item.id] = folder_metadata
+            current_folder_ids.append(item.id)
+
+            sub_file_ids, sub_folder_ids = traverse_folders_and_files(
+                site_id,
+                drive_id,
+                item.id,
+                item_path,
+                last_run,
+                existing_files,
+                created_files,
+                updated_files,
+                existing_folders,
+                created_folders,
+                updated_folders,
+            )
+            current_file_ids.extend(sub_file_ids)
+            current_folder_ids.extend(sub_folder_ids)
+        elif item.is_file:
+            file_metadata = {
+                "ID": item.id,
+                "Name": item.name,
+                "Path": parent_path + "/" + item.name,
+                "WebUrl": item.web_url,
+                "CreatedDateTime": item.created_datetime,
+            }
+
+            if item.id in existing_files:
+                if last_run and item.last_modified_datetime > last_run:
+                    updated_files.append(item.id)
+            else:
+                created_files.append(item.id)
+            existing_files[item.id] = file_metadata
+            current_file_ids.append(item.id)
+
+    return current_file_ids, current_folder_ids
+
+
+def save_to_csv1(data, csv_filename, field_names, additional_folders=None):
+    if data:
+        df = pd.DataFrame(data, columns=field_names)
+        df["ExtractedName"] = df["FileLeafRef"].apply(lambda x: os.path.splitext(x)[0])
+        df.to_csv(csv_filename, index=False, encoding="utf-8")
+
+        if additional_folders:
+            for folder in additional_folders:
+                folder_csv_path = os.path.join(folder, os.path.basename(csv_filename))
+                df.to_csv(folder_csv_path, index=False, encoding="utf-8")
+
+        logging.info(f"CSV file {csv_filename} created.")
+
+
+def rotate_backups(backup_dir, main_store_path):
+    base_name = os.path.basename(main_store_path).replace(".pkl", "")
+
+    backups = sorted(
+        [
+            f
+            for f in os.listdir(backup_dir)
+            if f.startswith(base_name) and "_backup_" in f
+        ],
+        reverse=True,
+    )
+
+    if len(backups) >= 3:
+        os.remove(os.path.join(backup_dir, backups[-1]))
+        backups.pop(-1)
+
+    for i in range(len(backups), 0, -1):
+        old_name = os.path.join(backup_dir, backups[i - 1])
+        new_name = os.path.join(backup_dir, f"{base_name}_backup_{i+1}.pkl")
+        os.rename(old_name, new_name)
+
+    new_backup_name = f"{base_name}_backup_1.pkl"
+    shutil.copyfile(main_store_path, os.path.join(backup_dir, new_backup_name))
+
+
+def load_docstore_chunk(path, chunk_id):
+    if os.path.exists(os.path.join(path, chunk_id)):
+        with open(os.path.join(path, chunk_id), "rb") as f:
+            return pickle.load(f)
+    return None
+
+
+def load_full_docstore(path):
+    full_store = InMemoryStore()
+    for i in os.listdir(path):
+        chunk = load_docstore_chunk(path, i)
+        if chunk:
+            full_store.store.update(chunk.store)
+    return full_store
+
+
+def save_full_docstore(docstore, path):
+    with open(path, "wb") as f:
+        pickle.dump(docstore, f)
+
+
+def load_existing_docstore(path):
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+
+def update_and_save_docstore(chunk_store_path, main_store_path, backup_dir):
+    chunk_store = load_full_docstore(os.path.join(os.getcwd(), chunk_store_path))
+
+    if os.path.exists(main_store_path):
+        main_store = load_existing_docstore(main_store_path)
+        rotate_backups(backup_dir, main_store_path)
+    else:
+        main_store = InMemoryStore()
+
+    main_store.store.update(chunk_store.store)
+    save_full_docstore(main_store, main_store_path)
+
+
+def sharepoint_file_acquisition():
+    global token, token_expires_at, client
+
+    try:
+        token, token_expires_at = acquire_token_func()
+        client = GraphClient(lambda: token)
+
+        site_id = get_site_id(client, site_url)
+
+        user_permission_list = os.getenv("USER_PERMISSION_LIST")
+        deliverables_list = os.getenv("DELIVERABLES_LIST")
+
+        logging.info("Fetching user permissions...")
+        users_list_object = (
+            client.sites[site_id]
+            .lists[user_permission_list]
+            .items.expand(
+                ["fields($select=User,UserLookupId,Teams,TeamsPermission,Roles)"]
+            )
+            .get()
+            .top(5000)
+            .execute_query()
+        )
+        users_list_items = [item.to_json()["fields"] for item in users_list_object]
+        users_list_csv_filename = os.path.join(os.getcwd(), "users_permission.csv")
+        save_to_csv(
+            users_list_items,
+            users_list_csv_filename,
+        )
+
+        df = pd.read_csv("users_permission.csv")
+        df["Permissions"] = df["Teams"].astype(str) + df["TeamsPermission"].astype(str)
+
+        result = (
+            df.groupby(["User", "UserLookupId"])["Permissions"]
+            .apply(lambda x: ";".join(x))
+            .reset_index()
+        )
+        result.columns = ["Name", "UserLookupId", "Permissions"]
+        result.to_csv("users_permission.csv", index=False)
+
+        additional_folders = [express_folder, fast_folder]
+        for folder in additional_folders:
+            final_path = os.path.join(folder, "users_permission.csv")
+            result.to_csv(final_path, index=False)
+
+        logging.info("Fetching deliverables list...")
+        deliverables_list_object = (
+            client.sites[site_id]
+            .lists[deliverables_list]
+            .items.expand(["fields"])
+            .get()
+            .top(5000)
+            .execute_query()
+        )
+        deliverables_item_data = []
+        deliverables_field_names = set()
+
+        for item in deliverables_list_object:
+            fields = item.to_json()["fields"]
+            if fields["ContentType"] == "Document":
+                deliverables_item_data.append(fields)
+                deliverables_field_names.update(fields.keys())
+
+        deliverables_field_names = list(deliverables_field_names)
+
+        for fields in deliverables_item_data:
+            for field in deliverables_field_names:
+                if field not in fields:
+                    fields[field] = None
+
+        deliverables_list_csv_filename = os.path.join(
+            os.getcwd(), "deliverables_list.csv"
+        )
+        field_names = deliverables_item_data[0].keys()
+        save_to_csv1(
+            deliverables_item_data,
+            deliverables_list_csv_filename,
+            field_names,
+            additional_folders=[express_folder, fast_folder],
+        )
+
+        folders_csv_filename = os.path.join(os.getcwd(), "folders_metadata.csv")
+        files_csv_filename = os.path.join(os.getcwd(), "files_metadata.csv")
+
+        last_run = get_last_run_timestamp()
+
+        existing_files = load_existing_csv_data(files_csv_filename, "ID")
+        existing_folders = load_existing_csv_data(folders_csv_filename, "ID")
+
+        created_files = []
+        created_folders = []
+        updated_files = []
+        updated_folders = []
+
+        logging.info("Fetching folders and files from Deliverables...")
+        drive_id = os.getenv("DRIVE_ID")
+        logging.info(f"Processing drive: Deliverables (ID: {drive_id})")
+        root_id = client.sites[site_id].drives[drive_id].root.get().execute_query().id
+        current_file_ids, current_folder_ids = traverse_folders_and_files(
+            site_id,
+            drive_id,
+            root_id,
+            "",
+            last_run,
+            existing_files,
+            created_files,
+            updated_files,
+            existing_folders,
+            created_folders,
+            updated_folders,
+        )
+
+        logging.info("All folders done.")
+
+        existing_files_ids = set(existing_files.keys())
+        existing_folders_ids = set(existing_folders.keys())
+        current_file_ids_set = set(current_file_ids)
+        current_folder_ids_set = set(current_folder_ids)
+
+        deleted_file_ids = existing_files_ids - current_file_ids_set
+        deleted_folder_ids = existing_folders_ids - current_folder_ids_set
+
+        for file_id in deleted_file_ids:
+            del existing_files[file_id]
+        for folder_id in deleted_folder_ids:
+            del existing_folders[folder_id]
+
+        update_csv(existing_files, files_csv_filename)
+        update_csv(existing_folders, folders_csv_filename)
+
+        update_last_run_timestamp()
+
+        files_metadata = load_existing_csv_data("files_metadata.csv", "ID")
+        deliverables_list_metadata = load_existing_csv_data(
+            "deliverables_list.csv", "FileLeafRef"
+        )
+
+        file_ids_to_delete = list(deleted_file_ids) + updated_files
+        file_ids_to_process = updated_files + created_files
+
+        if file_ids_to_delete:
+            delete_from_vectostore(file_ids_to_delete)
+
+        for file_id in file_ids_to_process:
+            stream_file_content(
+                site_id, drive_id, file_id, files_metadata, deliverables_list_metadata
+            )
+
+        update_and_save_docstore(
+            "docstores_normal_rag",
+            os.path.join(parent_dir, "fast", "docstores", "GatesVentures_Scientia.pkl"),
+            os.path.join(os.getcwd(), "backup", "normal"),
+        )
+        update_and_save_docstore(
+            "docstores_summary_rag",
+            os.path.join(
+                parent_dir, "fast", "docstores", "GatesVentures_Scientia_Summary.pkl"
+            ),
+            os.path.join(os.getcwd(), "backup", "summary"),
+        )
+
+        logging.info("Ingestion Complete")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+
+
+if __name__ == "__main__":
+    sharepoint_file_acquisition()
