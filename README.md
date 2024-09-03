@@ -1,598 +1,880 @@
-module.exports = {
-  apps: [
-    {
-      name: "express_application",
-      script: "./app.js",
-      instances: 4,
-      exec_mode: "cluster",
-      watch: true,
-      restart_delay: 3000,
-      max_restarts: 10,
-      autorestart: true,
-    },
-  ],
-};
+import os
+import re
+import io
+import json
+import pickle
+import base64
+import logging
+from bson import ObjectId
+from datetime import datetime
+
+import chromadb
+import pandas as pd
+from PIL import Image
+from pydantic import BaseModel
+from dotenv import load_dotenv
+from pymongo import MongoClient
+from chromadb.config import Settings
+from langchain.schema import HumanMessage
+from langchain_core.documents import Document
+from typing import Any, List, Dict, AsyncGenerator
+from fastapi.middleware.cors import CORSMiddleware
+from langchain_community.vectorstores import Chroma
+from fastapi import FastAPI, HTTPException, Request
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from fastapi.responses import JSONResponse, StreamingResponse
+from langchain.retrievers.multi_vector import MultiVectorRetriever
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 
+load_dotenv()
+
+settings = Settings(anonymized_telemetry=False)
+current_dir = os.getcwd()
+
+sources = {}
+user_permissions = []
+count_restriction = 0
+CHROMA_CLIENT = chromadb.HttpClient(host="10.225.1.6", port=8000, settings=settings)
 
 
+embeddings_gpt = AzureOpenAIEmbeddings(
+    openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+    azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_EMBEDDING"],
+)
 
 
+vectorstore_gpt = Chroma(
+    collection_name="GatesVentures_Scientia",
+    client=CHROMA_CLIENT,
+    embedding_function=embeddings_gpt,
+)
+
+vectorstore_gpt_summary = Chroma(
+    collection_name="GatesVentures_Scientia_Summary",
+    client=CHROMA_CLIENT,
+    embedding_function=embeddings_gpt,
+)
 
 
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs");
-const https = require("https");
-const path = require("path");
+with open(
+    os.path.join(current_dir, "docstores", "GatesVentures_Scientia.pkl"), "rb"
+) as f:
+    loaded_docstore_gpt = pickle.load(f)
 
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const helmet = require("helmet");
-const compression = require("compression");
-require("dotenv").config();
-
-const app = express();
-const allowedOrigins = [
-  "https://evalueserveglobal.sharepoint.com",
-  "https://gatesventures.sharepoint.com",
-];
-
-const chatRoutes = require("./routes/chatting");
-const documentRoutes = require("./routes/document");
-const privateKey = fs.readFileSync(path.join(__dirname, "certificates", "private.key"));
-const certificate = fs.readFileSync(
-  path.join(__dirname, "certificates", "certificate.cert")
-);
-
-app.use(helmet());
-app.use(compression());
-app.use(bodyParser.json());
-
-app.use(
-  cors({
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Security-Header"],
-    credentials: true,
-  })
-);
-
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       const allowedOrigins = [
-//         "https://evalueserveglobal.sharepoint.com",
-//         "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/workbench.aspx",
-//         "https://gatesventures.sharepoint.com",
-//       ];
-//       if (allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Access Denied: Authentication Failed"));
-//       }
-//     },
-//     methods: ["GET", "POST", "PUT", "DELETE"],
-//     allowedHeaders: ["Content-Type", "Authorization", "X-Security-Header"],
-//     credentials: true,
-//   })
-// );
-
-// app.use((req, res, next) => {
-//   const security_header = req.get("X-Security-Header");
-//   if (security_header && security_header === process.env.SECURITY_HEADER) {
-//     next();
-//   } else {
-//     res.status(403).json({ message: "Access Denied: Authentication Failed" });
-//   }
-// });
-
-app.use("/api", chatRoutes);
-app.use("/api", documentRoutes);
-app.use("/", (req, res) => {
-  res.status(200).json({
-    message: "Welcome to Express Server",
-  });
-});
-
-app.use((error, req, res, next) => {
-  console.log(error);
-  const statusCode = error.statusCode || 500;
-  const message = error.message;
-  res.status(statusCode).json({
-    message: message,
-  });
-});
-
-mongoose
-  .connect(process.env.MONGO_API_KEY)
-  .then((result) => {
-    const server = https
-      .createServer({ key: privateKey, cert: certificate }, app)
-      .listen(8080, "0.0.0.0", () => {
-        console.log("Server is running on port 8080");
-      });
-    console.log("Database Connected");
-  })
-  .catch((err) => console.log(err));
+with open(
+    os.path.join(current_dir, "docstores", "GatesVentures_Scientia_Summary.pkl"), "rb"
+) as f:
+    loaded_docstore_gpt_summary = pickle.load(f)
 
 
+llm_gpt = AzureChatOpenAI(
+    api_key=os.environ["AZURE_OPENAI_API_KEY"],
+    openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+    azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_4O"],
+    api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+    temperature=0,
+    max_retries=3,
+)
 
 
+permission_df = pd.read_csv(os.path.join(current_dir, "csv", "users_permission.csv"))
 
-const { getAccessibleFiles } = require("../utils/userPermissions");
-const fs = require("fs");
-const csv = require("csv-parser");
-const path = require("path");
+allowed_origins = [
+    "https://evalueserveglobal.sharepoint.com",
+    "https://gatesventures.sharepoint.com",
+]
 
-const allowedExtensions = [".pdf", ".pptx", ".ppt", ".docx", ".doc"];
-const extensionMapping = {
-  ".pdf": "PDF Document",
-  ".pptx": "PowerPoint Presentation",
-  ".ppt": "PowerPoint Presentation",
-  ".docx": "Word Document",
-  ".doc": "Word Document",
-};
+app = FastAPI()
 
-exports.getAccessibleDocuments = async (req, res, next) => {
-  try {
-    const userLookupId = req.query.userLookupId;
-    const userPermissionCSV = path.join(
-      __dirname,
-      "..",
-      "csv",
-      "users_permission.csv"
-    );
-    const deliverablesListCSV = path.join(
-      __dirname,
-      "..",
-      "csv",
-      "deliverables_list.csv"
-    );
-    const accessibleFiles = await getAccessibleFiles(
-      userPermissionCSV,
-      deliverablesListCSV,
-      "194"
-    );
-    const accessibleFilesByFilters = accessibleFiles
-      .filter((file) =>
-        allowedExtensions.includes(
-          path.extname(file.FileLeafRef).toLowerCase()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class Message(BaseModel):
+    question: str
+    chatId: str = ""
+    chatHistory: List[Any] = []
+    filters: List[str] = []
+    image: str = "Yes"
+    userEmailId: str
+    regenerate: str = "No"
+    feedbackRegenerate: str = "No"
+    reason: str = ""
+    userLookupId: str = "194"
+    filtersMetadata: List[Any] = []
+    isGPT: bool = False
+
+
+client = MongoClient(os.environ["MONGO_API_KEY"])
+db = client[os.environ["MONGODB_COLLECTION"]]
+collection_user = db["users"]
+collection_chat = db["chats"]
+
+
+def get_user_permissions(userLookupId):
+    user_permissions = permission_df[permission_df["UserLookupId"] == userLookupId]
+    permission_str = user_permissions.iloc[0]["Permissions"]
+    permissions = permission_str.split(";")
+
+    return permissions
+
+
+def format_chat_history(chatHistory):
+    return "\n".join(
+        [f"Human: {chat['user']}\nAssistant: {chat['ai']}" for chat in chatHistory]
+    )
+
+
+def looks_like_base64(sb):
+    """Check if the string looks like base64"""
+    try:
+        return base64.b64encode(base64.b64decode(sb)) == sb.encode()
+    except Exception:
+        return False
+
+
+def resize_base64_image(base64_string, size=(128, 128)):
+    """Resize an image encoded as a Base64 string"""
+    img_data = base64.b64decode(base64_string)
+    img = Image.open(io.BytesIO(img_data))
+    resized_img = img.resize(size, Image.LANCZOS)
+    buffered = io.BytesIO()
+    resized_img.save(buffered, format=img.format)
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+
+def process_metadata(metadata):
+    metadata = re.sub(r"'", r'"', metadata)
+    pattern = r'.*?"FileLeafRef"\s*:\s*"([^"]*)"'
+    match = re.search(pattern, metadata, re.DOTALL)
+
+    if match:
+        return match.group(1)
+    else:
+        return None
+
+
+def split_image_text_types(docs):
+    """Split base64-encoded images, texts, and metadata"""
+    global sources, count_restriction
+    count_restriction = 0
+    texts = []
+    summary = []
+    b64_images = []
+    for doc in docs:
+        if isinstance(doc, Document):
+            file_permission = doc.metadata["DeliverablePermissions"]
+            file_permission_list = file_permission.split(";")
+            if not file_permission_list or any(
+                element in file_permission_list for element in user_permissions
+            ):
+                doc_content = json.loads(doc.page_content)
+                link = doc.metadata["source"]
+                slide_number = doc.metadata.get("slide_number", "")
+
+                metadata = doc.metadata.get("deliverables_list_metadata")
+                title = process_metadata(metadata)
+                _, ext = os.path.splitext(title)
+
+                if ext.lower() in [".pdf", ".doc", ".docx"]:
+                    slide_number = slide_number.replace("slide_", "Page ")
+                else:
+                    slide_number = slide_number.replace("slide_", "Slide ")
+
+                existing_key = next(
+                    (k for k in sources.keys() if k.startswith(title)), None
+                )
+
+                if existing_key:
+                    new_key = existing_key + f", {slide_number}"
+                    sources[new_key] = sources.pop(existing_key)
+                else:
+                    new_key = f"{title} {'-' if slide_number else ''} {slide_number}"
+                    sources[new_key] = link
+
+                if looks_like_base64(doc_content["content"]):
+                    resized_image = resize_base64_image(
+                        doc_content["content"], size=(512, 512)
+                    )
+                    b64_images.append(resized_image)
+                    summary.append(doc_content["summary"])
+                else:
+                    texts.append(doc_content["content"])
+            else:
+                count_restriction += 1
+                continue
+
+    return {"images": b64_images, "texts": texts, "summary": summary}
+
+
+def img_prompt_func(data_dict):
+    """Join the context into a single string"""
+    formatted_summary = ""
+    reason = data_dict["context"]["reason"]
+    type_of_doc = data_dict["context"]["type_of_doc"]
+    formatted_texts = "\n".join(data_dict["context"]["texts"])
+    chatHistory = format_chat_history(data_dict["context"]["chatHistory"])
+
+    messages = []
+
+    if data_dict["context"]["image_present"] == "Yes":
+        if data_dict["context"]["images"]:
+            for image in data_dict["context"]["images"]:
+                image_message = {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image}"},
+                }
+                messages.append(image_message)
+
+    else:
+        formatted_summary = "\n".join(data_dict["context"]["summary"])
+
+    if type_of_doc == "normal":
+        text_message = {
+            "type": "text",
+            "text": (
+                "You are a Scientia Knowledge Bot, designed to provide informative and comprehensive responses specific to the Scientia sharepoint portal.\n\n"
+                "When responding to a user's query, please ensure that your response:\n"
+                "Is informative and comprehensive.\n"
+                "Is clear and concise.\n"
+                "Is relevant to the topic at hand.\n"
+                "Adheres to the guidelines provided in the initial prompt.\n"
+                "Is aligned with the specific context of the Scientia SharePoint portal.\n\n"
+                "Remember to:\n"
+                "Avoid providing personal opinions or beliefs.\n"
+                "Base your responses solely on the information provided.\n"
+                "Be respectful and polite in all interactions.\n"
+                "Leverage the specific knowledge and resources available within the Scientia SharePoint portal.\n\n"
+                "From the given context, please provide a well-articulated response to the asked question.\n"
+                "If you don't know the answer to any question, simply say 'I am not able to provide a response as it is not there in the context'.\n"
+                "Please go through the provided context silently, think, and then provide a cohesive and relevant answer most suitable for the asked question.\n"
+                "Maintain context from previous conversations to ensure coherent and relevant responses.\n\n"
+                "Never answer from your own knowledge source, always asnwer from the provided context."
+                f"User's question: {data_dict.get('question', 'No question provided')}\n\n"
+                f"{'Last Time the answer was not good and the reason shared by user is :' if reason else ''}{reason if reason else ''}{' .Generate Accordingly' if reason else '' }"
+                f"{'Original content: ' if formatted_texts else ''}{formatted_texts if formatted_texts else ''}\n"
+                f"{'Summary content: ' if formatted_summary else ''}{formatted_summary if formatted_summary else ''}\n\n"
+                f"{'Previous conversation: ' if chatHistory else ''}{chatHistory if chatHistory else ''}\n\n"
+            ),
+        }
+    else:
+        text_message = {
+            "type": "text",
+            "text": (
+                "You are a Scientia Knowledge Bot, designed to provide informative and comprehensive responses specific to the Scientia sharepoint portal.\n\n"
+                "When responding to a user's query, please ensure that your response:\n"
+                "Is informative and comprehensive.\n"
+                "Is clear and concise.\n"
+                "Is relevant to the topic at hand.\n"
+                "Adheres to the guidelines provided in the initial prompt.\n"
+                "Is aligned with the specific context of the Scientia SharePoint portal.\n\n"
+                "Remember to:\n"
+                "Avoid providing personal opinions or beliefs.\n"
+                "Base your responses solely on the information provided.\n"
+                "Be respectful and polite in all interactions.\n"
+                "Leverage the specific knowledge and resources available within the Scientia SharePoint portal.\n\n"
+                "Task: Generate a cohesive and unified summary of the provided content, focusing on the business context and avoiding unnecessary formatting details.\n\n"
+                "Guidelines : \n"
+                "Avoid slide-by-slide or section-by-section breakdowns.\n"
+                "Present the summary as a continuous flow.\n"
+                "Ensure a smooth, coherent narrative.\n"
+                "Omit concluding phrases like 'Thank you.'\n"
+                "Base your response solely on the provided content.\n"
+                "Maintain context from previous conversations.\n"
+                "If you don't know the answer to any question, simply say 'I am not able to provide a response as it is not there in the context'.\n\n"
+                "Input:\n"
+                f"User's question: {data_dict.get('question', 'No question provided')}\n"
+                f"{'Last Time the answer was not good and the reason shared by user is :' if reason else ''}{reason if reason else ''}{' .Generate Accordingly' if reason else '' }\n"
+                f"{'Original content: ' if formatted_texts else ''}{formatted_texts if formatted_texts else ''}\n"
+                f"{'Summary content: ' if formatted_summary else ''}{formatted_summary if formatted_summary else ''}\n"
+                f"{'Previous conversation: ' if chatHistory else ''}{chatHistory if chatHistory else ''}\n\n"
+                "Output:\n"
+                "Summary : A comprehensive and accurate response to the user's question, presented in a clear and concise format with appropriate headings, subheadings, bullet points, and spacing.\n\n"
+            ),
+        }
+
+    messages.append(text_message)
+
+    return [HumanMessage(content=messages)]
+
+
+def multi_modal_rag_chain_source(
+    retriever, llm_to_use, image, filters, chatHistory, reason, type_of_doc
+):
+    """Multi-modal RAG chain"""
+
+    def combined_context(data_dict):
+        context = {
+            "texts": data_dict.get("texts", []),
+            "images": data_dict.get("images", []),
+            "summary": data_dict.get("summary", []),
+            "image_present": image,
+            "filters": filters,
+            "chatHistory": chatHistory,
+            "reason": reason,
+            "type_of_doc": type_of_doc,
+        }
+        return context
+
+    chain = (
+        {
+            "context": retriever
+            | RunnableLambda(split_image_text_types)
+            | RunnableLambda(combined_context),
+            "question": RunnablePassthrough(),
+        }
+        | RunnableLambda(img_prompt_func)
+        | llm_to_use
+        | StrOutputParser()
+    )
+
+    return chain
+
+
+def create_new_title(question):
+
+    prompt_text = (
+        "Given the following question, create a concise and informative title that accuratelt reflects the content and MAKE SURE TO ANSWER IN JUST 4 WORDS. Just give the title name without any special characters.\n"
+        "{element}"
+    )
+
+    prompt = ChatPromptTemplate.from_template(prompt_text)
+    new_title = {"element": lambda x: x} | prompt | llm_gpt
+    response = new_title.invoke(question)
+
+    return response.content
+
+
+def update_chat(message: Message, ai_text: str, chat_id: str, flag: bool, sources=None):
+    message_id = None
+
+    if message.regenerate == "Yes" or flag == True:
+        collection_chat.update_one(
+            {"_id": ObjectId(chat_id)},
+            {
+                "$pop": {"chats": 1},
+                "$set": {"updatedAt": datetime.utcnow()},
+            },
         )
-      )
-      .map((file) => ({
-        title: path.parse(file.FileLeafRef).name,
-        region: cleanDocument(file.Region),
-        country: cleanDocument(file.Country),
-        strategyArea: cleanDocument(file.StrategyArea),
-        documentType:
-          extensionMapping[path.extname(file.FileLeafRef).toLowerCase()],
-      }));
-    res.status(200).json({
-      files: accessibleFilesByFilters,
-      message: "documents retrieved",
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
+
+    if message.feedbackRegenerate == "Yes":
+        chat = collection_chat.find_one({"_id": ObjectId(chat_id)})
+        if chat and "chats" in chat and len(chat["chats"]) > 0:
+            last_chat_index = len(chat["chats"]) - 1
+            collection_chat.update_one(
+                {
+                    "_id": ObjectId(chat_id),
+                    f"chats.{last_chat_index}.flag": {"$exists": False},
+                },
+                {
+                    "$set": {
+                        f"chats.{last_chat_index}.flag": True,
+                        "updatedAt": datetime.utcnow(),
+                    }
+                },
+            )
+
+    new_chat = {
+        "_id": ObjectId(),
+        "user": message.question,
+        "ai": ai_text,
+        "sources": sources,
     }
-    next(err);
-  }
-};
 
-exports.getFilters = async (req, res, next) => {
-  try {
-    const deliverablesListCSV = path.join(
-      __dirname,
-      "..",
-      "csv",
-      "deliverables_list.csv"
-    );
-    const filters = await fetchFilters(deliverablesListCSV, [
-      "Region",
-      "Country",
-      "StrategyArea",
-    ]);
-    res.status(200).json({ filters: filters, message: "filters retrieved" });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
+    update_fields = {
+        "$push": {"chats": new_chat},
+        "$set": {
+            "updatedAt": datetime.utcnow(),
+            "filtersMetadata": (
+                message.filtersMetadata if message.filtersMetadata else []
+            ),
+            "isGPT": message.isGPT,
+        },
     }
-    next(err);
-  }
-};
 
-const cleanDocument = (document) => {
-  if (document) {
-    try {
-      const jsonString = document.replace(/'/g, '"').replace(/"s/g, "'s");
-      const cellValueArray = JSON.parse(jsonString);
-      return cellValueArray;
-    } catch (error) {
-      console.log(`Error parsing JSON in column: `, error);
-    }
-  }
-};
+    collection_chat.update_one({"_id": ObjectId(chat_id)}, update_fields)
 
-const fetchFilters = async (filepath, columnNames) => {
-  return new Promise((resolve, reject) => {
-    const uniqueValues = {};
+    chat = collection_chat.find_one({"_id": ObjectId(chat_id)})
 
-    columnNames.forEach((columnName) => {
-      uniqueValues[columnName] = new Set();
-    });
+    if chat and "chats" in chat:
+        message_id = chat["chats"][-1]["_id"]
 
-    fs.createReadStream(filepath)
-      .pipe(csv())
-      .on("data", (row) => {
-        columnNames.forEach((columnName) => {
-          if (row[columnName]) {
-            try {
-              const jsonString = row[columnName].replace(/'/g, '"');
-              const cellValueArray = JSON.parse(jsonString);
-              if (Array.isArray(cellValueArray)) {
-                cellValueArray.forEach((item) => {
-                  if (item.LookupValue) {
-                    uniqueValues[columnName].add(item.LookupValue);
-                  }
-                });
-              } else
-                console.log(
-                  `Invalid JSON array structure in column ${columnName}:`,
-                  row[columnName]
-                );
-            } catch (error) {
-              console.log(`Error parsing JSON in column ${columnName}:`, error);
+    return message_id
+
+
+def create_search_kwargs(filters):
+    if len(filters) == 1:
+        filter_condition = {"Title": filters[0]}
+    elif isinstance(filters, list):
+        or_conditions = [{"Title": v} for v in filters]
+        filter_condition = {"$or": or_conditions}
+
+    search_kwargs = {"filter": filter_condition}
+
+    return search_kwargs
+
+
+def question_intent(question, chatHistory):
+    formatted_chat_history = format_chat_history(chatHistory)
+
+    prompt_text = """
+        AI Assistant Instructions
+
+        Role and Primary Task:
+        You are an advanced AI assistant with exceptional analytical and decision-making capabilities. Your primary task is to accurately interpret user queries, determine the most appropriate action, and generate informative and relevant responses. Your default source of information is the internal knowledge base.
+        
+        General Behavior:
+        1. Respond to greetings warmly and briefly.
+        2. If asked about your identity or capabilities, explain concisely that you're a RAG (Retrieval-Augmented Generation) chatbot with access to an internal knowledge base.
+        3. Classify user input query intent into one of these categories: greeting/salutation, normal_rag, summary_rag.
+        
+        Strict Decision Protocol:
+        
+        1. normal_RAG (DEFAULT CATEGORY):
+           - Purpose: Answering most questions using the internal knowledge base.
+           - Use when: The query can be answered using internal information, which covers a wide range of topics including company data, reports, policies, product information, etc.
+           - Always prioritize this category for most queries unless the query explicitly falls into another category.
+           - This category also includes context-dependent follow-up questions like "Tell me more about it" or "Can you elaborate on that?"
+        
+        2. summary_rag:
+           - Purpose: Addressing questions about overall content, main ideas, or summaries of entire documents from the internal knowledge base.
+           - Use when: The query explicitly requires a broad understanding or overview of a document's content as a whole.
+           - Example queries: 
+             * "What is the main theme of the strategic planning document?"
+             * "Summarize the key points of the entire document."
+             * "Give me an overview of this document's content."
+             * "What are the main topics covered throughout this document?"
+        
+        3. direct_response:
+           - Purpose: Handling greetings, casual conversation, or very simple queries.
+           - Use when: The user input is a greeting, expression of gratitude, or a very simple question that doesn't require accessing any knowledge base.
+           - Example queries:
+             * "Hello!"
+             * "How are you?"
+             * "Thank you for your help."
+        
+        Response Protocol:
+        1. Always default to using the normal_rag category unless the query clearly falls into another category.
+        2. Use the summary_rag category only when explicitly asked for document-wide summaries or overviews.
+        3. Respond directly without using any tool for greetings, salutations, and casual conversation.
+        4. For any responses:
+           - Synthesize, process, or extract information to provide the final answer.
+           - Do simply relay on raw data.
+        
+        Remember: 
+        1. Your primary source of information is the internal knowledge base.
+        2. Consider Previous Conversation before returning any response.
+        
+        User Query: "{question}"
+        
+        Previous Conversation: "{chat_history}"
+        
+        Please respond with the appropriate keyword based on the analysis of the user query:
+        - "normal_rag"
+        - "summary_rag"
+        - "direct_response"
+        
+        """
+
+    prompt = ChatPromptTemplate.from_template(prompt_text)
+
+    chain = (
+        {"chat_history": lambda _: formatted_chat_history, "question": lambda x: x}
+        | prompt
+        | llm_gpt
+    )
+
+    intent = chain.invoke(question)
+
+    return intent.content
+
+
+def standalone_question(question, chatHistory):
+    formatted_chat_history = format_chat_history(chatHistory)
+
+    prompt_text = """
+            You are a Scientia Knowledge Bot, designed to provide informative and comprehensive responses specific to the Scientia sharepoint portal.
+            When responding to a user's query, please ensure that your response:
+            Is informative and comprehensive.
+            Is clear and concise.
+            Is relevant to the topic at hand.
+            Adheres to the guidelines provided in the initial prompt.
+            Is aligned with the specific context of the Scientia SharePoint portal.
+            Remember to:
+            Avoid providing personal opinions or beliefs.
+            Base your responses solely on the information provided.
+            Be respectful and polite in all interactions.
+            Leverage the specific knowledge and resources available within the Scientia SharePoint portal.
+            Given a chat history and the latest user question which might reference context in the chat history, \
+            formulate a standalone question which can be understood without the chat history. Do NOT answer the question,\
+            just reformulate it if needed and otherwise return it as is. Don't provide anything else, just provide the question\
+            Chat History\
+            {chat_history}
+            User Question : \
+            {question}
+        """
+
+    prompt = ChatPromptTemplate.from_template(prompt_text)
+
+    chain = (
+        {"chat_history": lambda _: formatted_chat_history, "question": lambda x: x}
+        | prompt
+        | llm_gpt
+    )
+
+    new_question = chain.invoke(question)
+
+    return new_question.content
+
+
+def create_new_title_chat(message: Message):
+    title = create_new_title(message.question)
+    new_chat = {
+        "userEmailId": message.userEmailId,
+        "title": title,
+        "chats": [
+            {
+                "_id": ObjectId(),
+                "user": message.question,
             }
-          }
-        });
-      })
-      .on("end", () => {
-        const filters = columnNames.map((columnName) => ({
-          column: columnName,
-          values: Array.from(uniqueValues[columnName]),
-        }));
-        resolve(filters);
-      })
-      .on("error", (error) => {
-        reject(error);
-      });
-  });
-};
-
-
-const fs = require("fs");
-const path = require("path");
-
-const axios = require("axios");
-const csv = require("csv-parser");
-
-const User = require("../models/user");
-const Chat = require("../models/chat");
-const Question = require("../models/question");
-const { getUserPermissions } = require("../utils/userPermissions");
-
-require("dotenv").config();
-
-exports.getAllChats = async (req, res, next) => {
-  const userEmailId = req.query.userEmailId;
-  const fullName = req.query.userName;
-  // const offset = parseInt(req.query.offset) || 0;
-  // const limit = 10;
-  const userLookupId = req.query.userLookupId
-  const user = await User.findOne({ email: userEmailId });
-  try {
-    if (!user) {
-      const userPermissionCSV = path.join(
-        __dirname,
-        "..",
-        "utils",
-        "users_permission.csv"
-      );
-      const permission = await getUserPermissions(userPermissionCSV, "194");
-      const newUser = new User({
-        userFullName: fullName,
-        email: userEmailId,
-        userPermissions: permission,
-      });
-      await newUser.save();
-      res.status(200).json({ chats: [], message: "new user created" });
-    } else {
-      const chats = await Chat.find({ userEmailId: userEmailId }).sort({
-        updatedAt: -1,
-      });
-      // .skip(offset).limit(limit);
-      const chatList = chats.map((chat) => ({
-        id: chat._id,
-        title: chat.title,
-        updatedAt: chat.updatedAt,
-        bookmark: chat.bookmark,
-      }));
-      res.status(200).json({ chats: chatList });
-    }
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.getSpecificChat = async (req, res, next) => {
-  const chatId = req.query.chatId;
-  try {
-    const response = await Chat.findOne({
-      _id: chatId,
-      userEmailId: req.query.userEmailId,
-    });
-    if (!response) {
-      const error = new Error("Chat Not Found");
-      error.statusCode = 404;
-      throw error;
-    }
-    const filteredChats = response.chats.filter((chat) => {
-      return !chat.flag || chat.flag === false;
-    });
-    res.status(201).json({
-      message: "Chat extracted.",
-      title: response.title,
-      chats: filteredChats,
-      updatedAt: response.updatedAt,
-      createdAt: response.createdAt,
-      filtersMetadata: response.filtersMetadata,
-      isGPT: response.isGPT,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.getRandomQuestions = async (req, res, next) => {
-  try {
-    const randomQuestions = await Question.aggregate([
-      { $unwind: "$questions" },
-      { $sample: { size: 4 } },
-      { $project: { _id: 0, question: "$questions" } },
-    ]);
-
-    const questions = randomQuestions.map((item) => item.question);
-
-    res.status(200).json({
-      message: "Random questions retrieved successfully",
-      totalQuestions: questions.length,
-      questions: questions,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.postFilteredQuestion = async (req, res, next) => {
-  const documentNames = req.body.documentNames;
-  try {
-    if (!Array.isArray(documentNames) || documentNames.length === 0) {
-      const error = new Error("documenNames Should Be a Non-Empty Array.");
-      error.statusCode = 404;
-      throw error;
-    }
-    const matchedQuestion = await Question.find({
-      documentName: { $in: documentNames },
-    });
-    if (matchedQuestion.length === 0) {
-      return res.status(200).json({
-        message: "No Matching Documents Found.",
-        questions: [],
-      });
-    }
-    const allQuestions = matchedQuestion.reduce((acc, question) => {
-      return acc.concat(question.questions);
-    }, []);
-    const uniqueQuestions = [...new Set(allQuestions)];
-
-    const shuffledQuestions = uniqueQuestions.sort(() => 0.5 - Math.random());
-    const limitedQuestions = shuffledQuestions.slice(0, 4);
-
-    res.status(200).json({
-      message: "Matching Documents Found.",
-      questions: limitedQuestions,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.putChangeTitle = async (req, res, next) => {
-  const title = req.body.title;
-  const chatId = req.body.chatId;
-  try {
-    const updatedTitle = await Chat.findByIdAndUpdate(
-      chatId,
-      { title },
-      { new: true }
-    );
-    if (!updatedTitle) {
-      const error = new Error("Chat Not Found");
-      error.statusCode = 404;
-      throw error;
-    }
-    res.status(200).json({
-      message: "Chat Updated",
-      chatId: chatId,
-      title: title,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.putBookmark = async (req, res, next) => {
-  const chatId = req.body.chatId;
-  try {
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      const error = new Error("Chat Not Found");
-      error.statusCode = 404;
-      throw error;
-    }
-    const newBookmark = !chat.bookmark;
-    const updatedChat = await Chat.findByIdAndUpdate(
-      chatId,
-      { bookmark: newBookmark },
-      { new: true }
-    );
-    res.status(200).json({
-      message: "Bookmark Updated",
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.putChatFeedbck = async (req, res, next) => {
-  const feedback = req.body.feedback;
-  const chatId = req.body.chatId;
-  const messageId = req.body.messageId;
-  const reason = req.body.reason || "";
-  try {
-    const chatDocument = await Chat.findById(chatId);
-    if (!chatDocument) {
-      const error = new Error("Chat Not Found");
-      error.statusCode = 404;
-      throw error;
-    }
-    const chat = chatDocument.chats.id(messageId);
-    if (!chat) {
-      const error = new Error("Answer Not Found in Chat");
-      error.statusCode = 404;
-      throw error;
-    }
-    chat.feedback = feedback;
-    if (reason.length > 0) {
-      chat.reason = reason;
-    }
-    await chatDocument.save();
-    res.status(200).json({
-      message: "Feedback Updated",
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.deleteChat = async (req, res, next) => {
-  const chatId = req.params.chatId;
-  try {
-    const deletedDocument = await Chat.findByIdAndDelete(chatId);
-    if (!deletedDocument) {
-      const error = new Error("Chat Not Found");
-      error.statusCode = 404;
-      throw error;
-    }
-    res.status(200).json({
-      message: "Chat Deleted",
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-
-
-
-
-
-
-const fs = require("fs");
-const csv = require("csv-parser");
-
-const loadCSV = async (filePath) => {
-  return new Promise((resolve, reject) => {
-    const data = [];
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on("data", (row) => {
-        data.push(row);
-      })
-      .on("end", () => {
-        resolve(data);
-      })
-      .on("error", (error) => {
-        reject(error);
-      });
-  });
-};
-
-const getUserPermissions = async (filePath, userId) => {
-  try {
-    const users = await loadCSV(filePath);
-    const user = users.find((user) => user.UserLookupId === userId);
-    return user ? user.Permissions.split(";") : [];
-  } catch (error) {
-    console.log("Error loading user permissions: ", error);
-    return [];
-  }
-};
-
-const getAccessibleFiles = async (
-  userPermissionsFilesPath,
-  filesInfoFilesPath,
-  userId
-) => {
-  try {
-    const userPermissions = await getUserPermissions(
-      userPermissionsFilesPath,
-      userId
-    );
-    if (userPermissions.length === 0) {
-      console.log(`No permissions found for user ID ${userId}`);
-      return [];
+        ],
+        "filtersMetadata": (message.filtersMetadata if message.filtersMetadata else []),
+        "isGPT": message.isGPT,
+        "createdAt": datetime.utcnow(),
+        "updatedAt": datetime.utcnow(),
     }
 
-    const files = await loadCSV(filesInfoFilesPath);
-    const accessibleFiles = files.filter((file) => {
-      const filesPermissions = file.DeliverablePermissions.split(";");
-      return (
-        (filesPermissions.length == 1 && filesPermissions[0] === "") ||
-        userPermissions.some((permission) =>
-          filesPermissions.includes(permission)
+    inserted_chat = collection_chat.insert_one(new_chat)
+    chat_id = inserted_chat.inserted_id
+
+    return chat_id
+
+
+# @app.middleware("http")
+# async def validate_origins_and_cors(request: Request, call_next):
+#     # security_header = request.headers.get("X-Security-Header")
+#     # if security_header is None or security_header != os.environ.get("SECURITY_HEADER"):
+#     #     return JSONResponse(
+#     #         status_code=403, content={"message": "Access Denied: Authentication Failed"}
+#     #     )
+
+#     if request.method == "OPTIONS":
+#         response = JSONResponse(status_code=204)
+#     else:
+#         response = await call_next(request)
+
+#     # Add CORS headers to the response
+#     response.headers["Access-Control-Allow-Origin"] = allowed_origins
+#     response.headers["Access-Control-Allow-Credentials"] = "true"
+#     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+#     response.headers["Access-Control-Allow-Headers"] = (
+#         "Content-Type, Authorization, X-Security-Header"
+#     )
+
+#     return response
+
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to FastAPI"}
+
+
+@app.post("/")
+async def generate_content(message: Message):
+    async def content_generator_summary(question: str) -> AsyncGenerator[str, None]:
+        try:
+            global user_permissions, sources
+            user_permissions = get_user_permissions(message.userLookupId)
+            sources.clear()
+            ai_text = ""
+            chat_id = None
+            flag = False
+
+            if not message.chatId:
+                chat_id = create_new_title_chat(message)
+                flag = True
+                yield json.dumps({"type": "chatId", "content": str(chat_id)})
+
+            search_kwargs = (
+                create_search_kwargs(message.filters) if message.filters else {}
+            )
+
+            retriever = MultiVectorRetriever(
+                vectorstore=vectorstore_gpt_summary,
+                docstore=loaded_docstore_gpt_summary,
+                id_key="GatesVentures_Scientia_Summary",
+                search_kwargs=search_kwargs,
+            )
+
+            chain = multi_modal_rag_chain_source(
+                retriever,
+                llm_gpt,
+                "No",
+                message.filters,
+                message.chatHistory,
+                "No",
+                "summary",
+            )
+
+            async for chunk in chain.astream(question):
+                ai_text += chunk
+                yield json.dumps({"type": "text", "content": chunk})
+
+            if (
+                "I am not able to provide a response as it is not there in the context."
+                in ai_text
+            ):
+                sources.clear()
+
+            if not message.filters:
+                if count_restriction == 4:
+                    sources.update({"Note: This is a Restricted Answer": ""})
+
+            message_id = update_chat(
+                message,
+                ai_text,
+                str(chat_id) if chat_id else message.chatId,
+                flag,
+                sources,
+            )
+
+            yield json.dumps({"type": "messageId", "content": str(message_id)})
+            yield json.dumps({"type": "sources", "content": sources})
+
+        except Exception as e:
+            logging.error(f"An Error Occurred: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    async def content_generator(question: str) -> AsyncGenerator[str, None]:
+        try:
+            global user_permissions, sources
+            user_permissions = get_user_permissions(message.userLookupId)
+            sources.clear()
+            ai_text = ""
+            chat_id = None
+            flag = False
+
+            if not message.chatId:
+                chat_id = create_new_title_chat(message)
+                flag = True
+                yield json.dumps({"type": "chatId", "content": str(chat_id)})
+
+            search_kwargs = (
+                create_search_kwargs(message.filters) if message.filters else {}
+            )
+            retriever = MultiVectorRetriever(
+                vectorstore=vectorstore_gpt,
+                docstore=loaded_docstore_gpt,
+                id_key="GatesVentures_Scientia",
+                search_kwargs=search_kwargs,
+            )
+
+            chain = multi_modal_rag_chain_source(
+                retriever,
+                llm_gpt,
+                message.image,
+                message.filters,
+                message.chatHistory,
+                message.reason,
+                "normal",
+            )
+
+            async for chunk in chain.astream(question):
+                ai_text += chunk
+                yield json.dumps({"type": "text", "content": chunk})
+
+            if (
+                "I am not able to provide a response as it is not there in the context."
+                in ai_text
+            ):
+                sources.clear()
+
+            if not message.filters:
+                if count_restriction == 4:
+                    sources.update({"Note: This is a Restricted Answer": ""})
+
+            message_id = update_chat(
+                message,
+                ai_text,
+                str(chat_id) if chat_id else message.chatId,
+                flag,
+                sources,
+            )
+
+            yield json.dumps({"type": "messageId", "content": str(message_id)})
+            yield json.dumps({"type": "sources", "content": sources})
+
+        except Exception as e:
+            logging.error(f"An Error Occurred: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    async def content_generator_GPT(question: str) -> AsyncGenerator[str, None]:
+        try:
+            formatted_chat_history = (
+                format_chat_history(message.chatHistory)
+                if message.chatHistory
+                else "No Previous Conversation"
+            )
+            ai_text = ""
+            chat_id = None
+            flag = False
+
+            if not message.chatId:
+                chat_id = create_new_title_chat(message)
+                flag = True
+                yield json.dumps({"type": "chatId", "content": str(chat_id)})
+
+            model = AzureChatOpenAI(
+                api_key=os.environ["AZURE_OPENAI_API_KEY"],
+                openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_35"],
+                api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+            )
+
+            prompt_text = """
+                Please answer the following question based on the given conversation history. \
+                Use your own knowledge to answer the question. \
+                Give me answer in markdown with well defined formatting and spacing. Use headings, subheadings, bullet points, wherever needed.
+                Conversation history  \
+                {chat_history}
+                User Question : \
+                {question}
+            """
+
+            prompt = ChatPromptTemplate.from_template(prompt_text)
+
+            chain = (
+                {
+                    "chat_history": lambda _: formatted_chat_history,
+                    "question": lambda x: x,
+                }
+                | prompt
+                | model
+                | StrOutputParser()
+            )
+
+            async for chunk in chain.astream(question):
+                ai_text += chunk
+                yield json.dumps({"type": "text", "content": chunk})
+
+            message_id = update_chat(
+                message,
+                ai_text,
+                str(chat_id) if chat_id else message.chatId,
+                flag,
+                {"This response is generated by ChatGPT": ""},
+            )
+
+            yield json.dumps({"type": "messageId", "content": str(message_id)})
+            yield json.dumps(
+                {
+                    "type": "sources",
+                    "content": {"This response is generated by ChatGPT": ""},
+                }
+            )
+        except Exception as e:
+            logging.error(f"An Error Occurred: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    async def content_generator_salutation(question: str) -> AsyncGenerator[str, None]:
+        try:
+            formatted_chat_history = (
+                format_chat_history(message.chatHistory)
+                if message.chatHistory
+                else "No Previous Conversation"
+            )
+            ai_text = ""
+            chat_id = None
+            flag = False
+
+            if not message.chatId:
+                chat_id = create_new_title_chat(message)
+                flag = True
+                yield json.dumps({"type": "chatId", "content": str(chat_id)})
+
+            prompt_text = """
+                You are a Scientia Knowledge Bot, designed to provide informative and comprehensive responses specific to the Scientia sharepoint portal.
+                When responding to a user's query, please ensure that your response:
+                Is informative and comprehensive.
+                Is clear and concise.
+                Is relevant to the topic at hand.
+                Adheres to the guidelines provided in the initial prompt.
+                Is aligned with the specific context of the Scientia SharePoint portal.
+                Remember to:
+                Avoid providing personal opinions or beliefs.
+                Base your responses solely on the information provided.
+                Be respectful and polite in all interactions.
+                Leverage the specific knowledge and resources available within the Scientia SharePoint portal.
+                The following is a conversation with a highly intelligent AI assistant. \
+                The assistant is helpful, knowledgeable, and polite. The assistant always takes into account the previous interactions in the conversation to provide relevant and context-aware responses. \
+                When the user greets the assistant, the assistant should respond with an appropriate salutation and a brief summary or reference to the last topic discussed, ensuring a smooth and coherent continuation of the conversation.\
+                Conversation history \
+                {chat_history}
+                User Question : \
+                {question}
+            """
+
+            prompt = ChatPromptTemplate.from_template(prompt_text)
+
+            chain = (
+                {
+                    "chat_history": lambda _: formatted_chat_history,
+                    "question": lambda x: x,
+                }
+                | prompt
+                | llm_gpt
+                | StrOutputParser()
+            )
+
+            async for chunk in chain.astream(question):
+                ai_text += chunk
+                yield json.dumps({"type": "text", "content": chunk})
+
+            message_id = update_chat(
+                message, ai_text, str(chat_id) if chat_id else message.chatId, flag
+            )
+
+            yield json.dumps({"type": "messageId", "content": str(message_id)})
+            yield json.dumps({"type": "sources", "content": None})
+
+        except Exception as e:
+            logging.error(f"An Error Occurred: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    try:
+        question = (
+            standalone_question(message.question, message.chatHistory)
+            if message.chatHistory
+            else message.question
         )
-      );
-    });
 
-    return accessibleFiles;
-  } catch (error) {
-    console.log("Error retrieving accessible files: ", error);
-    return [];
-  }
-};
+        if message.isGPT:
+            generator = content_generator_GPT(question)
+        else:
+            question_intent_response = question_intent(question, message.chatHistory)
+            if "direct_response" in question_intent_response:
+                generator = content_generator_salutation(question)
+            elif "normal_rag" in question_intent_response:
+                generator = content_generator(question)
+            elif "summary_rag" in question_intent_response:
+                generator = content_generator_summary(question)
 
-module.exports = { getAccessibleFiles, getUserPermissions };
+        return StreamingResponse(generator, media_type="application/json")
+    except Exception as e:
+        logging.error(f"An Error Occurred: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
+# if __name__ == "__main__":
+#     import uvicorn
 
-
-
-
-
-
+#     uvicorn.run(app, host="0.0.0.0", port=6969)
