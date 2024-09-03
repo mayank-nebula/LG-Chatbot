@@ -1,12 +1,12 @@
 import os
 import logging
-
 from datetime import datetime
 from pymongo import MongoClient
 from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
+# Set up logging to log both to a file ('Ingestion_logs.log') and the console.
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -16,18 +16,22 @@ logging.basicConfig(
     ],
 )
 
+# Initialize a MongoDB client using the API key from environment variables.
 client = MongoClient(os.environ["MONGO_API_KEY"])
+# Select the database and collection within MongoDB for storing questions.
 db = client[os.environ["MONGODB_COLLECTION"]]
 collection_question = db["questions"]
 
+# Initialize the AzureChatOpenAI model with the necessary parameters.
 llm_gpt = AzureChatOpenAI(
     openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
     azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
     max_retries=20,
 )
 
-
+# Function to generate questions based on the provided context.
 def question_generation(context):
+    # Define the prompt template with detailed instructions for generating questions.
     prompt_text = """
     Instructions:
     1. Assume the persona of a knowledgeable and experienced educator who specializes in generating comprehensive and insightful questions based on provided content.
@@ -53,26 +57,38 @@ def question_generation(context):
     Please proceed to generate 10 questions in JSON format with keys Sl_no, Question, Question_Type.
     """
 
+    # Create a prompt template object using the above text.
     prompt = ChatPromptTemplate.from_template(prompt_text)
 
+    # Combine the prompt with the language model and JSON output parser.
     chain = prompt | llm_gpt | JsonOutputParser()
+
+    # Invoke the chain with the provided context and return the result (questions).
     result = chain.invoke({"element": context})
     return result
 
-
+# Function to generate questions and save them in MongoDB.
 def generate_and_save_questions(title, summary):
     try:
         question_list = []
+        # Generate questions from the summary.
         questions = question_generation(summary)
+        
+        # Extract and store the questions from the JSON output.
         for question in questions:
             question_list.append(question["Question"])
+        
+        # Create a document to be inserted into MongoDB with metadata and questions.
         document = {
             "documentName": title,
             "questions": question_list,
             "updatedAt": datetime.utcnow(),
             "createAt": datetime.utcnow(),
         }
+        
+        # Insert the document into the MongoDB collection and log the success.
         result = collection_question.insert_one(document)
         logging.info("Questions stored successfully. ", result.inserted_id)
     except Exception as e:
+        # Log any errors that occur during the process.
         logging.error("Failed to store the questions. {e}")
