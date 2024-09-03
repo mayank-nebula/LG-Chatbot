@@ -1,225 +1,353 @@
-def sharepoint_file_acquisition():
-    global token, token_expires_at, client
+# Function to retrieve user permissions based on userLookupId
+def get_user_permissions(userLookupId):
+    user_permissions = permission_df[permission_df["UserLookupId"] == userLookupId]
+    permission_str = user_permissions.iloc[0]["Permissions"]
+    permissions = permission_str.split(";")
 
+    return permissions
+
+
+# Function to format chat history for processing
+def format_chat_history(chatHistory):
+    return "\n".join(
+        [f"Human: {chat['user']}\nAssistant: {chat['ai']}" for chat in chatHistory]
+    )
+
+
+# Function to check if a string looks like a base64 encoded string
+def looks_like_base64(sb):
     try:
-        # Acquire a new access token and set up the Microsoft Graph API client.
-        token, token_expires_at = acquire_token_func()
-        client = GraphClient(lambda: token)
+        return base64.b64encode(base64.b64decode(sb)) == sb.encode()
+    except Exception:
+        return False
 
-        # Retrieve the site ID from the SharePoint site URL.
-        site_id = get_site_id(client, site_url)
 
-        # Fetch user permissions and deliverables list names from environment variables.
-        user_permission_list = os.getenv("USER_PERMISSION_LIST")
-        deliverables_list = os.getenv("DELIVERABLES_LIST")
+# Resize an image encoded as a Base64 string
+def resize_base64_image(base64_string, size=(128, 128)):
+    img_data = base64.b64decode(base64_string)
+    img = Image.open(io.BytesIO(img_data))
+    resized_img = img.resize(size, Image.LANCZOS)
+    buffered = io.BytesIO()
+    resized_img.save(buffered, format=img.format)
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-        # Log the start of user permissions fetching process.
-        logging.info("Fetching user permissions...")
 
-        # Fetch user permissions list items from SharePoint.
-        users_list_object = (
-            client.sites[site_id]
-            .lists[user_permission_list]
-            .items.expand(
-                ["fields($select=User,UserLookupId,Teams,TeamsPermission,Roles)"]
-            )
-            .get()
-            .top(5000)
-            .execute_query()
-        )
+# Function to process metadata, particularly extracting file names
+def process_metadata(metadata):
+    metadata = re.sub(r"'", r'"', metadata)
+    pattern = r'.*?"FileLeafRef"\s*:\s*"([^"]*)"'
+    match = re.search(pattern, metadata, re.DOTALL)
 
-        # Convert the fetched user permissions items to a JSON format and extract fields.
-        users_list_items = [item.to_json()["fields"] for item in users_list_object]
+    if match:
+        return match.group(1)
+    else:
+        return None
 
-        # Save the user permissions data to a CSV file.
-        users_list_csv_filename = os.path.join(os.getcwd(), "users_permission.csv")
-        save_to_csv(users_list_items, users_list_csv_filename)
 
-        # Load the saved user permissions CSV file into a DataFrame.
-        df = pd.read_csv("users_permission.csv")
+# Split base64-encoded images, texts, and metadata
+def split_image_text_types(docs):
+    global sources, count_restriction
+    count_restriction = 0
+    texts = []
+    summary = []
+    b64_images = []
+    for doc in docs:
+        if isinstance(doc, Document):
+            file_permission = doc.metadata["DeliverablePermissions"]
+            file_permission_list = file_permission.split(";")
+            if not file_permission_list or any(
+                element in file_permission_list for element in user_permissions
+            ):
+                doc_content = json.loads(doc.page_content)
+                link = doc.metadata["source"]
+                slide_number = doc.metadata.get("slide_number", "")
 
-        # Combine the 'Teams' and 'TeamsPermission' columns into a 'Permissions' column.
-        df["Permissions"] = df["Teams"].astype(str) + df["TeamsPermission"].astype(str)
+                metadata = doc.metadata.get("deliverables_list_metadata")
+                title = process_metadata(metadata)
+                _, ext = os.path.splitext(title)
 
-        # Group the DataFrame by 'User' and 'UserLookupId' and concatenate permissions.
-        result = (
-            df.groupby(["User", "UserLookupId"])["Permissions"]
-            .apply(lambda x: ";".join(x))
-            .reset_index()
-        )
+                if ext.lower() in [".pdf", ".doc", ".docx"]:
+                    slide_number = slide_number.replace("slide_", "Page ")
+                else:
+                    slide_number = slide_number.replace("slide_", "Slide ")
 
-        # Rename the columns to 'Name', 'UserLookupId', and 'Permissions'.
-        result.columns = ["Name", "UserLookupId", "Permissions"]
+                existing_key = next(
+                    (k for k in sources.keys() if k.startswith(title)), None
+                )
 
-        # Save the grouped and processed permissions data back to the CSV file.
-        result.to_csv("users_permission.csv", index=False)
+                if existing_key:
+                    new_key = existing_key + f", {slide_number}"
+                    sources[new_key] = sources.pop(existing_key)
+                else:
+                    new_key = f"{title} {'-' if slide_number else ''} {slide_number}"
+                    sources[new_key] = link
 
-        # Define additional folders where the CSV file will be saved.
-        additional_folders = [express_folder, fast_folder]
+                if looks_like_base64(doc_content["content"]):
+                    resized_image = resize_base64_image(
+                        doc_content["content"], size=(512, 512)
+                    )
+                    b64_images.append(resized_image)
+                    summary.append(doc_content["summary"])
+                else:
+                    texts.append(doc_content["content"])
+            else:
+                count_restriction += 1
+                continue
 
-        # Save the CSV file to the specified additional folders.
-        for folder in additional_folders:
-            final_path = os.path.join(folder, "users_permission.csv")
-            result.to_csv(final_path, index=False)
+    return {"images": b64_images, "texts": texts, "summary": summary}
 
-        # Log the start of the deliverables list fetching process.
-        logging.info("Fetching deliverables list...")
 
-        # Fetch the deliverables list items from SharePoint.
-        deliverables_list_object = (
-            client.sites[site_id]
-            .lists[deliverables_list]
-            .items.expand(["fields"])
-            .get()
-            .top(5000)
-            .execute_query()
-        )
+# Join the context into a single string
+def img_prompt_func(data_dict):
+    formatted_summary = ""
+    reason = data_dict["context"]["reason"]
+    type_of_doc = data_dict["context"]["type_of_doc"]
+    formatted_texts = "\n".join(data_dict["context"]["texts"])
+    chatHistory = format_chat_history(data_dict["context"]["chatHistory"])
 
-        # Initialize lists to store deliverables data and field names.
-        deliverables_item_data = []
-        deliverables_field_names = set()
+    messages = []
 
-        # Process each deliverable item and collect field names.
-        for item in deliverables_list_object:
-            fields = item.to_json()["fields"]
-            if fields["ContentType"] == "Document":
-                deliverables_item_data.append(fields)
-                deliverables_field_names.update(fields.keys())
+    if data_dict["context"]["image_present"] == "Yes":
+        if data_dict["context"]["images"]:
+            for image in data_dict["context"]["images"]:
+                image_message = {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image}"},
+                }
+                messages.append(image_message)
 
-        # Convert the field names to a list.
-        deliverables_field_names = list(deliverables_field_names)
+    else:
+        formatted_summary = "\n".join(data_dict["context"]["summary"])
 
-        # Ensure all fields are present in each deliverable item, filling in missing fields with None.
-        for fields in deliverables_item_data:
-            for field in deliverables_field_names:
-                if field not in fields:
-                    fields[field] = None
-
-        # Save the deliverables list data to a CSV file.
-        deliverables_list_csv_filename = os.path.join(
-            os.getcwd(), "deliverables_list.csv"
-        )
-        field_names = deliverables_item_data[0].keys()
-        save_to_csv1(
-            deliverables_item_data,
-            deliverables_list_csv_filename,
-            field_names,
-            additional_folders=[express_folder, fast_folder],
-        )
-
-        # Define filenames for folders and files metadata CSVs.
-        folders_csv_filename = os.path.join(os.getcwd(), "folders_metadata.csv")
-        files_csv_filename = os.path.join(os.getcwd(), "files_metadata.csv")
-
-        # Retrieve the last run timestamp.
-        last_run = get_last_run_timestamp()
-
-        # Load existing folders and files metadata from CSV files.
-        existing_files = load_existing_csv_data(files_csv_filename, "ID")
-        existing_folders = load_existing_csv_data(folders_csv_filename, "ID")
-
-        # Initialize lists for tracking created and updated files and folders.
-        created_files = []
-        created_folders = []
-        updated_files = []
-        updated_folders = []
-
-        # Log the start of folders and files fetching process.
-        logging.info("Fetching folders and files from Deliverables...")
-
-        # Get the drive ID from environment variables.
-        drive_id = os.getenv("DRIVE_ID")
-
-        # Log the processing of the drive.
-        logging.info(f"Processing drive: Deliverables (ID: {drive_id})")
-
-        # Get the root folder ID of the drive.
-        root_id = client.sites[site_id].drives[drive_id].root.get().execute_query().id
-
-        # Traverse through folders and files, updating the tracking lists.
-        current_file_ids, current_folder_ids = traverse_folders_and_files(
-            site_id,
-            drive_id,
-            root_id,
-            "",
-            last_run,
-            existing_files,
-            created_files,
-            updated_files,
-            existing_folders,
-            created_folders,
-            updated_folders,
-        )
-
-        # Log that all folders have been processed.
-        logging.info("All folders done.")
-
-        # Determine IDs of existing and current files and folders.
-        existing_files_ids = set(existing_files.keys())
-        existing_folders_ids = set(existing_folders.keys())
-        current_file_ids_set = set(current_file_ids)
-        current_folder_ids_set = set(current_folder_ids)
-
-        # Identify deleted file and folder IDs.
-        deleted_file_ids = existing_files_ids - current_file_ids_set
-        deleted_folder_ids = existing_folders_ids - current_folder_ids_set
-
-        # Remove deleted files and folders from the existing metadata.
-        for file_id in deleted_file_ids:
-            del existing_files[file_id]
-        for folder_id in deleted_folder_ids:
-            del existing_folders[folder_id]
-
-        # Update the CSV files with the modified metadata.
-        update_csv(existing_files, files_csv_filename)
-        update_csv(existing_folders, folders_csv_filename)
-
-        # Update the timestamp of the last run.
-        update_last_run_timestamp()
-
-        # Load the updated files and deliverables metadata from CSV files.
-        files_metadata = load_existing_csv_data("files_metadata.csv", "ID")
-        deliverables_list_metadata = load_existing_csv_data(
-            "deliverables_list.csv", "FileLeafRef"
-        )
-
-        # Prepare lists of file IDs to delete or process.
-        file_ids_to_delete = list(deleted_file_ids) + updated_files
-        file_ids_to_process = updated_files + created_files
-
-        # Delete documents from the vector store for the deleted or updated files.
-        if file_ids_to_delete:
-            delete_from_vectostore(file_ids_to_delete)
-
-        # Stream file content and update the vector store for the processed files.
-        for file_id in file_ids_to_process:
-            stream_file_content(
-                site_id, drive_id, file_id, files_metadata, deliverables_list_metadata
-            )
-
-        # Update and save the normal RAG docstore, with backups.
-        update_and_save_docstore(
-            "docstores_normal_rag",
-            os.path.join(parent_dir, "fast", "docstores", "GatesVentures_Scientia.pkl"),
-            os.path.join(os.getcwd(), "backup", "normal"),
-        )
-
-        # Update and save the summary RAG docstore, with backups.
-        update_and_save_docstore(
-            "docstores_summary_rag",
-            os.path.join(
-                parent_dir, "fast", "docstores", "GatesVentures_Scientia_Summary.pkl"
+    if type_of_doc == "normal":
+        text_message = {
+            "type": "text",
+            "text": (
+                
+                "Never answer from your own knowledge source, always asnwer from the provided context."
+                f"User's question: {data_dict.get('question', 'No question provided')}\n\n"
+                f"{'Last Time the answer was not good and the reason shared by user is :' if reason else ''}{reason if reason else ''}{' .Generate Accordingly' if reason else '' }"
+                f"{'Original content: ' if formatted_texts else ''}{formatted_texts if formatted_texts else ''}\n"
+                f"{'Summary content: ' if formatted_summary else ''}{formatted_summary if formatted_summary else ''}\n\n"
+                f"{'Previous conversation: ' if chatHistory else ''}{chatHistory if chatHistory else ''}\n\n"
             ),
-            os.path.join(os.getcwd(), "backup", "summary"),
+        }
+    else:
+        text_message = {
+            "type": "text",
+            "text": (
+               
+                "Base your response solely on the provided content.\n"
+                "Maintain context from previous conversations.\n"
+                "If you don't know the answer to any question, simply say 'I am not able to provide a response as it is not there in the context'.\n\n"
+                "Input:\n"
+                f"User's question: {data_dict.get('question', 'No question provided')}\n"
+                f"{'Last Time the answer was not good and the reason shared by user is :' if reason else ''}{reason if reason else ''}{' .Generate Accordingly' if reason else '' }\n"
+                f"{'Original content: ' if formatted_texts else ''}{formatted_texts if formatted_texts else ''}\n"
+                f"{'Summary content: ' if formatted_summary else ''}{formatted_summary if formatted_summary else ''}\n"
+                f"{'Previous conversation: ' if chatHistory else ''}{chatHistory if chatHistory else ''}\n\n"
+                "Output:\n"
+                "Summary : A comprehensive and accurate response to the user's question, presented in a clear and concise format with appropriate headings, subheadings, bullet points, and spacing.\n\n"
+            ),
+        }
+
+    messages.append(text_message)
+
+    return [HumanMessage(content=messages)]
+
+
+# Multi-modal RAG chain creation
+def multi_modal_rag_chain_source(
+    retriever, llm_to_use, image, filters, chatHistory, reason, type_of_doc
+):
+    def combined_context(data_dict):
+        context = {
+            "texts": data_dict.get("texts", []),
+            "images": data_dict.get("images", []),
+            "summary": data_dict.get("summary", []),
+            "image_present": image,
+            "filters": filters,
+            "chatHistory": chatHistory,
+            "reason": reason,
+            "type_of_doc": type_of_doc,
+        }
+        return context
+
+    chain = (
+        {
+            "context": retriever
+            | RunnableLambda(split_image_text_types)
+            | RunnableLambda(combined_context),
+            "question": RunnablePassthrough(),
+        }
+        | RunnableLambda(img_prompt_func)
+        | llm_to_use
+        | StrOutputParser()
+    )
+
+    return chain
+
+
+# Function to create a new title for the chat thread
+def create_new_title(question):
+
+    prompt_text = (
+        "Given the following question, create a concise and informative title that accuratelt reflects the content and MAKE SURE TO ANSWER IN JUST 4 WORDS. Just give the title name without any special characters.\n"
+        "{element}"
+    )
+
+    prompt = ChatPromptTemplate.from_template(prompt_text)
+    new_title = {"element": lambda x: x} | prompt | llm_gpt
+    response = new_title.invoke(question)
+
+    return response.content
+
+
+# Function to update the chat thread by adding or removing messages from the chat thread
+def update_chat(message: Message, ai_text: str, chat_id: str, flag: bool, sources=None):
+    message_id = None
+
+    if message.regenerate == "Yes" or flag == True:
+        collection_chat.update_one(
+            {"_id": ObjectId(chat_id)},
+            {
+                "$pop": {"chats": 1},
+                "$set": {"updatedAt": datetime.utcnow()},
+            },
         )
 
-        # Log that the ingestion process is complete.
-        logging.info("Ingestion Complete")
-    
-    # Catch and log any errors that occur during the process.
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
+    if message.feedbackRegenerate == "Yes":
+        chat = collection_chat.find_one({"_id": ObjectId(chat_id)})
+        if chat and "chats" in chat and len(chat["chats"]) > 0:
+            last_chat_index = len(chat["chats"]) - 1
+            collection_chat.update_one(
+                {
+                    "_id": ObjectId(chat_id),
+                    f"chats.{last_chat_index}.flag": {"$exists": False},
+                },
+                {
+                    "$set": {
+                        f"chats.{last_chat_index}.flag": True,
+                        "updatedAt": datetime.utcnow(),
+                    }
+                },
+            )
 
-# Execute the SharePoint file acquisition process when the script is run directly.
-if __name__ == "__main__":
-    sharepoint_file_acquisition()
+    new_chat = {
+        "_id": ObjectId(),
+        "user": message.question,
+        "ai": ai_text,
+        "sources": sources,
+    }
+
+    update_fields = {
+        "$push": {"chats": new_chat},
+        "$set": {
+            "updatedAt": datetime.utcnow(),
+            "filtersMetadata": (
+                message.filtersMetadata if message.filtersMetadata else []
+            ),
+            "isGPT": message.isGPT,
+        },
+    }
+
+    collection_chat.update_one({"_id": ObjectId(chat_id)}, update_fields)
+
+    chat = collection_chat.find_one({"_id": ObjectId(chat_id)})
+
+    if chat and "chats" in chat:
+        message_id = chat["chats"][-1]["_id"]
+
+    return message_id
+
+
+# Function to create filters to filter chromaDB collection
+def create_search_kwargs(filters):
+    if len(filters) == 1:
+        filter_condition = {"Title": filters[0]}
+    elif isinstance(filters, list):
+        or_conditions = [{"Title": v} for v in filters]
+        filter_condition = {"$or": or_conditions}
+
+    search_kwargs = {"filter": filter_condition}
+
+    return search_kwargs
+
+
+# Function to identify the user question intent
+def question_intent(question, chatHistory):
+    formatted_chat_history = format_chat_history(chatHistory)
+
+    prompt_text = """
+        AI Assistant Instructions
+
+       
+        Previous Conversation: "{chat_history}"
+        
+        Please respond with the appropriate keyword based on the analysis of the user query:
+        - "normal_rag"
+        - "summary_rag"
+        - "direct_response"
+        
+        """
+
+    prompt = ChatPromptTemplate.from_template(prompt_text)
+
+    chain = (
+        {"chat_history": lambda _: formatted_chat_history, "question": lambda x: x}
+        | prompt
+        | llm_gpt
+    )
+
+    intent = chain.invoke(question)
+
+    return intent.content
+
+
+# Function to form a standalone question based on the user chat history
+def standalone_question(question, chatHistory):
+    formatted_chat_history = format_chat_history(chatHistory)
+
+    prompt_text = """
+           urn it as is. Don't provide anything else, just provide the question\
+            Chat History\
+            {chat_history}
+            User Question : \
+            {question}
+        """
+
+    prompt = ChatPromptTemplate.from_template(prompt_text)
+
+    chain = (
+        {"chat_history": lambda _: formatted_chat_history, "question": lambda x: x}
+        | prompt
+        | llm_gpt
+    )
+
+    new_question = chain.invoke(question)
+
+    return new_question.content
+
+
+# Function to create a new chat thread
+def create_new_title_chat(message: Message):
+    title = create_new_title(message.question)
+    new_chat = {
+        "userEmailId": message.userEmailId,
+        "title": title,
+        "chats": [
+            {
+                "_id": ObjectId(),
+                "user": message.question,
+            }
+        ],
+        "filtersMetadata": (message.filtersMetadata if message.filtersMetadata else []),
+        "isGPT": message.isGPT,
+        "createdAt": datetime.utcnow(),
+        "updatedAt": datetime.utcnow(),
+    }
+
+    inserted_chat = collection_chat.insert_one(new_chat)
+    chat_id = inserted_chat.inserted_id
+
+    return chat_id
