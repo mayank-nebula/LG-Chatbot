@@ -1,5 +1,13 @@
-# Function to retrieve user permissions based on userLookupId
 def get_user_permissions(userLookupId):
+    """
+    Retrieves user permissions based on the user lookup ID.
+
+    Args:
+        userLookupId (str): The user lookup ID.
+
+    Returns:
+        list: A list of permissions associated with the user.
+    """
     user_permissions = permission_df[permission_df["UserLookupId"] == userLookupId]
     permission_str = user_permissions.iloc[0]["Permissions"]
     permissions = permission_str.split(";")
@@ -7,23 +15,48 @@ def get_user_permissions(userLookupId):
     return permissions
 
 
-# Function to format chat history for processing
 def format_chat_history(chatHistory):
+    """
+    Formats chat history into a string for processing.
+
+    Args:
+        chatHistory (list): A list of chat history records, each containing 'user' and 'ai' fields.
+
+    Returns:
+        str: A formatted string of chat history.
+    """
     return "\n".join(
         [f"Human: {chat['user']}\nAssistant: {chat['ai']}" for chat in chatHistory]
     )
 
 
-# Function to check if a string looks like a base64 encoded string
 def looks_like_base64(sb):
+    """
+    Checks if a string looks like a base64 encoded string.
+
+    Args:
+        sb (str): The string to check.
+
+    Returns:
+        bool: True if the string appears to be base64 encoded, otherwise False.
+    """
     try:
         return base64.b64encode(base64.b64decode(sb)) == sb.encode()
     except Exception:
         return False
 
 
-# Resize an image encoded as a Base64 string
 def resize_base64_image(base64_string, size=(128, 128)):
+    """
+    Resizes an image encoded as a base64 string.
+
+    Args:
+        base64_string (str): The base64 encoded image string.
+        size (tuple): The target size for resizing (width, height).
+
+    Returns:
+        str: The resized image as a base64 encoded string.
+    """
     img_data = base64.b64decode(base64_string)
     img = Image.open(io.BytesIO(img_data))
     resized_img = img.resize(size, Image.LANCZOS)
@@ -32,8 +65,16 @@ def resize_base64_image(base64_string, size=(128, 128)):
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
-# Function to process metadata, particularly extracting file names
 def process_metadata(metadata):
+    """
+    Extracts the file name from metadata.
+
+    Args:
+        metadata (str): The metadata string containing file information.
+
+    Returns:
+        str: The extracted file name if found, otherwise None.
+    """
     metadata = re.sub(r"'", r'"', metadata)
     pattern = r'.*?"FileLeafRef"\s*:\s*"([^"]*)"'
     match = re.search(pattern, metadata, re.DOTALL)
@@ -44,8 +85,16 @@ def process_metadata(metadata):
         return None
 
 
-# Split base64-encoded images, texts, and metadata
 def split_image_text_types(docs):
+    """
+    Splits documents into images, texts, and summaries based on their content.
+
+    Args:
+        docs (list): A list of Document objects.
+
+    Returns:
+        dict: A dictionary with keys 'images', 'texts', and 'summary', containing the respective content.
+    """
     global sources, count_restriction
     count_restriction = 0
     texts = []
@@ -97,8 +146,16 @@ def split_image_text_types(docs):
     return {"images": b64_images, "texts": texts, "summary": summary}
 
 
-# Join the context into a single string
 def img_prompt_func(data_dict):
+    """
+    Creates a formatted message for the AI model based on the provided data.
+
+    Args:
+        data_dict (dict): A dictionary containing context information.
+
+    Returns:
+        list: A list containing the formatted message for the AI model.
+    """
     formatted_summary = ""
     reason = data_dict["context"]["reason"]
     type_of_doc = data_dict["context"]["type_of_doc"]
@@ -123,8 +180,7 @@ def img_prompt_func(data_dict):
         text_message = {
             "type": "text",
             "text": (
-                
-                "Never answer from your own knowledge source, always asnwer from the provided context."
+                "Never answer from your own knowledge source, always answer from the provided context."
                 f"User's question: {data_dict.get('question', 'No question provided')}\n\n"
                 f"{'Last Time the answer was not good and the reason shared by user is :' if reason else ''}{reason if reason else ''}{' .Generate Accordingly' if reason else '' }"
                 f"{'Original content: ' if formatted_texts else ''}{formatted_texts if formatted_texts else ''}\n"
@@ -136,7 +192,6 @@ def img_prompt_func(data_dict):
         text_message = {
             "type": "text",
             "text": (
-               
                 "Base your response solely on the provided content.\n"
                 "Maintain context from previous conversations.\n"
                 "If you don't know the answer to any question, simply say 'I am not able to provide a response as it is not there in the context'.\n\n"
@@ -156,10 +211,24 @@ def img_prompt_func(data_dict):
     return [HumanMessage(content=messages)]
 
 
-# Multi-modal RAG chain creation
 def multi_modal_rag_chain_source(
     retriever, llm_to_use, image, filters, chatHistory, reason, type_of_doc
 ):
+    """
+    Creates a multi-modal RAG chain for processing queries.
+
+    Args:
+        retriever (object): The retriever object for fetching documents.
+        llm_to_use (object): The language model to use.
+        image (str): Indicator of whether images are present.
+        filters (list): Filters to apply to the search.
+        chatHistory (list): Previous chat history.
+        reason (str): Reason for regeneration, if any.
+        type_of_doc (str): The type of document ('normal' or otherwise).
+
+    Returns:
+        object: The configured RAG chain.
+    """
     def combined_context(data_dict):
         context = {
             "texts": data_dict.get("texts", []),
@@ -188,11 +257,18 @@ def multi_modal_rag_chain_source(
     return chain
 
 
-# Function to create a new title for the chat thread
 def create_new_title(question):
+    """
+    Generates a concise and informative title based on the user's question.
 
+    Args:
+        question (str): The user question.
+
+    Returns:
+        str: The generated title.
+    """
     prompt_text = (
-        "Given the following question, create a concise and informative title that accuratelt reflects the content and MAKE SURE TO ANSWER IN JUST 4 WORDS. Just give the title name without any special characters.\n"
+        "Given the following question, create a concise and informative title that accurately reflects the content and MAKE SURE TO ANSWER IN JUST 4 WORDS. Just give the title name without any special characters.\n"
         "{element}"
     )
 
@@ -203,11 +279,23 @@ def create_new_title(question):
     return response.content
 
 
-# Function to update the chat thread by adding or removing messages from the chat thread
 def update_chat(message: Message, ai_text: str, chat_id: str, flag: bool, sources=None):
+    """
+    Updates a chat thread by adding or removing messages.
+
+    Args:
+        message (Message): The message object to update.
+        ai_text (str): The AI-generated response.
+        chat_id (str): The ID of the chat thread.
+        flag (bool): Flag indicating whether to regenerate messages.
+        sources (optional): Sources related to the message.
+
+    Returns:
+        str: The ID of the updated message.
+    """
     message_id = None
 
-    if message.regenerate == "Yes" or flag == True:
+    if message.regenerate == "Yes" or flag:
         collection_chat.update_one(
             {"_id": ObjectId(chat_id)},
             {
@@ -261,8 +349,16 @@ def update_chat(message: Message, ai_text: str, chat_id: str, flag: bool, source
     return message_id
 
 
-# Function to create filters to filter chromaDB collection
 def create_search_kwargs(filters):
+    """
+    Creates search kwargs for filtering a ChromaDB collection.
+
+    Args:
+        filters (list): List of filter values.
+
+    Returns:
+        dict: The search kwargs for filtering.
+    """
     if len(filters) == 1:
         filter_condition = {"Title": filters[0]}
     elif isinstance(filters, list):
@@ -274,8 +370,17 @@ def create_search_kwargs(filters):
     return search_kwargs
 
 
-# Function to identify the user question intent
 def question_intent(question, chatHistory):
+    """
+    Identifies the intent of the user question based on chat history.
+
+    Args:
+        question (str): The user question.
+        chatHistory (list): Previous chat history.
+
+    Returns:
+        str: The identified intent keyword ('normal_rag', 'summary_rag', or 'direct_response').
+    """
     formatted_chat_history = format_chat_history(chatHistory)
 
     prompt_text = """
@@ -304,8 +409,17 @@ def question_intent(question, chatHistory):
     return intent.content
 
 
-# Function to form a standalone question based on the user chat history
 def standalone_question(question, chatHistory):
+    """
+    Forms a standalone question based on the user's question and chat history.
+
+    Args:
+        question (str): The user question.
+        chatHistory (list): Previous chat history.
+
+    Returns:
+        str: The standalone question.
+    """
     formatted_chat_history = format_chat_history(chatHistory)
 
     prompt_text = """
@@ -329,8 +443,16 @@ def standalone_question(question, chatHistory):
     return new_question.content
 
 
-# Function to create a new chat thread
 def create_new_title_chat(message: Message):
+    """
+    Creates a new chat thread with a generated title based on the user's question.
+
+    Args:
+        message (Message): The message object containing user information and question.
+
+    Returns:
+        str: The ID of the newly created chat thread.
+    """
     title = create_new_title(message.question)
     new_chat = {
         "userEmailId": message.userEmailId,
