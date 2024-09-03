@@ -11,7 +11,6 @@ def create_multi_vector_retriever(
     deliverables_list_metadata,
     batch_size=75,
 ):
-
     title, _ = os.path.splitext(deliverables_list_metadata["FileLeafRef"])
 
     current_dir = os.getcwd()
@@ -38,20 +37,37 @@ def create_multi_vector_retriever(
         vectorstore=vectorstore_summary, docstore=store_summary, id_key=id_key_summary
     )
 
+    # Combine all summaries and contents
+    combined_summaries = {}
+    combined_contents = {}
+
+    # Add text summaries and contents
+    if text_summaries:
+        combined_summaries.update(text_summaries)
+        combined_contents.update(texts)
+
+    # Add table summaries and contents
+    if table_summaries:
+        combined_summaries.update(table_summaries)
+        combined_contents.update(tables)
+
+    # Add image summaries and contents
+    if image_summaries:
+        combined_summaries.update(image_summaries)
+        combined_contents.update(images)
+
+    doc_keys = list(combined_contents.keys())
+    total_docs = len(doc_keys)
+
     def add_documents(retriever, retriever_summary, doc_summaries, doc_contents):
-        for start_idx in range(0, len(doc_contents), batch_size):
+        for start_idx in range(0, total_docs, batch_size):
             document_summary_list = []
 
-            end_idx = start_idx + batch_size
+            end_idx = min(start_idx + batch_size, total_docs)
+            batch_keys = doc_keys[start_idx:end_idx]
 
-            batch_content_split = doc_contents[start_idx:end_idx]
-            batch_summary_split = doc_summaries[start_idx:end_idx]
-            batch_summaries = {
-                next(iter(item)): item[next(iter(item))] for item in batch_summary_split
-            }
-            batch_contents = {
-                next(iter(item)): item[next(iter(item))] for item in batch_content_split
-            }
+            batch_summaries = {key: doc_summaries[key] for key in batch_keys}
+            batch_contents = {key: doc_contents[key] for key in batch_keys}
 
             doc_ids = [str(uuid.uuid4()) for _ in batch_contents]
             summary_docs = [
@@ -65,32 +81,29 @@ def create_multi_vector_retriever(
                         "Abstract": deliverables_list_metadata["Abstract"],
                         "Region": deliverables_list_metadata["Region"],
                         "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                        "StrategyAreaTeam": deliverables_list_metadata[
-                            "StrategyAreaTeam"
-                        ],
+                        "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
                         "Country": deliverables_list_metadata["Country"],
                         "Country_x003a_CountryFusionID": deliverables_list_metadata[
                             "Country_x003a_CountryFusionID"
                         ],
                         "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                        "Country_x003a_ID": deliverables_list_metadata[
-                            "Country_x003a_ID"
-                        ],
+                        "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
                         "DeliverablePermissions": deliverables_list_metadata[
                             "DeliverablePermissions"
                         ],
                         "source": file_metadata["WebUrl"],
                         "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                        "slide_number": img_name,
+                        "slide_number": key,
                     },
                 )
-                for i, (img_name, s) in enumerate(batch_summaries.items())
+                for i, (key, s) in enumerate(batch_summaries.items())
             ]
             retriever.vectorstore.add_documents(summary_docs)
+
             full_docs = [
                 Document(
                     page_content=json.dumps(
-                        {"summary": doc_summaries[img_name], "content": s}
+                        {"summary": doc_summaries[key], "content": s}
                     ),
                     metadata={
                         id_key_normal: doc_ids[i],
@@ -100,105 +113,104 @@ def create_multi_vector_retriever(
                         "Abstract": deliverables_list_metadata["Abstract"],
                         "Region": deliverables_list_metadata["Region"],
                         "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                        "StrategyAreaTeam": deliverables_list_metadata[
-                            "StrategyAreaTeam"
-                        ],
+                        "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
                         "Country": deliverables_list_metadata["Country"],
                         "Country_x003a_CountryFusionID": deliverables_list_metadata[
                             "Country_x003a_CountryFusionID"
                         ],
                         "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                        "Country_x003a_ID": deliverables_list_metadata[
-                            "Country_x003a_ID"
-                        ],
+                        "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
                         "DeliverablePermissions": deliverables_list_metadata[
                             "DeliverablePermissions"
                         ],
                         "source": file_metadata["WebUrl"],
                         "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                        "slide_number": img_name,
+                        "slide_number": key,
                     },
                 )
-                for i, (img_name, s) in enumerate(batch_contents.items())
+                for i, (key, s) in enumerate(batch_contents.items())
             ]
             retriever.docstore.mset(list(zip(doc_ids, full_docs)))
 
+            # Accumulate the summaries
             document_summary_list.append(create_summary(batch_summaries))
 
-        if len(document_summary_list) > 1:
-            summary = " ".join(document_summary_list)
-        else:
-            summary = document_summary_list[0]
+        return document_summary_list
 
-        doc_id_summary = [str(uuid.uuid4())]
-        summary_docs_summaryRetriever = [
-            Document(
-                page_content="Summary of the document - {title}",
-                metadata={
-                    id_key_summary: doc_id_summary[0],
-                    "id": file_metadata["ID"],
-                    "Title": title,
-                    "ContentTags": deliverables_list_metadata["ContentTags"],
-                    "Abstract": deliverables_list_metadata["Abstract"],
-                    "Region": deliverables_list_metadata["Region"],
-                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
-                    "Country": deliverables_list_metadata["Country"],
-                    "Country_x003a_CountryFusionID": deliverables_list_metadata[
-                        "Country_x003a_CountryFusionID"
-                    ],
-                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
-                    "DeliverablePermissions": deliverables_list_metadata[
-                        "DeliverablePermissions"
-                    ],
-                    "source": file_metadata["WebUrl"],
-                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                },
-            )
-        ]
-        retriever_summary.vectorstore.add_documents(summary_docs_summaryRetriever)
-        full_docs_summaryRetriever = [
-            Document(
-                page_content={
-                    "summary": f"Summary of the document - {title} - is {summary}",
-                    "content": f"Summary of the document - {title} - is {summary}",
-                },
-                metadata={
-                    id_key_summary: doc_id_summary[0],
-                    "id": file_metadata["ID"],
-                    "Title": title,
-                    "ContentTags": deliverables_list_metadata["ContentTags"],
-                    "Abstract": deliverables_list_metadata["Abstract"],
-                    "Region": deliverables_list_metadata["Region"],
-                    "StrategyArea": deliverables_list_metadata["StrategyArea"],
-                    "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
-                    "Country": deliverables_list_metadata["Country"],
-                    "Country_x003a_CountryFusionID": deliverables_list_metadata[
-                        "Country_x003a_CountryFusionID"
-                    ],
-                    "ContentTypes": deliverables_list_metadata["ContentTypes"],
-                    "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
-                    "DeliverablePermissions": deliverables_list_metadata[
-                        "DeliverablePermissions"
-                    ],
-                    "source": file_metadata["WebUrl"],
-                    "deliverables_list_metadata": f"{deliverables_list_metadata}",
-                },
-            )
-        ]
-        retriever_summary.docstore.mset(
-            list(zip(doc_id_summary, full_docs_summaryRetriever))
+    # Process documents and accumulate summaries
+    all_document_summaries = add_documents(
+        retriever, retriever_summary, combined_summaries, combined_contents
+    )
+
+    # Combine all summaries into one
+    if len(all_document_summaries) > 1:
+        combined_summary = " ".join(all_document_summaries)
+    else:
+        combined_summary = all_document_summaries[0] if all_document_summaries else ""
+
+    # Store the combined summary in the summary retriever
+    doc_id_summary = [str(uuid.uuid4())]
+    summary_docs_summaryRetriever = [
+        Document(
+            page_content=f"Summary of the document - {title}",
+            metadata={
+                id_key_summary: doc_id_summary[0],
+                "id": file_metadata["ID"],
+                "Title": title,
+                "ContentTags": deliverables_list_metadata["ContentTags"],
+                "Abstract": deliverables_list_metadata["Abstract"],
+                "Region": deliverables_list_metadata["Region"],
+                "StrategyArea": deliverables_list_metadata["StrategyArea"],
+                "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
+                "Country": deliverables_list_metadata["Country"],
+                "Country_x003a_CountryFusionID": deliverables_list_metadata[
+                    "Country_x003a_CountryFusionID"
+                ],
+                "ContentTypes": deliverables_list_metadata["ContentTypes"],
+                "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
+                "DeliverablePermissions": deliverables_list_metadata[
+                    "DeliverablePermissions"
+                ],
+                "source": file_metadata["WebUrl"],
+                "deliverables_list_metadata": f"{deliverables_list_metadata}",
+            },
         )
+    ]
+    retriever_summary.vectorstore.add_documents(summary_docs_summaryRetriever)
+    full_docs_summaryRetriever = [
+        Document(
+            page_content={
+                "summary": f"Summary of the document - {title} - is {combined_summary}",
+                "content": f"Summary of the document - {title} - is {combined_summary}",
+            },
+            metadata={
+                id_key_summary: doc_id_summary[0],
+                "id": file_metadata["ID"],
+                "Title": title,
+                "ContentTags": deliverables_list_metadata["ContentTags"],
+                "Abstract": deliverables_list_metadata["Abstract"],
+                "Region": deliverables_list_metadata["Region"],
+                "StrategyArea": deliverables_list_metadata["StrategyArea"],
+                "StrategyAreaTeam": deliverables_list_metadata["StrategyAreaTeam"],
+                "Country": deliverables_list_metadata["Country"],
+                "Country_x003a_CountryFusionID": deliverables_list_metadata[
+                    "Country_x003a_CountryFusionID"
+                ],
+                "ContentTypes": deliverables_list_metadata["ContentTypes"],
+                "Country_x003a_ID": deliverables_list_metadata["Country_x003a_ID"],
+                "DeliverablePermissions": deliverables_list_metadata[
+                    "DeliverablePermissions"
+                ],
+                "source": file_metadata["WebUrl"],
+                "deliverables_list_metadata": f"{deliverables_list_metadata}",
+            },
+        )
+    ]
+    retriever_summary.docstore.mset(
+        list(zip(doc_id_summary, full_docs_summaryRetriever))
+    )
 
-        generate_and_save_questions(title, summary)
-
-    if text_summaries:
-        add_documents(retriever, retriever_summary, text_summaries, texts)
-    if table_summaries:
-        add_documents(retriever, retriever_summary, table_summaries, tables)
-    if image_summaries:
-        add_documents(retriever, retriever_summary, image_summaries, images)
+    generate_and_save_questions(title, combined_summary)
 
     save_docstore(retriever.docstore, docstore_path_normal)
     save_docstore(retriever_summary.docstore, docstore_path_summary)
