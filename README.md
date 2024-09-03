@@ -1,3 +1,25 @@
+module.exports = {
+  apps: [
+    {
+      name: "express_application",
+      script: "./app.js",
+      instances: 4,
+      exec_mode: "cluster",
+      watch: true,
+      restart_delay: 3000,
+      max_restarts: 10,
+      autorestart: true,
+    },
+  ],
+};
+
+
+
+
+
+
+
+
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
