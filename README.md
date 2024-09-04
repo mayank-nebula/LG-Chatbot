@@ -1,2 +1,1 @@
-13. Efficient File Handling in FastAPI
-Handling large files in FastAPI presented a unique challenge when working with a 20GB file. Using 4 or more workers proved infeasible due to resource constraints, requiring a different approach to ensure the application could manage the file efficiently. The solution involved leveraging the preload option in FastAPI, which allowed the file to be loaded before the workers were spawned. This approach optimized resource usage and ensured that the application could handle the large file without compromising performance. This experience emphasized the importance of understanding and configuring FastAPI to manage large datasets effectively in production environments.
+
