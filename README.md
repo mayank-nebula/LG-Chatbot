@@ -7,53 +7,44 @@ exports.postFilteredQuestion = async (req, res, next) => {
       throw error;
     }
 
-    // Step 1: Randomly select up to 4 document names
-    const shuffledDocNames = documentNames.sort(() => 0.5 - Math.random());
-    const selectedDocNames = shuffledDocNames.slice(0, 4);
+    // Find documents that have questions
+    const documentsWithQuestions = await Question.aggregate([
+      { $match: { documentName: { $in: documentNames } } },
+      { $match: { $expr: { $gt: [{ $size: "$questions" }, 0] } } },
+      { $project: { documentName: 1, _id: 0 } }
+    ]);
 
-    // Step 2: Fetch one random question for each selected document
-    const selectedQuestions = {};
-    const availableDocs = [];
-    for (const docName of selectedDocNames) {
-      const question = await Question.aggregate([
-        { $match: { documentName: docName } },
-        { $project: { 
-            randomQuestion: { $arrayElemAt: [ "$questions", { $floor: { $multiply: [{ $rand: {} }, { $size: "$questions" }] } } ] }
-          }
-        },
-        { $limit: 1 }
-      ]);
-
-      if (question.length > 0 && question[0].randomQuestion) {
-        selectedQuestions[docName] = question[0].randomQuestion;
-        availableDocs.push(docName);
-      }
-    }
-
-    // Step 3: If we have fewer than 4 questions, fill with questions from available documents
-    let i = 0;
-    while (Object.keys(selectedQuestions).length < 4 && availableDocs.length > 0) {
-      const docName = availableDocs[i % availableDocs.length];
-      const question = await Question.aggregate([
-        { $match: { documentName: docName } },
-        { $project: { 
-            randomQuestion: { $arrayElemAt: [ "$questions", { $floor: { $multiply: [{ $rand: {} }, { $size: "$questions" }] } } ] }
-          }
-        },
-        { $limit: 1 }
-      ]);
-
-      if (question.length > 0 && question[0].randomQuestion) {
-        selectedQuestions[docName] = question[0].randomQuestion;
-      }
-      i++;
-    }
-
-    if (Object.keys(selectedQuestions).length === 0) {
+    if (documentsWithQuestions.length === 0) {
       return res.status(200).json({
         message: "No questions found in matching documents.",
         questions: {},
       });
+    }
+
+    // Randomly select up to 4 documents
+    const selectedDocs = documentsWithQuestions
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 4);
+
+    const selectedQuestions = {};
+
+    // Fetch 4 random questions, potentially all from the same document
+    for (let i = 0; i < 4; i++) {
+      const docIndex = i % selectedDocs.length;
+      const docName = selectedDocs[docIndex].documentName;
+
+      const question = await Question.aggregate([
+        { $match: { documentName: docName } },
+        { $project: { 
+            randomQuestion: { $arrayElemAt: [ "$questions", { $floor: { $multiply: [{ $rand: {} }, { $size: "$questions" }] } } ] }
+          }
+        },
+        { $limit: 1 }
+      ]);
+
+      if (question.length > 0 && question[0].randomQuestion) {
+        selectedQuestions[docName] = question[0].randomQuestion;
+      }
     }
 
     res.status(200).json({
