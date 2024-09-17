@@ -2,46 +2,63 @@ exports.postFilteredQuestion = async (req, res, next) => {
   const documentNames = req.body.documentNames;
   try {
     if (!Array.isArray(documentNames) || documentNames.length === 0) {
-      const error = new Error("documentNames Should Be a Non-Empty Array.");
-      error.statusCode = 404;
+      const error = new Error("documentNames should be a non-empty array.");
+      error.statusCode = 400;
       throw error;
     }
-    
-    const matchedQuestions = await Question.find({
-      documentName: { $in: documentNames },
-    });
 
-    if (matchedQuestions.length === 0) {
+    // Step 1: Randomly select up to 4 document names
+    const shuffledDocNames = documentNames.sort(() => 0.5 - Math.random());
+    const selectedDocNames = shuffledDocNames.slice(0, 4);
+
+    // Step 2: Fetch one random question for each selected document
+    const selectedQuestions = {};
+    const availableDocs = [];
+    for (const docName of selectedDocNames) {
+      const question = await Question.aggregate([
+        { $match: { documentName: docName } },
+        { $project: { 
+            randomQuestion: { $arrayElemAt: [ "$questions", { $floor: { $multiply: [{ $rand: {} }, { $size: "$questions" }] } } ] }
+          }
+        },
+        { $limit: 1 }
+      ]);
+
+      if (question.length > 0 && question[0].randomQuestion) {
+        selectedQuestions[docName] = question[0].randomQuestion;
+        availableDocs.push(docName);
+      }
+    }
+
+    // Step 3: If we have fewer than 4 questions, fill with questions from available documents
+    let i = 0;
+    while (Object.keys(selectedQuestions).length < 4 && availableDocs.length > 0) {
+      const docName = availableDocs[i % availableDocs.length];
+      const question = await Question.aggregate([
+        { $match: { documentName: docName } },
+        { $project: { 
+            randomQuestion: { $arrayElemAt: [ "$questions", { $floor: { $multiply: [{ $rand: {} }, { $size: "$questions" }] } } ] }
+          }
+        },
+        { $limit: 1 }
+      ]);
+
+      if (question.length > 0 && question[0].randomQuestion) {
+        selectedQuestions[docName] = question[0].randomQuestion;
+      }
+      i++;
+    }
+
+    if (Object.keys(selectedQuestions).length === 0) {
       return res.status(200).json({
-        message: "No Matching Documents Found.",
+        message: "No questions found in matching documents.",
         questions: {},
       });
     }
 
-    // Collect all questions along with their document names
-    const allQuestions = [];
-    matchedQuestions.forEach((questionDoc) => {
-      questionDoc.questions.forEach((question) => {
-        allQuestions.push({
-          documentName: questionDoc.documentName,
-          question: question,
-        });
-      });
-    });
-
-    // Shuffle all questions and select up to 4
-    const shuffledQuestions = allQuestions.sort(() => 0.5 - Math.random());
-    const limitedQuestions = shuffledQuestions.slice(0, 4);
-
-    // Create a key-value pair object for document-question
-    const questionsByDocument = limitedQuestions.reduce((acc, item) => {
-      acc[item.documentName] = item.question;
-      return acc;
-    }, {});
-
     res.status(200).json({
-      message: "Matching Documents Found.",
-      questions: questionsByDocument,
+      message: "Questions selected.",
+      questions: selectedQuestions,
     });
   } catch (err) {
     if (!err.statusCode) {
