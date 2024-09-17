@@ -1,22 +1,24 @@
-def create_search_kwargs(filters_json):
+def create_search_kwargs(filters_array):
     """
-    Creates search kwargs for filtering a ChromaDB collection based on a JSON input.
+    Creates search kwargs for filtering a ChromaDB collection based on an array of JSON inputs.
 
     Args:
-        filters_json (dict): A dictionary where keys are filter types and values are lists of strings.
-                             For example: {"Title": ["Book1", "Book2"], "Strategy": ["StrategyA"]}
+        filters_array (list): A list of dictionaries, where each dictionary contains a single key-value pair.
+                              The key is the filter type, and the value is a list of strings.
+                              For example: [{"Title": ["Book1", "Book2"]}, {"Region": ["Europe"]}]
 
     Returns:
         dict: The search kwargs for filtering.
     """
     filter_conditions = []
 
-    for field, values in filters_json.items():
-        if values:
-            if len(values) == 1:
-                filter_conditions.append({field: values[0]})
-            else:
-                filter_conditions.append({"$or": [{field: v} for v in values]})
+    for filter_dict in filters_array:
+        for field, values in filter_dict.items():
+            if values:
+                if len(values) == 1:
+                    filter_conditions.append({field: values[0]})
+                else:
+                    filter_conditions.append({"$or": [{field: v} for v in values]})
 
     if len(filter_conditions) == 1:
         filter_condition = filter_conditions[0]
