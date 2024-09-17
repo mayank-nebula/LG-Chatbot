@@ -3,52 +3,45 @@ exports.postFilteredQuestion = async (req, res, next) => {
   try {
     if (!Array.isArray(documentNames) || documentNames.length === 0) {
       const error = new Error("documentNames should be a non-empty array.");
-      error.statusCode = 400;
+      error.statusCode = 404;
       throw error;
     }
 
-    // Find documents that have questions
-    const documentsWithQuestions = await Question.aggregate([
-      { $match: { documentName: { $in: documentNames } } },
-      { $match: { $expr: { $gt: [{ $size: "$questions" }, 0] } } },
-      { $project: { documentName: 1, _id: 0 } }
-    ]);
+    const matchedQuestion = await Question.find({
+      documentName: { $in: documentNames },
+    });
 
-    if (documentsWithQuestions.length === 0) {
+    if (matchedQuestion.length === 0) {
       return res.status(200).json({
-        message: "No questions found in matching documents.",
+        message: "No matching documents found.",
         questions: {},
       });
     }
 
-    // Randomly select up to 4 documents
-    const selectedDocs = documentsWithQuestions
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 4);
+    // Flatten all questions and map them to their corresponding document names
+    const questionToDocumentMap = matchedQuestion.reduce((acc, doc) => {
+      doc.questions.forEach((question) => {
+        acc[question] = doc.documentName;
+      });
+      return acc;
+    }, {});
 
-    const selectedQuestions = {};
+    // Extract unique questions
+    const uniqueQuestions = Object.keys(questionToDocumentMap);
 
-    // Fetch one random question for each selected document, up to 4
-    for (let i = 0; i < Math.min(4, selectedDocs.length); i++) {
-      const docName = selectedDocs[i].documentName;
+    // Shuffle and pick 4 questions, filling with null or duplicates if necessary
+    const shuffledQuestions = uniqueQuestions.sort(() => 0.5 - Math.random());
+    const limitedQuestions = shuffledQuestions.slice(0, 4);
 
-      const question = await Question.aggregate([
-        { $match: { documentName: docName } },
-        { $project: { 
-            randomQuestion: { $arrayElemAt: [ "$questions", { $floor: { $multiply: [{ $rand: {} }, { $size: "$questions" }] } } ] }
-          }
-        },
-        { $limit: 1 }
-      ]);
-
-      if (question.length > 0 && question[0].randomQuestion) {
-        selectedQuestions[docName] = question[0].randomQuestion;
-      }
-    }
+    // Prepare the final response with question as key and document name as value
+    const finalQuestions = limitedQuestions.reduce((acc, question) => {
+      acc[question] = questionToDocumentMap[question];
+      return acc;
+    }, {});
 
     res.status(200).json({
-      message: "Questions selected.",
-      questions: selectedQuestions,
+      message: "Matching documents found.",
+      questions: finalQuestions,
     });
   } catch (err) {
     if (!err.statusCode) {
