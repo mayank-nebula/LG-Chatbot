@@ -28,10 +28,9 @@ exports.postFilteredQuestion = async (req, res, next) => {
 
     const selectedQuestions = {};
 
-    // Fetch 4 random questions, potentially all from the same document
-    for (let i = 0; i < 4; i++) {
-      const docIndex = i % selectedDocs.length;
-      const docName = selectedDocs[docIndex].documentName;
+    // Fetch one random question for each selected document, up to 4
+    for (let i = 0; i < Math.min(4, selectedDocs.length); i++) {
+      const docName = selectedDocs[i].documentName;
 
       const question = await Question.aggregate([
         { $match: { documentName: docName } },
