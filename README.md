@@ -9,11 +9,27 @@ def create_search_kwargs(filters_array):
 
     Returns:
         dict: The search kwargs for filtering.
+
+    Raises:
+        TypeError: If the input is not a list or if any element is not a dictionary.
+        ValueError: If any dictionary in the list does not contain exactly one key-value pair.
     """
+    if not isinstance(filters_array, list):
+        raise TypeError("Input must be a list of dictionaries")
+
     filter_conditions = []
 
-    for filter_dict in filters_array:
+    for i, filter_dict in enumerate(filters_array):
+        if not isinstance(filter_dict, dict):
+            raise TypeError(f"Element at index {i} is not a dictionary")
+        
+        if len(filter_dict) != 1:
+            raise ValueError(f"Dictionary at index {i} must contain exactly one key-value pair")
+
         for field, values in filter_dict.items():
+            if not isinstance(values, list):
+                raise TypeError(f"Value for '{field}' at index {i} must be a list")
+
             if values:
                 if len(values) == 1:
                     filter_conditions.append({field: values[0]})
