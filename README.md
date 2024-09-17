@@ -12,15 +12,21 @@ def create_search_kwargs(filters):
     if not filters:
         return {}
 
-    or_conditions = []
+    and_conditions = []
     for filter_dict in filters:
+        or_conditions = []
         for field, values in filter_dict.items():
             if isinstance(values, list):
                 or_conditions.extend([{field: value} for value in values])
             else:
                 or_conditions.append({field: values})
+        
+        if len(or_conditions) > 1:
+            and_conditions.append({"$or": or_conditions})
+        else:
+            and_conditions.extend(or_conditions)
 
-    filter_condition = {"$or": or_conditions} if len(or_conditions) > 1 else or_conditions[0]
+    filter_condition = {"$and": and_conditions} if len(and_conditions) > 1 else and_conditions[0]
     search_kwargs = {"filter": filter_condition}
 
     return search_kwargs
