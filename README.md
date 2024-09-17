@@ -18,17 +18,13 @@ exports.postFilteredQuestion = async (req, res, next) => {
       });
     }
 
-    // Create an object where keys are document names and values are arrays of questions
+    // Create an object where keys are document names and values are individual questions
     const questionsByDocument = matchedQuestions.reduce((acc, questionDoc) => {
-      acc[questionDoc.documentName] = questionDoc.questions;
+      // Shuffle the questions for each document and pick the first question
+      const shuffledQuestions = questionDoc.questions.sort(() => 0.5 - Math.random());
+      acc[questionDoc.documentName] = shuffledQuestions[0]; // pick only one question per document
       return acc;
     }, {});
-
-    // Shuffle and limit questions for each document
-    for (const document in questionsByDocument) {
-      const shuffledQuestions = questionsByDocument[document].sort(() => 0.5 - Math.random());
-      questionsByDocument[document] = shuffledQuestions.slice(0, 4); // limit to 4 questions per document
-    }
 
     res.status(200).json({
       message: "Matching Documents Found.",
