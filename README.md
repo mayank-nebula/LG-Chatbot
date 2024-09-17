@@ -2,53 +2,37 @@ exports.postFilteredQuestion = async (req, res, next) => {
   const documentNames = req.body.documentNames;
   try {
     if (!Array.isArray(documentNames) || documentNames.length === 0) {
-      const error = new Error("documentNames should be a non-empty array.");
+      const error = new Error("documentNames Should Be a Non-Empty Array.");
       error.statusCode = 404;
       throw error;
     }
-
-    const matchedDocuments = await Question.find({
+    
+    const matchedQuestions = await Question.find({
       documentName: { $in: documentNames },
     });
 
-    if (matchedDocuments.length === 0) {
+    if (matchedQuestions.length === 0) {
       return res.status(200).json({
         message: "No Matching Documents Found.",
         questions: {},
       });
     }
 
-    const documentQuestionsMap = matchedDocuments.reduce((acc, doc) => {
-      acc[doc.documentName] = doc.questions;
+    // Create an object where keys are document names and values are arrays of questions
+    const questionsByDocument = matchedQuestions.reduce((acc, questionDoc) => {
+      acc[questionDoc.documentName] = questionDoc.questions;
       return acc;
     }, {});
 
-    const allQuestions = matchedDocuments.reduce((acc, doc) => {
-      const docQuestions = doc.questions.map((question) => ({
-        documentName: doc.documentName,
-        question,
-      }));
-      return acc.concat(docQuestions);
-    }, []);
-
-    const uniqueQuestions = [
-      ...new Map(allQuestions.map((item) => [item.question, item])).values(),
-    ];
-
-    const shuffledQuestions = uniqueQuestions.sort(() => 0.5 - Math.random());
-    const limitedQuestions = shuffledQuestions.slice(0, 4);
-
-    const result = limitedQuestions.reduce((acc, item) => {
-      if (!acc[item.documentName]) {
-        acc[item.documentName] = [];
-      }
-      acc[item.documentName].push(item.question);
-      return acc;
-    }, {});
+    // Shuffle and limit questions for each document
+    for (const document in questionsByDocument) {
+      const shuffledQuestions = questionsByDocument[document].sort(() => 0.5 - Math.random());
+      questionsByDocument[document] = shuffledQuestions.slice(0, 4); // limit to 4 questions per document
+    }
 
     res.status(200).json({
       message: "Matching Documents Found.",
-      questions: result,
+      questions: questionsByDocument,
     });
   } catch (err) {
     if (!err.statusCode) {
