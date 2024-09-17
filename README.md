@@ -18,11 +18,24 @@ exports.postFilteredQuestion = async (req, res, next) => {
       });
     }
 
-    // Create an object where keys are document names and values are individual questions
-    const questionsByDocument = matchedQuestions.reduce((acc, questionDoc) => {
-      // Shuffle the questions for each document and pick the first question
-      const shuffledQuestions = questionDoc.questions.sort(() => 0.5 - Math.random());
-      acc[questionDoc.documentName] = shuffledQuestions[0]; // pick only one question per document
+    // Collect all questions along with their document names
+    const allQuestions = [];
+    matchedQuestions.forEach((questionDoc) => {
+      questionDoc.questions.forEach((question) => {
+        allQuestions.push({
+          documentName: questionDoc.documentName,
+          question: question,
+        });
+      });
+    });
+
+    // Shuffle all questions and select up to 4
+    const shuffledQuestions = allQuestions.sort(() => 0.5 - Math.random());
+    const limitedQuestions = shuffledQuestions.slice(0, 4);
+
+    // Create a key-value pair object for document-question
+    const questionsByDocument = limitedQuestions.reduce((acc, item) => {
+      acc[item.documentName] = item.question;
       return acc;
     }, {});
 
