@@ -10,7 +10,7 @@ def create_search_kwargs(filters):
     if not filters:
         return {}
     
-    and_conditions = []
+    filter_conditions = []
     
     # Mapping of document type descriptions to docIcon values
     doc_type_to_icon = {
@@ -41,22 +41,33 @@ def create_search_kwargs(filters):
                     icon_values = doc_type_to_icon.get(values, [values])
                 
                 if icon_values:
-                    # Create OR conditions for each icon value
-                    icon_conditions = [
-                        {"deliverables_list_metadata": {"$contains": icon}}
-                        for icon in icon_values
-                    ]
-                    and_conditions.append({"$or": icon_conditions})
+                    if len(icon_values) == 1:
+                        filter_conditions.append({"deliverables_list_metadata": {"$contains": icon_values[0]}})
+                    else:
+                        icon_conditions = [
+                            {"deliverables_list_metadata": {"$contains": icon}}
+                            for icon in icon_values
+                        ]
+                        filter_conditions.append({"$or": icon_conditions})
             else:
                 # Handle other metadata fields
                 if isinstance(values, list):
-                    # Create OR conditions for list values
-                    field_conditions = [{mapped_field: value} for value in values]
-                    and_conditions.append({"$or": field_conditions})
+                    if len(values) == 1:
+                        filter_conditions.append({mapped_field: values[0]})
+                    else:
+                        # Create OR conditions for list values
+                        field_conditions = [{mapped_field: value} for value in values]
+                        filter_conditions.append({"$or": field_conditions})
                 else:
                     # Single value condition
-                    and_conditions.append({mapped_field: values})
+                    filter_conditions.append({mapped_field: values})
     
-    # Combine all conditions with AND
-    search_kwargs = {"filter": {"$and": and_conditions}} if and_conditions else {}
+    # Combine all conditions
+    if len(filter_conditions) == 1:
+        search_kwargs = {"filter": filter_conditions[0]}
+    elif len(filter_conditions) > 1:
+        search_kwargs = {"filter": {"$and": filter_conditions}}
+    else:
+        search_kwargs = {}
+    
     return search_kwargs
