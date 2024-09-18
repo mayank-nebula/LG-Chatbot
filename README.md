@@ -1,39 +1,77 @@
-import pandas as pd
-import ast
-import json
+def create_search_kwargs(filters):
+    """
+    Creates search kwargs for filtering a ChromaDB collection.
+    Args:
+        filters (list): List of filter dictionaries.
+            Each dictionary should have a key (field name) and a list of values.
+    Returns:
+        dict: The search kwargs for filtering.
+    """
+    if not filters:
+        return {}
 
-# Function to parse the string and extract 'LookupValue'
-def extract_lookup_values(value):
-    try:
-        # Convert the string to a list of dictionaries
-        parsed_value = ast.literal_eval(value)
-        # Extract 'LookupValue' from each dictionary
-        return [item['LookupValue'] for item in parsed_value]
-    except (ValueError, SyntaxError):
-        return []  # Return an empty list if the value is not in the correct format
+    filter_conditions = []
 
-# Load the CSV file
-df = pd.read_csv('your_file.csv')
+    if isinstance(filters, str):
+        filter_condition = {"Title": filters}
+        search_kwargs = {"filter": filter_condition}
+        return search_kwargs
 
-# Apply the extraction function to the columns
-df['Region'] = df['Region'].apply(extract_lookup_values)
-df['StrategyArea'] = df['StrategyArea'].apply(extract_lookup_values)
-df['Country'] = df['Country'].apply(extract_lookup_values)
+    # Mapping of document type descriptions to docIcon values
+    doc_type_to_icon = {
+        "PDF Document": ["pdf"],
+        "PowerPoint Presentation": ["pptx", "ppt"],
+        "Word Document": ["docx", "doc"],
+    }
 
-# Convert the lists of lookup values to sets for unique values
-region_set = set([item for sublist in df['Region'] for item in sublist])
-strategy_area_set = set([item for sublist in df['StrategyArea'] for item in sublist])
-country_set = set([item for sublist in df['Country'] for item in sublist])
+    # Map filter keys to corresponding metadata fields
+    filter_key_mapping = {
+        "region": "Region",
+        "country": "Country",
+        "strategyArea": "StrategyArea",
+        "others": "Title",
+    }
 
-# Prepare the data as a dictionary
-data = {
-    "Regions": list(region_set),
-    "StrategyAreas": list(strategy_area_set),
-    "Countries": list(country_set)
-}
+    for filter_dict in filters:
+        for field, values in filter_dict.items():
+            # Map the field to its corresponding metadata field if needed
+            mapped_field = filter_key_mapping.get(field, field)
 
-# Save the data to a JSON file
-with open('unique_values.json', 'w') as json_file:
-    json.dump(data, json_file, indent=4)
+            if mapped_field == "documentType":
+                # Handle document type mapping
+                icon_values = []
+                if isinstance(values, list):
+                    for v in values:
+                        icon_values.extend(doc_type_to_icon.get(v, [v]))
+                else:
+                    icon_values = doc_type_to_icon.get(values, [values])
 
-print("Unique values extracted and saved to JSON successfully!")
+                if icon_values:
+                    filter_conditions.append(
+                        {"deliverables_list_metadata": {"$in": icon_values}}
+                    )
+            else:
+                # Handle other metadata fields
+                if isinstance(values, list) and len(values) > 1:
+                    filter_conditions.append({mapped_field: {"$in": values}})
+                else:
+                    # Use $eq for single values or lists with one element
+                    value = values if isinstance(values, list) else [values]
+                    filter_conditions.append({mapped_field: {"$in": [value[0]]}})
+
+    # Combine all conditions
+    if len(filter_conditions) == 1:
+        search_kwargs = {"filter": filter_conditions[0]}
+    elif len(filter_conditions) > 1:
+        search_kwargs = {"filter": {"$and": filter_conditions}}
+    else:
+        search_kwargs = {}
+
+    return search_kwargs
+
+retriever = MultiVectorRetriever(
+    vectorstore=vectorstore_gpt_summary,
+    docstore=loaded_docstore_gpt_summary,
+    id_key="GatesVentures_Scientia_Summary",
+    search_kwargs=search_kwargs,
+)
