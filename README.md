@@ -1,33 +1,29 @@
 def create_search_kwargs(filters):
     """
     Creates search kwargs for filtering a ChromaDB collection.
-
     Args:
         filters (list): List of filter dictionaries.
             Each dictionary should have a key (field name) and a list of values.
-
     Returns:
         dict: The search kwargs for filtering.
     """
-
+    if not filters:
+        return {}
+    
+    and_conditions = []
+    
+    # Mapping of document type descriptions to docIcon values
+    doc_type_to_icon = {
+        "PDF Document": ["pdf"],
+        "PowerPoint Presentation": ["pptx", "ppt"],
+        "Word Document": ["docx", "doc"]
+    }
+    
     # Map filter keys to corresponding metadata fields
     filter_key_mapping = {
         "region": "Region",
         "country": "Country",
         "strategyArea": "StrategyArea",
-    }
-
-    if isinstance(filters, str):
-        filter_condition = {"Title": filters}
-        search_kwargs = {"filter": filter_condition}
-        return search_kwargs
-    
-    filter_conditions = {}
-    
-    doc_type_to_icon = {
-        "PDF Document": ["pdf"],
-        "PowerPoint Presentation": ["pptx", "ppt"],
-        "Word Document": ["docx", "doc"]
     }
     
     for filter_dict in filters:
@@ -36,6 +32,7 @@ def create_search_kwargs(filters):
             mapped_field = filter_key_mapping.get(field, field)
             
             if mapped_field == "documentType":
+                # Handle document type mapping
                 icon_values = []
                 if isinstance(values, list):
                     for v in values:
@@ -44,16 +41,22 @@ def create_search_kwargs(filters):
                     icon_values = doc_type_to_icon.get(values, [values])
                 
                 if icon_values:
+                    # Create OR conditions for each icon value
                     icon_conditions = [
                         {"deliverables_list_metadata": {"$contains": icon}}
                         for icon in icon_values
                     ]
-                    filter_conditions["$or"] = icon_conditions
+                    and_conditions.append({"$or": icon_conditions})
             else:
+                # Handle other metadata fields
                 if isinstance(values, list):
-                    filter_conditions[mapped_field] = {"$in": values}
+                    # Create OR conditions for list values
+                    field_conditions = [{mapped_field: value} for value in values]
+                    and_conditions.append({"$or": field_conditions})
                 else:
-                    filter_conditions[mapped_field] = values
-
-    search_kwargs = {"filter": filter_conditions}
+                    # Single value condition
+                    and_conditions.append({mapped_field: values})
+    
+    # Combine all conditions with AND
+    search_kwargs = {"filter": {"$and": and_conditions}} if and_conditions else {}
     return search_kwargs
