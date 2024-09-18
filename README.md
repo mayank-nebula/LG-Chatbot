@@ -10,6 +10,13 @@ def create_search_kwargs(filters):
         dict: The search kwargs for filtering.
     """
 
+    # Map filter keys to corresponding metadata fields
+    filter_key_mapping = {
+        "region": "Region",
+        "country": "Country",
+        "strategyArea": "StrategyArea",
+    }
+
     if isinstance(filters, str):
         filter_condition = {"Title": filters}
         search_kwargs = {"filter": filter_condition}
@@ -25,7 +32,10 @@ def create_search_kwargs(filters):
     
     for filter_dict in filters:
         for field, values in filter_dict.items():
-            if field == "documentType":
+            # Map the field to its corresponding metadata field if needed
+            mapped_field = filter_key_mapping.get(field, field)
+            
+            if mapped_field == "documentType":
                 icon_values = []
                 if isinstance(values, list):
                     for v in values:
@@ -41,9 +51,9 @@ def create_search_kwargs(filters):
                     filter_conditions["$or"] = icon_conditions
             else:
                 if isinstance(values, list):
-                    filter_conditions[field] = {"$in": values}
+                    filter_conditions[mapped_field] = {"$in": values}
                 else:
-                    filter_conditions[field] = values
+                    filter_conditions[mapped_field] = values
 
     search_kwargs = {"filter": filter_conditions}
     return search_kwargs
