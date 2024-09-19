@@ -1,23 +1,25 @@
-def delete_files_in_folder(folder_path):
+def update_and_save_docstore(chunk_store_path, main_store_path, backup_dir):
     """
-    Delete all files in the specified folder, but keep the folder itself.
+    Updates the main document store with a new chunk and saves it, also rotating backups.
 
     Args:
-    folder_path (str): Path to the folder whose contents should be deleted
-
+        chunk_store_path (str): The path to the chunk store directory.
+        main_store_path (str): The path to the main store file.
+        backup_dir (str): The directory for backup files.
     """
-    # Check if the folder exists
-    if not os.path.exists(folder_path):
-        print(f"The folder {folder_path} does not exist.")
-        return False
+    chunk_store_full_path = os.path.join(os.getcwd(), chunk_store_path)
+    if not os.path.exists(chunk_store_full_path) or not os.listdir(chunk_store_full_path):
+        return
 
-    # Iterate over all items in the folder
-    for item in os.listdir(folder_path):
-        item_path = os.path.join(folder_path, item)
+    chunk_store = load_full_docstore(os.path.join(os.getcwd(), chunk_store_path))
 
-        if os.path.isfile(item_path):
-            os.unlink(item_path)
-        elif os.path.isdir(item_path):
-            shutil.rmtree(item_path)
+    if os.path.exists(main_store_path):
+        main_store = load_existing_docstore(main_store_path)
+        rotate_backups(backup_dir, main_store_path)
+    else:
+        main_store = InMemoryStore()
 
-    print(f"All contents of {folder_path} have been deleted.")
+    main_store.store.update(chunk_store.store)
+    save_full_docstore(main_store, main_store_path)
+
+    shutil.rmtree(chunk_store_full_path)
