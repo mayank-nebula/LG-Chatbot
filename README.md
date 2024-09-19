@@ -1,20 +1,23 @@
-main_folders = ['files_to_ingest', 'docstore_normal_rag', 'docstore_summary_rag', 'backup']
-
-# Define subfolders for the backup folder
-backup_subfolders = ['docstore_normal_rag', 'docstore_summary_rag']
-
-def create_folder(folder_path):
+def delete_files_in_folder(folder_path):
+    """
+    Delete all files in the specified folder, but keep the folder itself.
+    
+    Args:
+    folder_path (str): Path to the folder whose contents should be deleted
+    
+    """
+        # Check if the folder exists
     if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-        print(f"Created folder: {folder_path}")
-    else:
-        print(f"Folder already exists: {folder_path}")
-
-# Create main folders
-for folder in main_folders:
-    create_folder(folder)
-
-# Create subfolders in the backup folder
-for subfolder in backup_subfolders:
-    backup_subfolder_path = os.path.join('backup', subfolder)
-    create_folder(backup_subfolder_path)
+        print(f"The folder {folder_path} does not exist.")
+        return False
+    
+    # Iterate over all items in the folder
+    for item in os.listdir(folder_path):
+        item_path = os.path.join(folder_path, item)
+        
+        if os.path.isfile(item_path):
+            os.unlink(item_path)
+        elif os.path.isdir(item_path):
+            shutil.rmtree(item_path)
+    
+    print(f"All contents of {folder_path} have been deleted.")
