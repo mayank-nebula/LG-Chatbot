@@ -1,8 +1,17 @@
 import logging
-from utils.db_utils import get_user_collection
-from fastapi import APIRouter, HTTPException, Depends
+import secrets
+from fastapi import APIRouter
+from pydantic import BaseModel
+from auth.models.user_model import User
+from datetime import datetime, timedelta
+from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorCollection
-from auth.utils.jwt_utils import TokenData, authenticate_jwt
+from utils.mail_utils import send_register_email, send_reset_email
+from auth.utils.jwt_utils import (
+    create_access_token,
+    verify_password,
+    get_password_hash,
+)
 from auth.models.message_model import (
     RegisterRequest,
     LoginRequest,
@@ -10,168 +19,272 @@ from auth.models.message_model import (
     NewPassword,
     ChangePassword,
 )
-from auth.controller.auth_controller import (
-    register_user,
-    login_user,
-    reset_password,
-    new_password,
-    change_password,
-    verify_account,
-)
-
-
-# from auth.oauth.google import google_login, google_callback
-# from auth.oauth.azure_ad import azure_login, azure_callback
-from auth.oauth.ms_ad import ms_ad_login, ms_ad_callback
 
 router = APIRouter()
 
 
-# JWT-based authentication
-@router.post("/register")
-async def register(
+# Token response model
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+# Custom error response
+def custom_error_response(detail: str, status_code: int = 400):
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
+
+# Register a new user with more robust error handling and logging
+async def register_user(
     request: RegisterRequest,
-    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+    collection_user: AsyncIOMotorCollection,
 ):
     try:
-        logging.info("Register user attempt")
-        return await register_user(request, collection_user)
+        # Check if user already exists
+        existing_user = await collection_user.find_one(
+            {
+                "email": request.email,
+            }
+        )
+        if existing_user:
+            return custom_error_response("User already exists", 400)
+
+        hashed_password = get_password_hash(request.password)
+
+        verify_token = secrets.token_hex(32)
+
+        user = User(
+            email=request.email,
+            userFullName=request.full_name,
+            loginMethod="Manual",
+            hashed_password=hashed_password,
+            role="user",
+            verifyToken=verify_token,
+            createdAt=str(datetime.utcnow()),
+            updatedAt=str(datetime.utcnow()),
+        )
+
+        await collection_user.insert_one(user.dict())
+
+        send_register_email(request.email, verify_token)
+
+        return {"message": "User registered successfully"}
+
     except Exception as e:
-        logging.error(f"Error during registration: {e}")
-        raise HTTPException(status_code=500, detail="Registration failed")
+        logging.error(f"Error occurred while registering user: {e}")
+        return custom_error_response("Registration failed. Please try again.", 500)
 
 
-@router.get("/verify-account")
-async def verifyAccount(
-    token: str,
-    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
-):
-    try:
-        logging.info("Password reset attempt")
-        return await verify_account(token, collection_user)
-    except Exception as e:
-        logging.error(f"Error during password reset: {e}")
-        raise HTTPException(status_code=500, detail="Password rest failed")
-
-
-@router.post("/login")
-async def login(
+# Login and generate JWT token with logging and enhanced error handling
+async def login_user(
     request: LoginRequest,
-    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+    collection_user: AsyncIOMotorCollection,
 ):
     try:
-        logging.info("Login attempt")
-        return await login_user(request, collection_user)
+        user = await collection_user.find_one(
+            {"email": request.email, "loginMethod": "Manual"}
+        )
+
+        # Return an error if the user doesn't exist or password is invalid
+        if not user or not verify_password(request.password, user["hashed_password"]):
+            logging.warning(f"Failed login attempt for email: {request.email}")
+            return custom_error_response("Invalid email or password", 400)
+
+        if not user["verified"]:
+            logging.warning(f"User not verified: {request.email}")
+            return custom_error_response("User not verified", 400)
+
+        # Create JWT token (30-minute expiration)
+        access_token = create_access_token(
+            data={"email": user["email"]}, expires_delta=timedelta(minutes=30)
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
+
     except Exception as e:
-        logging.error(f"Error during login: {e}")
-        raise HTTPException(status_code=500, detail="Login failed")
+        logging.error(f"Error occurred during login for user {request.email}: {e}")
+        return custom_error_response("Login failed. Please try again.", 500)
 
 
-@router.post("/reset-password")
-async def resetPassword(
+# To generate password reset token
+async def reset_password(
     request: ResetPassword,
-    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+    collection_user: AsyncIOMotorCollection,
 ):
     try:
-        logging.info("Password token generation attempt")
-        return await reset_password(request, collection_user)
+        user = await collection_user.find_one(
+            {"email": request.email, "loginMethod": "Manual"}
+        )
+
+        # Return an error if the user doesn't exist
+        if not user:
+            logging.warning(
+                f"Failed password token generation attempt for email: {request.email}"
+            )
+            return custom_error_response("No user exists", 400)
+
+        token = secrets.token_hex(32)
+        reset_token_expiration = datetime.utcnow() + timedelta(hours=1)
+
+        update_user = await collection_user.update_one(
+            {"email": request.email},
+            {
+                "$set": {
+                    "resetToken": token,
+                    "resetTokenExpiration": reset_token_expiration,
+                    "updatedAt": datetime.utcnow(),
+                }
+            },
+        )
+
+        if update_user.modified_count == 1:
+            logging.info(f"Reset token set for {request.email}")
+        else:
+            return custom_error_response(
+                "Failed to update the user token. Please try again.", 500
+            )
+
+        send_reset_email(request.email, token)
+
+        return {"msg": "Password reset email sent"}
+
     except Exception as e:
-        logging.error(f"Error during password token generation: {e}")
-        raise HTTPException(status_code=500, detail="Password token generation failed")
+        logging.error(
+            f"Error occurred during password token generation for user {request.email}: {e}"
+        )
+        return custom_error_response(
+            "Password token generation failed. Please try again.", 500
+        )
 
 
-@router.post("/new-password")
-async def newPassword(
+async def new_password(
     request: NewPassword,
-    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+    collection_user: AsyncIOMotorCollection,
 ):
     try:
-        logging.info("Password reset attempt")
-        return await new_password(request, collection_user)
+        current_time = datetime.utcnow()
+        user = await collection_user.find_one(
+            {
+                "resetToken": request.token,
+                "resetTokenExpiration": {"$gt": current_time},
+            }
+        )
+
+        if not user:
+            logging.warning(f"Failed password reset attempt for unknown user.")
+            return custom_error_response("No user exists", 400)
+
+        if verify_password(request.password, user["hashed_password"]):
+            logging.warning(
+                f"New password must be different from the old password for email: {user['email']}"
+            )
+            return custom_error_response(
+                "New password must be different from the old password", 400
+            )
+
+        hashed_password = get_password_hash(request.password)
+
+        update_result = await collection_user.update_one(
+            {"_id": user["_id"]},
+            {
+                "$set": {
+                    "hashed_password": hashed_password,
+                    "resetToken": None,
+                    "updatedAt": datetime.utcnow(),
+                },
+                "$unset": {
+                    "resetTokenExpiration": "",
+                },
+            },
+        )
+        if update_result.modified_count == 1:
+            logging.info(f"Password reset successfully for email: {user['email']}")
+            return {"msg": "Password reset successfully"}
+        else:
+            logging.error(f"Failed to update password for email: {user['email']}")
+            return custom_error_response(
+                "Failed to reset password, please try again", 500
+            )
     except Exception as e:
-        logging.error(f"Error during password reset: {e}")
-        raise HTTPException(status_code=500, detail="Password rest failed")
+        user_email = user["email"] if user else "Unknown"
+        logging.error(
+            f"Error occurred during password reset for user {user_email}: {e}"
+        )
+        return custom_error_response("Password reset failed. Please try again.", 500)
 
 
-@router.post("/change-password")
-async def changePassword(
+async def change_password(
     request: ChangePassword,
-    token_data: TokenData = Depends(authenticate_jwt),
-    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+    user_email_id: str,
+    collection_user: AsyncIOMotorCollection,
 ):
     try:
-        logging.info("Password change attempt")
-        user_email_id = token_data.email
-        return await change_password(request, user_email_id, collection_user)
+        user = await collection_user.find_one(
+            {"email": user_email_id, "loginMethod": "Manual"}
+        )
+
+        # Return an error if the user doesn't exist
+        if not user:
+            logging.warning(
+                f"Failed password token generation attempt for email: {user_email_id}"
+            )
+            return custom_error_response("No user exists", 400)
+
+        if not verify_password(request.old_password, user["hashed_password"]):
+            logging.warning(f"Wrong password provided of the user: {user_email_id}")
+            return custom_error_response("Wrong password provided of the user", 400)
+
+        hashed_password = get_password_hash(request.new_password)
+
+        update_result = await collection_user.update_one(
+            {"email": user_email_id},
+            {
+                "$set": {
+                    "hashed_password": hashed_password,
+                    "updatedAt": datetime.utcnow(),
+                },
+            },
+        )
+        if update_result.modified_count == 1:
+            logging.info(f"Password change successfully for email: {user_email_id}")
+            return {"msg": "Password reset successfully"}
+        else:
+            logging.error(f"Failed to change password for email: {user_email_id}")
+            return custom_error_response(
+                "Failed to change password, please try again", 500
+            )
     except Exception as e:
-        logging.error(f"Error during password change: {e}")
-        raise HTTPException(status_code=500, detail="Password change failed")
+        logging.error(
+            f"Error occurred during password reset for user {user_email_id}: {e}"
+        )
+        return custom_error_response("Password reset failed. Please try again.", 500)
 
 
-# Microsoft AD authentication
-@router.get("/login/ms-ad")
-async def ms_ad_oauth_login():
+async def verify_account(token: str, collection_user: AsyncIOMotorCollection):
     try:
-        logging.info("Microsoft AD login attempt")
-        return await ms_ad_login()
+        user = await collection_user.find_one(
+            {"verifyToken": token, "loginMethod": "Manual"}
+        )
+
+        if not user:
+            logging.warning(f"Failed to verify user.")
+            return custom_error_response("No user exists", 400)
+
+        update_result = await collection_user.update_one(
+            {"_id": user["_id"]},
+            {
+                "$set": {
+                    "verified": "Yes",
+                    "verifyToken": None,
+                    "updatedAt": datetime.utcnow(),
+                },
+            },
+        )
+        if update_result.modified_count == 1:
+            logging.info(f"User Verified: {user['email']}")
+            return {"msg": "User Verified successfully"}
+        else:
+            logging.error(f"Failed to verify user for email: {user['email']}")
+            return custom_error_response("Failed to verify user, please try again", 500)
     except Exception as e:
-        logging.error(f"Error during Microsoft AD OAuth login: {e}")
-        raise HTTPException(status_code=500, detail="Microsoft AD login failed")
-
-
-@router.get("/callback/ms-ad")
-async def ms_ad_oauth_callback(
-    code: str, collection_user: AsyncIOMotorCollection = Depends(get_user_collection)
-):
-    try:
-        logging.info("Microsoft AD callback attempt")
-        return await ms_ad_callback(code, collection_user)
-    except Exception as e:
-        logging.error(f"Error during Microsoft AD OAuth callback: {e}")
-        raise HTTPException(status_code=500, detail="Microsoft AD callback failed")
-
-
-# Google OAuth2 authentication
-# @router.get("/login/google")
-# async def google_oauth_login():
-#     try:
-#         logging.info("Google login attempt")
-#         return await google_login()
-#     except Exception as e:
-#         logging.error(f"Error during Google OAuth login: {e}")
-#         raise HTTPException(status_code=500, detail="Google login failed")
-
-
-# @router.get("/callback/google")
-# async def google_oauth_callback(
-#     code: str, collection_user: AsyncIOMotorCollection = Depends(get_user_collection)
-# ):
-#     try:
-#         logging.info("Google callback attempt")
-#         return await google_callback(code, collection_user)
-#     except Exception as e:
-#         logging.error(f"Error during Google OAuth callback: {e}")
-#         raise HTTPException(status_code=500, detail="Google callback failed")
-
-
-# Azure AD authentication
-# @router.get("/login/azure")
-# async def azure_oauth_login():
-#     try:
-#         logging.info("Azure AD login attempt")
-#         return await azure_login()
-#     except Exception as e:
-#         logging.error(f"Error during Azure AD OAuth login: {e}")
-#         raise HTTPException(status_code=500, detail="Azure AD login failed")
-
-
-# @router.get("/callback/azure")
-# async def azure_oauth_callback(
-#     code: str, collection_user: AsyncIOMotorCollection = Depends(get_user_collection)
-# ):
-#     try:
-#         logging.info("Azure AD callback attempt")
-#         return await azure_callback(code, collection_user)
-#     except Exception as e:
-#         logging.error(f"Error during Azure AD OAuth callback: {e}")
-#         raise HTTPException(status_code=500, detail="Azure AD callback failed")
+        logging.error(f"Failed to verify user: {e}")
+        return custom_error_response("Failed to verify user. Please try again.", 500)
