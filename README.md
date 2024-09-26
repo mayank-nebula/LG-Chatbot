@@ -1,67 +1,88 @@
 import os
+import jwt
 import logging
-import smtplib
+from pydantic import BaseModel
 from dotenv import load_dotenv
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from jwt import ExpiredSignatureError, InvalidTokenError
 
 load_dotenv()
 
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT"))
-SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+# Load the secret key from environment variables for security
+SECRET_KEY = os.getenv("SECRET_KEY", "your_jwt_secret")  # Ensure this is set securely
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30").split()[0]
+)
+
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
-def send_reset_email(
-    email: str,
-    token: str,
-):
+# JWT token payload model
+class TokenData(BaseModel):
+    email: str
+
+
+# Verify password using bcrypt hashing
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+# Hash password using bcrypt
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+
+# Create a JWT access token
+def create_access_token(data: dict, expires_delta: timedelta = None):
     try:
-        subject = "Password Reset Request"
-        reset_url = f"http://localhost:5173/reset-password?token={token}"
-
-        msg = MIMEMultipart()
-        msg["From"] = SENDER_EMAIL
-        msg["To"] = email
-        msg["Subject"] = subject
-
-        body = f"Click the link below to reset your password:\n\n{reset_url}"
-        msg.attach(MIMEText(body, "plain"))
-
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, email, msg.as_string())
-
-        logging.info(f"Account verify email sent to {email}")
-
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        logging.info(f"JWT token created for user: {data.get('email', 'unknown')}")
+        return encoded_jwt
     except Exception as e:
-        logging.error(f"Error sending email: {e}")
+        logging.error(f"Error creating JWT token: {e}")
+        raise HTTPException(status_code=500, detail="Token creation failed")
 
 
-def send_register_email(
-    email: str,
-    token: str,
-):
+# Decode a JWT access token
+def decode_access_token(token: str):
     try:
-        subject = "Verify your account"
-        reset_url = f"http://localhost:5173/verify-account?token={token}"
-
-        msg = MIMEMultipart()
-        msg["From"] = SENDER_EMAIL
-        msg["To"] = email
-        msg["Subject"] = subject
-
-        body = f"Click the link below to verify your account:\n\n{reset_url}"
-        msg.attach(MIMEText(body, "plain"))
-
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, email, msg.as_string())
-
-        logging.info(f"Password reset email sent to {email}")
-
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("email")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Token payload invalid")
+        logging.info(f"JWT token decoded for user: {email}")
+        return TokenData(email=email)
+    except ExpiredSignatureError:
+        logging.error("JWT token expired")
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except InvalidTokenError as e:
+        logging.error(f"JWT decoding error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid token")
     except Exception as e:
-        logging.error(f"Error sending email: {e}")
+        logging.error(f"Error decoding token: {e}")
+        raise HTTPException(status_code=401, detail="Token verification failed")
+
+
+# JWT authentication function used as a FastAPI dependency
+async def authenticate_jwt(token: str = Depends(oauth2_scheme)):
+    try:
+        token_data = decode_access_token(token)
+        return token_data
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logging.error(f"Unexpected error during token authentication: {e}")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
