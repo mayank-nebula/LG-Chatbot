@@ -1,57 +1,127 @@
-1.	Security Related Implementation:
-1)	Encrypted Conversations in MongoDB:
-•	Encryption of Conversations: All user conversations stored in MongoDB will be fully encrypted using a user-specific encryption key. This ensures that even if the database is compromised, the conversations remain inaccessible without the key.
-•	Key-Based Decryption: When the user logs into the application, they will need to provide their unique encryption key to decrypt and access their conversations. This adds a strong layer of protection, making it impossible for others to view the data without the user's permission.
-•	Key Recovery with Security Question: In case the user forgets their encryption key, they can recover it by answering a pre-set security question. The key itself will be stored in MongoDB in an encrypted format, ensuring that even the recovery process is secure.
-•	No Traceable Logging: Since no logs will be kept, there will be no traces of decryption keys, conversations, or any sensitive user data in the logs.
+import os
+import logging
+import uvicorn
+from dotenv import load_dotenv
+from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request, Depends
+from routes.file_routes import router as file_router
+from routes.chat_routes import router as chat_router
+from auth.routes.auth_routes import router as auth_router
+from routes.user_routes import router as user_management_router
+from utils.db_utils import startup_db_client, shutdown_db_client
+from utils.security_utils import add_cors_middleware, authenticate_jwt
 
-2)	User-Specific ChromaDB Collections for Embeddings:
-•	Separate Collections: Each user will have their own separate ChromaDB collection to store embeddings. This means the data generated for one user is completely isolated from that of another user, enhancing data privacy.
-•	Improved Security and Privacy: By keeping the embeddings in distinct collections, the application guarantees that even if one collection is compromised, only the specific user's data is at risk, and not the entire user base.
 
-3)	Encrypted Email Storage in Azure Blob Storage:
-•	Email Encryption: All emails uploaded by the user will be encrypted before being stored in Azure Blob Storage. This ensures that even if the storage is compromised, the email contents remain secure and unreadable without the encryption key.
-•	Azure Blob Security Features: Azure Blob Storage provides additional security features like encryption at rest and in transit, access control policies, and integration with Azure Active Directory (Azure AD) for user authentication.
-•	User-Controlled Decryption: Each user will use their unique encryption key to decrypt and access their emails. The key is required to retrieve and read email contents, providing an additional layer of security.
-•	Data Privacy: Emails are securely isolated per user, ensuring that only the user can access their uploaded emails, with strict access controls in place via Azure.
+# Load environment variables from .env file
+load_dotenv()
 
-4)	JWT Tokens for Authentication and Authorization:
-•	Authentication: JSON Web Tokens (JWT) will be used to authenticate users securely. When the user logs in, they will receive a signed JWT token that serves as proof of identity.
-2.	User Settings:
-1)	Delete All Data:
-•	Complete Data Erasure: Users will have an option to delete all their data. When this is selected, the system will automatically erase:
-	All MongoDB data (e.g., conversations).
-	All ChromaDB embeddings.
-	All uploaded emails stored in Azure Blob Storage.
-•	Irreversibility: This action will be irreversible, meaning once the data is deleted, it cannot be recovered.
+# MongoDB connection setup
+MONGO_API_KEY = os.getenv("MONGO_API_KEY")
 
-2)	Delete Specific Email:
-•	Targeted Deletion: Users will have the ability to delete specific emails from the Azure Blob Storage.
-•	Selective Control: This option allows users to manage their uploaded emails individually, offering greater flexibility in controlling which data is retained and which is removed.
-•	Encrypted Deletion: The deletion process will ensure that the encrypted forms of the email are removed from storage.
 
-3)	Manual/Automatic Deletion of Chats:
-•	Manual/Automatic Settings: Users can set up either manual or automatic deletion of their chat history.
-•	Manual Deletion: Users can select and delete specific conversations.
-•	Automatic Deletion: Users can set a time interval (e.g., after 3 days, 6 days) for the system to automatically delete all past chat data.
-•	Secure Data Handling: Even in automatic deletion, the system will ensure secure removal from MongoDB and associated ChromaDB embeddings.
+# Define the lifespan of the application
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize the DB client
+    startup_db_client()
 
-4)	Optional: Manual Sign-In with MongoDB (Reset/Forgot/Change Password):
-•	Reset/Forgot Password: If the manual sign-in feature is used, users will have the ability to reset or retrieve a forgotten password.
-•	Security Question: To recover the password, users will need to answer a security question set during account creation.
-•	Change Password: Users will also be able to change their password from within the user settings. The new password will be securely hashed before being stored in MongoDB, ensuring it is never stored as plain text.
-•	Secure Access Control: All authentication and authorization processes will continue to be managed with JWT tokens.
+    # Yield to keep the application running
+    yield
 
-3.	Additional Features:
-1)	Intent Recognition:
-•	Understanding User Queries: The system will incorporate intent recognition to better understand and respond to user queries. This feature helps the backend accurately determine the user’s goals and intentions when interacting with the application.
-•	Enhanced User Experience: Intent recognition allows for more personalized and meaningful responses from the AI, leading to an improved user experience by reducing misunderstandings and irrelevant responses.
+    # Shutdown: Cleanup resources
+    shutdown_db_client()
 
-2.	Email Summarization:
-•	Efficient Overview of Emails: The system will automatically generate summaries of uploaded emails. This feature allows users to quickly review the key points of each email without reading the entire content.
-•	Text Extraction and Summarization: Using AI and natural language processing models, the system extracts essential information from the email and presents it in a concise format.
 
-3.	Email Drafting:
-•	Automated Draft Creation: Based on user input and previous conversations, the system can assist in drafting email responses. Users can leverage the system’s suggestions for tone, content, and structure to create professional and effective emails.
-•	Customizable Drafts: Users will have the flexibility to modify the draft according to their needs. The system can also include context from previous chats or emails to make the drafts more relevant.
+# Initialize FastAPI application with lifespan event handlers
+app = FastAPI(lifespan=lifespan)
 
+# Setup CORS middleware for the application
+add_cors_middleware(app)
+
+# Include authentication routes (JWT, Google, Azure AD, Microsoft AD)
+app.include_router(
+    auth_router,
+    # prefix="/auth"
+)
+
+# Include additional secured routes (file handling)
+app.include_router(
+    file_router,
+    prefix="/file",
+    dependencies=[Depends(authenticate_jwt)],
+)
+
+# Include additional secured routes (user handling)
+app.include_router(
+    user_management_router,
+    prefix="/chat",
+    dependencies=[Depends(authenticate_jwt)],
+)
+
+# Include chat content generation routes
+app.include_router(
+    chat_router,
+    prefix="/api/v1",
+    dependencies=[Depends(authenticate_jwt)],
+)
+
+
+# Health check route - No authentication required
+@app.get("/health", include_in_schema=False)
+async def health_check():
+    """
+    Endpoint for health checks.
+    Returns the health status of the API server.
+    """
+    return {"status": "healthy"}
+
+
+# Global error handler middleware
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    """
+    Middleware to handle errors globally and provide process time headers for requests.
+    If an error occurs, returns a JSON response with a 500 status code.
+    """
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as exc:
+        logging.error(f"Unhandled error: {str(exc)}")
+        return JSONResponse(
+            status_code=500, content={"message": "Internal server error"}
+        )
+
+
+# Default root route
+@app.get("/")
+async def root():
+    """
+    Root endpoint to verify the server is running.
+    """
+    return {"message": "Welcome to FastAPI Server"}
+
+
+# Start the server (using Uvicorn if running locally)
+if __name__ == "__main__":
+    # SSL setup (optional, depends on configuration)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8080,
+        # ssl_keyfile=os.getenv("SSL_KEYFILE", None),
+        # ssl_certfile=os.getenv("SSL_CERTFILE", None),
+        # workers=1,
+    )
+
+
+# from auth.routes.user_routes import router as user_router
+
+# Include additional secured routes (document handling)
+# app.include_router(
+#     document.router, prefix="/docs", dependencies=[Depends(get_jwt_dependency())]
+# )
+
+# Include user management routes (profile, role assignment)
+# app.include_router(user_router, prefix="/user")
