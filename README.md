@@ -1,127 +1,114 @@
 import os
 import logging
-import uvicorn
 from dotenv import load_dotenv
-from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Depends
-from routes.file_routes import router as file_router
-from routes.chat_routes import router as chat_router
-from auth.routes.auth_routes import router as auth_router
-from routes.user_routes import router as user_management_router
-from utils.db_utils import startup_db_client, shutdown_db_client
-from utils.security_utils import add_cors_middleware, authenticate_jwt
+from motor.motor_asyncio import AsyncIOMotorClient
 
-
-# Load environment variables from .env file
 load_dotenv()
 
-# MongoDB connection setup
-MONGO_API_KEY = os.getenv("MONGO_API_KEY")
+mongo_client = None
 
 
-# Define the lifespan of the application
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: Initialize the DB client
-    startup_db_client()
-
-    # Yield to keep the application running
-    yield
-
-    # Shutdown: Cleanup resources
-    shutdown_db_client()
-
-
-# Initialize FastAPI application with lifespan event handlers
-app = FastAPI(lifespan=lifespan)
-
-# Setup CORS middleware for the application
-add_cors_middleware(app)
-
-# Include authentication routes (JWT, Google, Azure AD, Microsoft AD)
-app.include_router(
-    auth_router,
-    # prefix="/auth"
-)
-
-# Include additional secured routes (file handling)
-app.include_router(
-    file_router,
-    prefix="/file",
-    dependencies=[Depends(authenticate_jwt)],
-)
-
-# Include additional secured routes (user handling)
-app.include_router(
-    user_management_router,
-    prefix="/chat",
-    dependencies=[Depends(authenticate_jwt)],
-)
-
-# Include chat content generation routes
-app.include_router(
-    chat_router,
-    prefix="/api/v1",
-    dependencies=[Depends(authenticate_jwt)],
-)
-
-
-# Health check route - No authentication required
-@app.get("/health", include_in_schema=False)
-async def health_check():
+# Initialize the MongoDB client and collection
+def startup_db_client():
     """
-    Endpoint for health checks.
-    Returns the health status of the API server.
+    Initializes the MongoDB client and sets up the chat collection.
+    Loads the connection string and database name from environment variables.
     """
-    return {"status": "healthy"}
-
-
-# Global error handler middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    """
-    Middleware to handle errors globally and provide process time headers for requests.
-    If an error occurs, returns a JSON response with a 500 status code.
-    """
+    global mongo_client
     try:
-        response = await call_next(request)
-        return response
-    except Exception as exc:
-        logging.error(f"Unhandled error: {str(exc)}")
-        return JSONResponse(
-            status_code=500, content={"message": "Internal server error"}
+        # Get the MongoDB connection URI from the environment variable
+        mongo_uri = os.getenv("MONGO_API_KEY")
+        if not mongo_uri:
+            raise ValueError("MONGO_API_KEY environment variable not set")
+
+        # Get the MongoDB database name from environment variables
+        db_name = os.getenv("MONGODB_COLLECTION")
+        if not db_name:
+            raise ValueError("MONGODB_COLLECTION environment variable not set")
+
+        # Initialize MongoDB client
+        mongo_client = AsyncIOMotorClient(mongo_uri)
+        logging.info(f"Connected to MongoDB at {mongo_uri}, Database: {db_name}")
+    except Exception as e:
+        logging.error(f"Error initializing MongoDB client: {str(e)}")
+        raise
+
+
+# Close the MongoDB client connection
+def shutdown_db_client():
+    """
+    Shuts down the MongoDB client and closes the connection to the chat, user, and question collections.
+    """
+    global mongo_client
+    try:
+        if mongo_client is not None:
+            mongo_client.close()
+            mongo_client = None
+            logging.info("MongoDB client closed successfully")
+        else:
+            logging.warning("MongoDB client was not initialized or already closed")
+    except Exception as e:
+        logging.error(f"Error closing MongoDB client: {str(e)}")
+        raise
+
+
+def get_db():
+    """
+    Retrieves the MongoDB database for operations.
+
+    Returns:
+    - db (MongoClient.Database): MongoDB database object.
+
+    Raises:
+    - Exception: If the MongoDB client is not initialized.
+    """
+    if mongo_client is None:
+        raise Exception(
+            "MongoDB client is not initialized. Call startup_db_client first."
         )
 
+    db_name = os.getenv("MONGODB_COLLECTION")
+    if not db_name:
+        raise ValueError("MONGODB_COLLECTION environment variable not set")
 
-# Default root route
-@app.get("/")
-async def root():
+    return mongo_client[db_name]
+
+
+# Retrieve the collection to work with MongoDB
+def get_chat_collection():
     """
-    Root endpoint to verify the server is running.
+    Retrieves the chat collection for CRUD operations.
+
+    Returns:
+    - collection_chat (MongoClient.Collection): MongoDB collection object.
+
+    Raises:
+    - Exception: If the MongoDB client is not initialized.
     """
-    return {"message": "Welcome to FastAPI Server"}
+    return get_db()["chats"]
 
 
-# Start the server (using Uvicorn if running locally)
-if __name__ == "__main__":
-    # SSL setup (optional, depends on configuration)
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8080,
-        # ssl_keyfile=os.getenv("SSL_KEYFILE", None),
-        # ssl_certfile=os.getenv("SSL_CERTFILE", None),
-        # workers=1,
-    )
+def get_question_collection():
+    """
+    Retrieves the chat collection for CRUD operations.
+
+    Returns:
+    - collection_chat (MongoClient.Collection): MongoDB collection object.
+
+    Raises:
+    - Exception: If the MongoDB client is not initialized.
+    """
+    return get_db()["questions"]
 
 
-# from auth.routes.user_routes import router as user_router
+def get_user_collection():
+    """
+    Retrieves the chat collection for CRUD operations.
 
-# Include additional secured routes (document handling)
-# app.include_router(
-#     document.router, prefix="/docs", dependencies=[Depends(get_jwt_dependency())]
-# )
+    Returns:
+    - collection_chat (MongoClient.Collection): MongoDB collection object.
 
-# Include user management routes (profile, role assignment)
-# app.include_router(user_router, prefix="/user")
+    Raises:
+    - Exception: If the MongoDB client is not initialized.
+    """
+    return get_db()["users"]
