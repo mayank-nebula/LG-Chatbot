@@ -1,186 +1,177 @@
-from controller import user_controller
-from fastapi import APIRouter, Depends, Body
+import logging
+from utils.db_utils import get_user_collection
+from fastapi import APIRouter, HTTPException, Depends
 from motor.motor_asyncio import AsyncIOMotorCollection
 from auth.utils.jwt_utils import TokenData, authenticate_jwt
-from utils.db_utils import (
-    get_chat_collection,
-    get_question_collection,
-    get_user_collection,
+from auth.models.message_model import (
+    RegisterRequest,
+    LoginRequest,
+    ResetPassword,
+    NewPassword,
+    ChangePassword,
+)
+from auth.controller.auth_controller import (
+    register_user,
+    login_user,
+    reset_password,
+    new_password,
+    change_password,
+    verify_account,
 )
 
-# Create an instance of APIRouter
+
+# from auth.oauth.google import google_login, google_callback
+# from auth.oauth.azure_ad import azure_login, azure_callback
+from auth.oauth.ms_ad import ms_ad_login, ms_ad_callback
+
 router = APIRouter()
 
 
-# Route to get all chats
-@router.get("/all-chats")
-async def get_all_chats(
-    # user_lookup_id: str,
+# JWT-based authentication
+@router.post("/register")
+async def register(
+    request: RegisterRequest,
+    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+):
+    try:
+        logging.info("Register user attempt")
+        return await register_user(request, collection_user)
+    except Exception as e:
+        logging.error(f"Error during registration: {e}")
+        raise HTTPException(status_code=500, detail="Registration failed")
+
+
+@router.get("/verify-account")
+async def verifyAccount(
+    token: str,
+    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+):
+    try:
+        logging.info("Password reset attempt")
+        return await verify_account(token, collection_user)
+    except Exception as e:
+        logging.error(f"Error during password reset: {e}")
+        raise HTTPException(status_code=500, detail="Password rest failed")
+
+
+@router.post("/login")
+async def login(
+    request: LoginRequest,
+    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+):
+    try:
+        logging.info("Login attempt")
+        return await login_user(request, collection_user)
+    except Exception as e:
+        logging.error(f"Error during login: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
+
+@router.post("/reset-password")
+async def resetPassword(
+    request: ResetPassword,
+    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+):
+    try:
+        logging.info("Password token generation attempt")
+        return await reset_password(request, collection_user)
+    except Exception as e:
+        logging.error(f"Error during password token generation: {e}")
+        raise HTTPException(status_code=500, detail="Password token generation failed")
+
+
+@router.post("/new-password")
+async def newPassword(
+    request: NewPassword,
+    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
+):
+    try:
+        logging.info("Password reset attempt")
+        return await new_password(request, collection_user)
+    except Exception as e:
+        logging.error(f"Error during password reset: {e}")
+        raise HTTPException(status_code=500, detail="Password rest failed")
+
+
+@router.post("/change-password")
+async def changePassword(
+    request: ChangePassword,
     token_data: TokenData = Depends(authenticate_jwt),
     collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
-    collection_chat: AsyncIOMotorCollection = Depends(get_chat_collection),
 ):
-    """
-    Retrieve all chat threads for a given user.
-
-    Args:
-    - user_email_id (str): The email ID of the user requesting the chats.
-    - full_name (str): Full name of the user.
-    - user_lookup_id (str): User lookup ID for fetching permissions.
-
-    Returns:
-    - dict: A dictionary containing chat threads.
-    """
-    # print(token_data.email)
-    user_email_id = token_data.email
-    return await user_controller.get_all_chats(
-        user_email_id, collection_user, collection_chat
-    )
+    try:
+        logging.info("Password change attempt")
+        user_email_id = token_data.email
+        return await change_password(request, user_email_id, collection_user)
+    except Exception as e:
+        logging.error(f"Error during password change: {e}")
+        raise HTTPException(status_code=500, detail="Password change failed")
 
 
-# Route to fetch a specific chat by ID
-@router.get("/fetch-chat")
-async def get_specific_chat(
-    chat_id: str,
-    token_data: TokenData = Depends(authenticate_jwt),
-    collection_chat: AsyncIOMotorCollection = Depends(get_chat_collection),
+# Microsoft AD authentication
+@router.get("/login/ms-ad")
+async def ms_ad_oauth_login():
+    try:
+        logging.info("Microsoft AD login attempt")
+        return await ms_ad_login()
+    except Exception as e:
+        logging.error(f"Error during Microsoft AD OAuth login: {e}")
+        raise HTTPException(status_code=500, detail="Microsoft AD login failed")
+
+
+@router.get("/callback/ms-ad")
+async def ms_ad_oauth_callback(
+    code: str, collection_user: AsyncIOMotorCollection = Depends(get_user_collection)
 ):
-    """
-    Retrieve a specific chat by its ID.
-
-    Args:
-    - chat_id (str): The ID of the chat to be fetched.
-    - user_email_id (str): The email ID of the user.
-
-    Returns:
-    - dict: A dictionary containing chat details.
-    """
-    user_email_id = token_data.email
-    return await user_controller.get_specific_chat(
-        chat_id, user_email_id, collection_chat
-    )
+    try:
+        logging.info("Microsoft AD callback attempt")
+        return await ms_ad_callback(code, collection_user)
+    except Exception as e:
+        logging.error(f"Error during Microsoft AD OAuth callback: {e}")
+        raise HTTPException(status_code=500, detail="Microsoft AD callback failed")
 
 
-# Route to get random questions
-@router.get("/random-question")
-async def get_random_questions(
-    token_data: TokenData = Depends(authenticate_jwt),
-    collection_user: AsyncIOMotorCollection = Depends(get_user_collection),
-    collection_question: AsyncIOMotorCollection = Depends(get_question_collection),
-):
-    """
-    Retrieve a set of random questions for the user.
-
-    Args:
-    - user_email_id (str): The email ID of the user.
-
-    Returns:
-    - dict: A dictionary containing random questions.
-    """
-    user_email_id = token_data.email
-    return await user_controller.get_random_questions(
-        user_email_id, collection_user, collection_question
-    )
+# Google OAuth2 authentication
+# @router.get("/login/google")
+# async def google_oauth_login():
+#     try:
+#         logging.info("Google login attempt")
+#         return await google_login()
+#     except Exception as e:
+#         logging.error(f"Error during Google OAuth login: {e}")
+#         raise HTTPException(status_code=500, detail="Google login failed")
 
 
-# Route to post filtered questions
-@router.post("/filtered-question")
-async def post_filtered_question(
-    document_names: list[str] = Body(..., embed=True),
-    collection_question: AsyncIOMotorCollection = Depends(get_question_collection),
-):
-    """
-    Post filtered questions based on provided document names.
-
-    Args:
-    - document_names (list[str]): List of document names for which questions are required.
-
-    Returns:
-    - dict: A dictionary containing the filtered questions.
-    """
-    return await user_controller.post_filtered_question(
-        document_names,
-        collection_question,
-    )
+# @router.get("/callback/google")
+# async def google_oauth_callback(
+#     code: str, collection_user: AsyncIOMotorCollection = Depends(get_user_collection)
+# ):
+#     try:
+#         logging.info("Google callback attempt")
+#         return await google_callback(code, collection_user)
+#     except Exception as e:
+#         logging.error(f"Error during Google OAuth callback: {e}")
+#         raise HTTPException(status_code=500, detail="Google callback failed")
 
 
-# Route to change the chat title
-@router.put("/change-title")
-async def put_change_title(
-    chat_id: str = Body(..., embed=True),
-    title: str = Body(..., embed=True),
-    collection_chat: AsyncIOMotorCollection = Depends(get_chat_collection),
-):
-    """
-    Change the title of a specific chat.
-
-    Args:
-    - chat_id (str): The ID of the chat to update.
-    - title (str): The new title of the chat.
-
-    Returns:
-    - dict: A dictionary confirming the title change.
-    """
-    return await user_controller.put_change_title(chat_id, title, collection_chat)
+# Azure AD authentication
+# @router.get("/login/azure")
+# async def azure_oauth_login():
+#     try:
+#         logging.info("Azure AD login attempt")
+#         return await azure_login()
+#     except Exception as e:
+#         logging.error(f"Error during Azure AD OAuth login: {e}")
+#         raise HTTPException(status_code=500, detail="Azure AD login failed")
 
 
-# Route to toggle the bookmark of a chat
-@router.put("/bookmark")
-async def put_bookmark(
-    chat_id: str = Body(..., embed=True),
-    collection_chat: AsyncIOMotorCollection = Depends(get_chat_collection),
-):
-    """
-    Toggle the bookmark status of a specific chat.
-
-    Args:
-    - chat_id (str): The ID of the chat to toggle bookmark status.
-
-    Returns:
-    - dict: A dictionary confirming the bookmark update.
-    """
-    return await user_controller.put_bookmark(chat_id, collection_chat)
-
-
-# Route to update feedback on a specific message in a chat
-@router.put("/chat-feedback")
-async def put_chat_feedback(
-    chat_id: str = Body(..., embed=True),
-    message_id: str = Body(..., embed=True),
-    feedback: str = Body(..., embed=True),
-    reason: str = Body(..., embed=True),
-    collection_chat: AsyncIOMotorCollection = Depends(get_chat_collection),
-):
-    """
-    Update feedback for a specific message in a chat.
-
-    Args:
-    - chat_id (str): The ID of the chat containing the message.
-    - message_id (str): The ID of the message to update.
-    - feedback (str): The feedback content.
-    - reason (Optional[str]): The reason for the feedback (optional).
-
-    Returns:
-    - dict: A dictionary confirming the feedback update.
-    """
-    return await user_controller.put_chat_feedback(
-        chat_id, message_id, feedback, collection_chat, reason
-    )
-
-
-# Route to delete a specific chat by its ID
-@router.delete("/delete-chat/{chat_id}")
-async def delete_chat(
-    chat_id: str,
-    collection_chat: AsyncIOMotorCollection = Depends(get_chat_collection),
-):
-    """
-    Delete a specific chat by its ID.
-
-    Args:
-    - chat_id (str): The ID of the chat to delete.
-
-    Returns:
-    - dict: A dictionary confirming the chat deletion.
-    """
-    return await user_controller.delete_chat(chat_id, collection_chat)
+# @router.get("/callback/azure")
+# async def azure_oauth_callback(
+#     code: str, collection_user: AsyncIOMotorCollection = Depends(get_user_collection)
+# ):
+#     try:
+#         logging.info("Azure AD callback attempt")
+#         return await azure_callback(code, collection_user)
+#     except Exception as e:
+#         logging.error(f"Error during Azure AD OAuth callback: {e}")
+#         raise HTTPException(status_code=500, detail="Azure AD callback failed")
