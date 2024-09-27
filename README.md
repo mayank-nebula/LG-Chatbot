@@ -1,15 +1,6 @@
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = allowedOrigins;
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Access Denied: Authentication Failed"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+@app.middleware("http")
+async def cors_error_handling(request, call_next):
+    origin = request.headers.get("origin")
+    if origin and origin not in allowed_origins:
+        raise HTTPException(status_code=403, detail="Access Denied: Authentication Failed")
+    return await call_next(request)
