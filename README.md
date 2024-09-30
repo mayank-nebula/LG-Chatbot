@@ -1,90 +1,20 @@
-import os
-import logging
-import extract_msg
-from email import policy
-from email.parser import BytesParser
-
-ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".ppt", ".pptx"}
-
-
-def extract_eml_attachments(eml_file: str, output_dir: str):
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-
-        with open(eml_file, "rb") as f:
-            msg = BytesParser(policy=policy.default).parse(f)
-
-        for part in msg.iter_attachments():
-            filename = part.get_filename()
-            if filename:
-                ext = os.path.splitext(filename)[1].lower()
-                if ext in ALLOWED_EXTENSIONS:
-                    attachment_path = os.path.join(output_dir, filename)
-                    with open(attachment_path, "wb") as fp:
-                        fp.write(part.get_payload(decode=True))
-                    logging.info(f"Attachment {filename} saved at {attachment_path}")
-                else:
-                    logging.info(
-                        f"Skipped attachment {filename} (unsupported file type)"
-                    )
-    except Exception as e:
-        logging.error(f"Failed to process .eml file {eml_file}: {str(e)}")
-        raise e  # Re-raise the exception to be handled in process_file()
-
-
-def extract_msg_attachments(msg_file: str, output_dir: str):
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-
-        msg = extract_msg.Message(msg_file)
-
-        for attachment in msg.attachments:
-            filename = (
-                attachment.longFilename
-                if attachment.longFilename
-                else attachment.shortFilename
-            )
-            print(filename)
-            if filename:
-                ext = os.path.splitext(filename)[1].lower()
-                if ext in ALLOWED_EXTENSIONS:
-                    attachment_path = os.path.join(output_dir, filename)
-                    with open(attachment_path, "wb") as fp:
-                        fp.write(attachment.data)
-                    logging.info(f"Attachment {filename} saved at {attachment_path}")
-                else:
-                    logging.info(
-                        f"Skipped attachment {filename} (unsupported file type)"
-                    )
-    except Exception as e:
-        logging.error(f"Failed to process .msg file {msg_file}: {str(e)}")
-        raise e  # Re-raise the exception to be handled in process_file()
-
-
-async def process_file(file_path: str) -> bool:
+async def upload_file(userEmailId: str, file: UploadFile):
     """
-    Processes a file (.msg or .eml) and extracts attachments, if any.
-    Returns True if successful, False if an error occurred.
+    Handles the upload of a single file and processes it, saving the file and its attachments
+    in an individual folder based on the file name (without extension).
     """
+    user_dir = create_user_directory(userEmailId)
 
-    output_dir = os.path.join(os.path.dirname(file_path), "attachments")
+    file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
+    os.makedirs(file_folder, exist_ok=True)
 
-    try:
-        if file_path.endswith(".msg"):
-            logging.info(f"Processing .msg file: {file_path}")
-            extract_msg_attachments(file_path, output_dir)
+    file_path = os.path.join(file_folder, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-        elif file_path.endswith(".eml"):
-            logging.info(f"Processing .eml file: {file_path}")
-            extract_eml_attachments(file_path, output_dir)
+    await process_file(file_path)
 
-        else:
-            logging.info(f"Skipping unsupported file type: {file_path}")
-            return False  # Unsupported file type, return False
-
-        logging.info(f"Finished processing file: {file_path}")
-        return True  # Successfully processed
-
-    except Exception as e:
-        logging.error(f"Error processing file {file_path}: {str(e)}")
-        return False  # Return False if an error occurs
+    return {
+        "filename": file.filename,
+        "message": "File uploaded and processed successfully",
+    }
