@@ -1,13 +1,19 @@
 import os
 import shutil
+import logging
 from typing import List
 from fastapi import UploadFile
+from fastapi.responses import JSONResponse
 from utils.pre_processing import preprocessing_file
 
 UPLOAD_DIR = os.path.join("uploads")
 
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
+
+
+def custom_error_response(detail: str, status_code: int = 400):
+    return JSONResponse(status_code=status_code, content={"detail": detail})
 
 
 def create_user_directory(userEmailId: str) -> str:
@@ -42,11 +48,8 @@ async def upload_file(userEmailId: str, file: UploadFile):
         }
 
     except Exception as e:
-        return {
-            "filename": file.filename,
-            "message": f"Error occurred while processing file: {str(e)}",
-            "status": False,
-        }
+        logging.error(f"Error occurred while processing file: {str(e)}")
+        return custom_error_response(f"Failed to process file {file}", 500)
 
 
 async def upload_files(userEmailId: str, files: List[UploadFile]):
@@ -81,7 +84,6 @@ async def upload_files(userEmailId: str, files: List[UploadFile]):
     return {
         "filenames": filenames,
         "message": message,
-        "status": statuses,
     }
 
 
@@ -118,5 +120,33 @@ async def upload_folder(userEmailId: str, files: List[UploadFile]):
     return {
         "filenames": filenames,
         "message": message,
-        "status": statuses,
     }
+
+
+async def delete_file(userEmailId: str, files: List[str]):
+    try:
+        user_upload_paths = os.path.join(UPLOAD_DIR, userEmailId)
+
+        if not os.path.exists(user_upload_paths):
+            logging.warning(f"Uploaded mail for user {userEmailId} not found")
+            raise custom_error_response(
+                status_code=404, detail="User uploaded mail not found."
+            )
+
+        for file in files:
+            folder_path = os.path.join(user_upload_paths, file)
+
+            if os.path.exists(folder_path) and os.path.isdir(folder_path):
+                shutil.rmtree(folder_path)
+                logging.info(f"Deleted mail: {file}")
+            else:
+                logging.warning(f"Mail not found {file}")
+
+        return {"message": "Mail Deleted Successfully"}
+    except Exception as e:
+        logging.error(
+            f"Error occurred while deleting mail for user {userEmailId}: {str(e)}"
+        )
+        return custom_error_response(
+            "Failed to delete mail. Please try again later", 500
+        )
