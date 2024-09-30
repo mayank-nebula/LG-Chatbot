@@ -1,104 +1,78 @@
-import os
+import shutil
+from typing import List
+from pathlib import Path
+from fastapi import UploadFile
 import logging
-import extract_msg
-from email import policy
-from email.parser import BytesParser
 
-# Set up logging with more details
+# Import processing logic from pre-processing.py
+from pre_processing import process_file
+
+UPLOAD_DIR = Path("uploads")
+
+# Ensure the base uploads directory exists
+if not UPLOAD_DIR.exists():
+    UPLOAD_DIR.mkdir()
+
+# Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-
-def create_output_dir(output_dir: str):
+def create_user_directory(user_email_id: str) -> Path:
     """
-    Ensures the output directory exists.
+    Create a directory for the user based on their email ID.
     """
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-        logging.info(f"Output directory created or already exists: {output_dir}")
-    except Exception as e:
-        logging.error(f"Failed to create output directory {output_dir}: {str(e)}")
-        raise
+    user_dir = UPLOAD_DIR / user_email_id
+    if not user_dir.exists():
+        user_dir.mkdir(parents=True)
+    return user_dir
 
 
-def extract_eml_attachments(eml_file: str, output_dir: str):
+async def upload_file(user_email_id: str, file: UploadFile):
     """
-    Extracts attachments from an .eml file.
+    Upload a single file for a user and then process it.
     """
-    try:
-        # Read the .eml file
-        with open(eml_file, 'rb') as f:
-            msg = BytesParser(policy=policy.default).parse(f)
-
-        # Extract attachments
-        for part in msg.iter_attachments():
-            filename = part.get_filename()
-            if filename:
-                save_attachment(output_dir, filename, part.get_payload(decode=True))
-    except Exception as e:
-        logging.error(f"Error processing .eml file {eml_file}: {str(e)}")
-
-
-def extract_msg_attachments(msg_file: str, output_dir: str):
-    """
-    Extracts attachments from a .msg file.
-    """
-    try:
-        # Open the .msg file
-        msg = extract_msg.Message(msg_file)
-
-        # Extract attachments
-        for attachment in msg.attachments:
-            filename = attachment.longFilename if attachment.longFilename else attachment.shortFilename
-            if filename:
-                save_attachment(output_dir, filename, attachment.data)
-    except Exception as e:
-        logging.error(f"Error processing .msg file {msg_file}: {str(e)}")
-
-
-def save_attachment(output_dir: str, filename: str, content: bytes):
-    """
-    Saves the attachment to the output directory.
+    user_dir = create_user_directory(user_email_id)
+    file_path = user_dir / file.filename
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
     
-    Args:
-        output_dir (str): Directory where the attachment should be saved.
-        filename (str): Name of the attachment file.
-        content (bytes): The content of the attachment.
-    """
-    try:
-        attachment_path = os.path.join(output_dir, filename)
-        with open(attachment_path, 'wb') as fp:
-            fp.write(content)
-        logging.info(f"Attachment {filename} saved at {attachment_path}")
-    except Exception as e:
-        logging.error(f"Failed to save attachment {filename}: {str(e)}")
+    # Call the process function after the file is uploaded
+    await process_file(file_path)
+
+    return {"filename": file.filename, "message": "File uploaded and processed successfully"}
 
 
-def process_file(file_path: str, output_dir: str = 'attachments'):
+async def upload_files(user_email_id: str, files: List[UploadFile]):
     """
-    Determines file type and processes the file accordingly.
-
-    Args:
-        file_path (str): Path to the email file (.eml or .msg).
-        output_dir (str): Directory to save attachments. Defaults to 'attachments'.
+    Upload multiple files for a user and process them one by one.
     """
-    try:
-        # Ensure output directory exists
-        create_output_dir(output_dir)
+    user_dir = create_user_directory(user_email_id)
+    filenames = []
+    for file in files:
+        file_path = user_dir / file.filename
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        filenames.append(file.filename)
         
-        # Determine file extension and extract attachments
-        _, ext = os.path.splitext(file_path)
-        ext = ext.lower()
-        if ext == '.eml':
-            extract_eml_attachments(file_path, output_dir)
-        elif ext == '.msg':
-            extract_msg_attachments(file_path, output_dir)
-        else:
-            logging.warning(f"Unsupported file type {ext}. Only .eml and .msg files are supported.")
-    except Exception as e:
-        logging.error(f"Failed to process file {file_path}: {str(e)}")
+        # Process each file after uploading it
+        await process_file(file_path)
+
+    return {"filenames": filenames, "message": "Files uploaded and processed successfully"}
 
 
-if __name__ == "__main__":
-    # Example usage of the unified process_file function
-    file_path = 'File Processing Failures_ Causes_ Sample Files for Review.msg'
-    process_file(file_path)
+async def upload_folder(user_email_id: str, files: List[UploadFile]):
+    """
+    Upload a folder and maintain the folder structure. Process each file one by one after uploading.
+    """
+    user_dir = create_user_directory(user_email_id)
+    for file in files:
+        folder_structure = Path(file.filename).parent
+        full_path = user_dir / folder_structure
+        full_path.mkdir(parents=True, exist_ok=True)
+        file_path = full_path / Path(file.filename).name
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Process each file after uploading it
+        await process_file(file_path)
+
+    return {"message": "Folder uploaded successfully with files processed"}
