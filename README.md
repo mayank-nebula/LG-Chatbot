@@ -1,23 +1,23 @@
+import os
 import shutil
 from typing import List
-from pathlib import Path
 from fastapi import UploadFile
 from utils.pre_processing import process_file
 
+UPLOAD_DIR = os.path.join("uploads")
 
-UPLOAD_DIR = Path("uploads")
-
-if not UPLOAD_DIR.exists():
-    UPLOAD_DIR.mkdir()
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
 
 
-def create_user_directory(userEmailId: str) -> Path:
+def create_user_directory(userEmailId: str) -> str:
     """
     Creates a user directory based on their email ID if it doesn't exist.
+    Returns the path to the user directory.
     """
-    user_dir = UPLOAD_DIR / userEmailId
-    if not user_dir.exists():
-        user_dir.mkdir(parents=True)
+    user_dir = os.path.join(UPLOAD_DIR, userEmailId)
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir)
     return user_dir
 
 
@@ -29,12 +29,12 @@ async def upload_file(userEmailId: str, file: UploadFile):
     user_dir = create_user_directory(userEmailId)
     
     # Create a folder based on the file name (without extension)
-    file_folder = user_dir / Path(file.filename).stem
-    file_folder.mkdir(parents=True, exist_ok=True)
+    file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
+    os.makedirs(file_folder, exist_ok=True)
 
     # Save the uploaded file inside the individual folder
-    file_path = file_folder / file.filename
-    with file_path.open("wb") as buffer:
+    file_path = os.path.join(file_folder, file.filename)
+    with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     # Process the file (extract attachments, etc.)
@@ -56,12 +56,12 @@ async def upload_files(userEmailId: str, files: List[UploadFile]):
     
     for file in files:
         # Create a folder for each file based on its name (without extension)
-        file_folder = user_dir / Path(file.filename).stem
-        file_folder.mkdir(parents=True, exist_ok=True)
+        file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
+        os.makedirs(file_folder, exist_ok=True)
 
         # Save the uploaded file inside its individual folder
-        file_path = file_folder / file.filename
-        with file_path.open("wb") as buffer:
+        file_path = os.path.join(file_folder, file.filename)
+        with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
         filenames.append(file.filename)
@@ -84,17 +84,16 @@ async def upload_folder(user_email_id: str, files: List[UploadFile]):
     
     for file in files:
         # Handle folder structure based on the provided file paths
-        folder_structure = Path(file.filename).parent
-        full_path = user_dir / folder_structure
-        full_path.mkdir(parents=True, exist_ok=True)
+        folder_structure = os.path.dirname(file.filename)
+        full_path = os.path.join(user_dir, folder_structure)
+        os.makedirs(full_path, exist_ok=True)
 
         # Save the file in its original folder structure
-        file_path = full_path / Path(file.filename).name
-        with file_path.open("wb") as buffer:
+        file_path = os.path.join(full_path, os.path.basename(file.filename))
+        with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
         # Process the file (extract attachments, etc.)
         await process_file(file_path)
 
     return {"message": "Folder uploaded successfully with files processed"}
-
