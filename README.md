@@ -20,6 +20,10 @@ def extract_eml_attachments(eml_file: str, output_dir: str):
         # Create a folder with the same name as the file (without extension)
         file_name = Path(eml_file).stem  # e.g., 'example' from 'example.eml'
         attachments_dir = os.path.join(output_dir, "attachments", file_name)
+        
+        # Add logging to check path creation
+        logging.info(f"Creating directory for attachments: {attachments_dir}")
+        
         os.makedirs(attachments_dir, exist_ok=True)
 
         # Open and read the .eml file
@@ -31,6 +35,10 @@ def extract_eml_attachments(eml_file: str, output_dir: str):
             filename = part.get_filename()
             if filename:
                 attachment_path = os.path.join(attachments_dir, filename)
+                
+                # Add logging to check file write operation
+                logging.info(f"Saving attachment to: {attachment_path}")
+                
                 with open(attachment_path, 'wb') as fp:
                     fp.write(part.get_payload(decode=True))
                 logging.info(f"Attachment {filename} saved at {attachment_path}")
@@ -50,6 +58,10 @@ def extract_msg_attachments(msg_file: str, output_dir: str):
         # Create a folder with the same name as the file (without extension)
         file_name = Path(msg_file).stem  # e.g., 'example' from 'example.msg'
         attachments_dir = os.path.join(output_dir, "attachments", file_name)
+        
+        # Add logging to check path creation
+        logging.info(f"Creating directory for attachments: {attachments_dir}")
+        
         os.makedirs(attachments_dir, exist_ok=True)
 
         # Open the .msg file
@@ -60,6 +72,10 @@ def extract_msg_attachments(msg_file: str, output_dir: str):
             filename = attachment.longFilename if attachment.longFilename else attachment.shortFilename
             if filename:
                 attachment_path = os.path.join(attachments_dir, filename)
+                
+                # Add logging to check file write operation
+                logging.info(f"Saving attachment to: {attachment_path}")
+                
                 with open(attachment_path, 'wb') as fp:
                     fp.write(attachment.data)
                 logging.info(f"Attachment {filename} saved at {attachment_path}")
