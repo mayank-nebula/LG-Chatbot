@@ -1,21 +1,18 @@
+import extract_msg
 import os
-import email
-from email import policy
-from email.parser import BytesParser
 
-def extract_eml_attachments(eml_file):
-    # Open and read the .eml file
-    with open(eml_file, 'rb') as f:
-        msg = BytesParser(policy=policy.default).parse(f)
+def extract_msg_attachments(msg_file):
+    # Open the .msg file
+    msg = extract_msg.Message(msg_file)
     
-    # Loop through email parts and find attachments
-    for part in msg.iter_attachments():
-        filename = part.get_filename()
-        if filename:
+    # Extract attachments
+    for attachment in msg.attachments:
+        attachment_name = attachment.longFilename if attachment.longFilename else attachment.shortFilename
+        if attachment_name:
             # Save the attachment
-            with open(filename, 'wb') as fp:
-                fp.write(part.get_payload(decode=True))
-            print(f'Attachment {filename} saved')
+            with open(attachment_name, 'wb') as fp:
+                fp.write(attachment.data)
+            print(f'Attachment {attachment_name} saved')
 
 # Example usage
-extract_eml_attachments('sample.eml')
+extract_msg_attachments('sample.msg')
