@@ -1,11 +1,9 @@
 import os
 import logging
+import extract_msg
 from email import policy
 from email.parser import BytesParser
-import extract_msg
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def extract_eml_attachments(eml_file: str, output_dir: str = 'attachments'):
     """
@@ -62,13 +60,10 @@ def extract_msg_attachments(msg_file: str, output_dir: str = 'attachments'):
         logging.error(f"Failed to process {msg_file}: {str(e)}")
 
 
-if __name__ == "__main__":
-    # Example usage of the functions
-    eml_file_path = 'File Processing Failures_ Causes_ Sample Files for Review.eml'
-    msg_file_path = 'File Processing Failures_ Causes_ Sample Files for Review.msg'
+file_path = 'File Processing Failures_ Causes_ Sample Files for Review.msg'
 
-    # Extract from .eml
-    extract_eml_attachments(eml_file_path)
+if os.path.splitext(file_path)[1] == "msg":
+    extract_msg_attachments(file_path)
+else:
+    extract_eml_attachments(file_path)
 
-    # Extract from .msg
-    extract_msg_attachments(msg_file_path)
