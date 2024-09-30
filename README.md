@@ -8,9 +8,13 @@ import extract_msg
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+# Supported file types
+ALLOWED_EXTENSIONS = {'.pdf', '.doc', '.docx', '.ppt', '.pptx'}
+
 def extract_eml_attachments(eml_file: str, output_dir: str):
     """
     Extracts attachments from an .eml file and saves them to the specified output directory.
+    Only extracts files with specific extensions (.pdf, .doc, .docx, .ppt, .pptx).
 
     Args:
         eml_file (str): Path to the .eml file.
@@ -28,10 +32,15 @@ def extract_eml_attachments(eml_file: str, output_dir: str):
         for part in msg.iter_attachments():
             filename = part.get_filename()
             if filename:
-                attachment_path = os.path.join(output_dir, filename)
-                with open(attachment_path, 'wb') as fp:
-                    fp.write(part.get_payload(decode=True))
-                logging.info(f"Attachment {filename} saved at {attachment_path}")
+                # Extract extension and check if it's in allowed extensions
+                ext = Path(filename).suffix.lower()
+                if ext in ALLOWED_EXTENSIONS:
+                    attachment_path = os.path.join(output_dir, filename)
+                    with open(attachment_path, 'wb') as fp:
+                        fp.write(part.get_payload(decode=True))
+                    logging.info(f"Attachment {filename} saved at {attachment_path}")
+                else:
+                    logging.info(f"Skipped attachment {filename} (unsupported file type)")
     except Exception as e:
         logging.error(f"Failed to process .eml file {eml_file}: {str(e)}")
 
@@ -39,6 +48,7 @@ def extract_eml_attachments(eml_file: str, output_dir: str):
 def extract_msg_attachments(msg_file: str, output_dir: str):
     """
     Extracts attachments from a .msg file and saves them to the specified output directory.
+    Only extracts files with specific extensions (.pdf, .doc, .docx, .ppt, .pptx).
 
     Args:
         msg_file (str): Path to the .msg file.
@@ -55,10 +65,15 @@ def extract_msg_attachments(msg_file: str, output_dir: str):
         for attachment in msg.attachments:
             filename = attachment.longFilename if attachment.longFilename else attachment.shortFilename
             if filename:
-                attachment_path = os.path.join(output_dir, filename)
-                with open(attachment_path, 'wb') as fp:
-                    fp.write(attachment.data)
-                logging.info(f"Attachment {filename} saved at {attachment_path}")
+                # Extract extension and check if it's in allowed extensions
+                ext = Path(filename).suffix.lower()
+                if ext in ALLOWED_EXTENSIONS:
+                    attachment_path = os.path.join(output_dir, filename)
+                    with open(attachment_path, 'wb') as fp:
+                        fp.write(attachment.data)
+                    logging.info(f"Attachment {filename} saved at {attachment_path}")
+                else:
+                    logging.info(f"Skipped attachment {filename} (unsupported file type)")
     except Exception as e:
         logging.error(f"Failed to process .msg file {msg_file}: {str(e)}")
 
