@@ -1,6 +1,8 @@
 import os
 import shutil
 import logging
+import aiofiles
+import aiofiles.os
 import pdfplumber
 from langchain_community.document_loaders import OutlookMessageLoader
 
@@ -9,7 +11,7 @@ CONVERSION_TIMEOUT = 180
 OUTPUT_PATHS = ["output", "table", "figures"]
 
 
-def is_pdf(fpath, fname):
+async def is_pdf(fpath, fname):
     """
     Determine if a PDF file is likely to be an original PDF or a converted PPT.
 
@@ -18,40 +20,41 @@ def is_pdf(fpath, fname):
     :return: True if it is likely an original PDF, False otherwise
     """
     try:
-        with pdfplumber.open(fpath) as pdf:
-            page_layouts = set((page.width, page.height) for page in pdf.pages)
-            aspect_ratios = [width / height for width, height in page_layouts]
+        async with aiofiles.open(fpath, 'rb') as file:
+            with pdfplumber.open(file) as pdf:
+                page_layouts = set((page.width, page.height) for page in pdf.pages)
+                aspect_ratios = [width / height for width, height in page_layouts]
 
-            total_pages = len(aspect_ratios)
-            landscape_pages = sum(1 for ratio in aspect_ratios if ratio > 1)
-            portrait_pages = total_pages - landscape_pages
+                total_pages = len(aspect_ratios)
+                landscape_pages = sum(1 for ratio in aspect_ratios if ratio > 1)
+                portrait_pages = total_pages - landscape_pages
 
-            if len(set(page_layouts)) == 1 and aspect_ratios[0] > 1:
-                logging.info(f"{fname} is likely a PPT converted to PDF.")
-                return False
-            elif portrait_pages == total_pages:
-                logging.info(f"{fname} is likely an original PDF.")
-                return True
-            elif landscape_pages == total_pages:
-                logging.info(f"{fname} is likely a PPT converted to PDF.")
-                return False
-            else:
-                landscape_ratio = landscape_pages / portrait_pages
-                if landscape_ratio > 0.7:
+                if len(set(page_layouts)) == 1 and aspect_ratios[0] > 1:
                     logging.info(f"{fname} is likely a PPT converted to PDF.")
                     return False
-                elif landscape_ratio < 0.3:
+                elif portrait_pages == total_pages:
                     logging.info(f"{fname} is likely an original PDF.")
                     return True
-                else:
-                    logging.info(f"{fname} has a mixed layout.")
+                elif landscape_pages == total_pages:
+                    logging.info(f"{fname} is likely a PPT converted to PDF.")
                     return False
+                else:
+                    landscape_ratio = landscape_pages / portrait_pages
+                    if landscape_ratio > 0.7:
+                        logging.info(f"{fname} is likely a PPT converted to PDF.")
+                        return False
+                    elif landscape_ratio < 0.3:
+                        logging.info(f"{fname} is likely an original PDF.")
+                        return True
+                    else:
+                        logging.info(f"{fname} has a mixed layout.")
+                        return False
     except Exception as e:
         logging.error(f"An error occurred while analyzing PDF: {e}")
         return False
 
 
-def handle_ingestion_failure(file, error, failed_files, pdf_path=None):
+async def handle_ingestion_failure(file, error, failed_files, pdf_path=None):
     """
     Handle failures in file ingestion and remove the output folders.
 
@@ -62,7 +65,8 @@ def handle_ingestion_failure(file, error, failed_files, pdf_path=None):
     """
     logging.error(f"Ingestion failed for {file}: {error}")
     if pdf_path and os.path.exists(pdf_path):
-        os.remove(pdf_path)
+        await aiofiles.os.remove(pdf_path)
+    
     for folder in OUTPUT_PATHS:
         shutil.rmtree(folder, ignore_errors=True)
 
@@ -88,23 +92,19 @@ async def process_pdf(pdf_file, pdf_file_path, files_metadata, failed_files):
     :param failed_files: List to track failed file metadata
     """
     try:
-        if is_pdf(pdf_file_path, pdf_file):
-            success, error = pdf_ingestion_MV(pdf_file, pdf_file_path, files_metadata)
+        if await is_pdf(pdf_file_path, pdf_file):
+            success, error = await pdf_ingestion_MV(pdf_file, pdf_file_path, files_metadata)
             if not success:
-                handle_ingestion_failure(pdf_file, error, failed_files)
+                await handle_ingestion_failure(pdf_file, error, failed_files)
         else:
-            success, error = pdf_ppt_ingestion_MV(
-                pdf_file, pdf_file_path, files_metadata
-            )
+            success, error = await pdf_ppt_ingestion_MV(pdf_file, pdf_file_path, files_metadata)
             if not success:
-                handle_ingestion_failure(pdf_file, error, failed_files)
+                await handle_ingestion_failure(pdf_file, error, failed_files)
     except Exception as e:
         failed_files.append({**files_metadata, "IngestionError": str(e)})
 
 
-async def process_attached_file(
-    file: str, file_path: str, metadata: dict, failed_files: list
-):
+async def process_attached_file(file: str, file_path: str, metadata: dict, failed_files: list):
     base_name, ext = os.path.splitext(file)
     lower_ext = ext.lower()
     lower_case_file = base_name + lower_ext
@@ -112,7 +112,7 @@ async def process_attached_file(
     lower_case_path = os.path.join(file_path, lower_case_file)
 
     if ext.isupper():
-        os.rename(original_file_path, lower_case_path)
+        await aiofiles.os.rename(original_file_path, lower_case_path)
 
     try:
         if lower_case_file.endswith(".pdf"):
@@ -130,7 +130,6 @@ async def ingest_files(file_path: str):
     file_name = os.path.basename(file_path)
     failed_files = []
     try:
-
         loader = OutlookMessageLoader(file_path)
         data = loader.load()
 
@@ -138,11 +137,11 @@ async def ingest_files(file_path: str):
         metadata = data[0].metadata
 
         output_dir = os.path.join(os.path.dirname(file_path), "attachments")
+        attachment_files = os.listdir(output_dir)  # Get the list of files
 
-        for file in output_dir:
-            await process_attached_file(
-                file, os.path.join(output_dir, file), metadata, failed_files
-            )
+        for file in attachment_files:
+            await process_attached_file(file, os.path.join(output_dir, file), metadata, failed_files)
 
     except Exception as e:
         logging.error(f"Failed to ingest file {file_name}: {str(e)}")
+
