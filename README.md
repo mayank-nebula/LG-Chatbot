@@ -1,178 +1,143 @@
 import os
 import shutil
 import logging
-from typing import List
-from fastapi import UploadFile
-from fastapi.responses import JSONResponse
-from utils.mailContentExtraction_utils import mail_content_extraction
+import pdfplumber
 
-UPLOAD_DIR = os.path.join("uploads")
+# from utils.ingestion.ppt_ingestion import pdf_ppt_ingestion_MV
+from langchain_community.document_loaders import OutlookMessageLoader
 
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+CONVERSION_TIMEOUT = 180
+OUTPUT_PATHS = ["output", "table", "figures"]
 
 
-def custom_error_response(detail: str, status_code: int = 400):
-    return JSONResponse(status_code=status_code, content={"detail": detail})
-
-
-def create_user_directory(userEmailId: str) -> str:
+async def is_pdf(fpath: str, fname: str):
     """
-    Creates a directory for the user if it doesn't exist.
-    """
-    user_dir = os.path.join(UPLOAD_DIR, userEmailId)
-    if not os.path.exists(user_dir):
-        os.makedirs(user_dir)
-    return user_dir
+    Determine if a PDF file is likely to be an original PDF or a converted PPT.
 
-
-def save_uploaded_file(file: UploadFile, folder_path: str) -> str:
-    """
-    Saves the uploaded file to the specified folder.
-    """
-    file_path = os.path.join(folder_path, file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    return file_path
-
-
-async def process_file(file_path: str) -> bool:
-    """
-    Processes the uploaded file using the pre-processing function.
+    :param fpath: Path to the folder containing the file
+    :param fname: Name of the file
+    :return: True if it is likely an original PDF, False otherwise
     """
     try:
-        return await mail_content_extraction(file_path)
+        with open(os.path.join(fpath, fname), "rb") as file:
+            with pdfplumber.open(file) as pdf:
+                page_layouts = set((page.width, page.height) for page in pdf.pages)
+                aspect_ratios = [width / height for width, height in page_layouts]
+
+                total_pages = len(aspect_ratios)
+                landscape_pages = sum(1 for ratio in aspect_ratios if ratio > 1)
+                portrait_pages = total_pages - landscape_pages
+
+                if len(set(page_layouts)) == 1 and aspect_ratios[0] > 1:
+                    logging.info(f"{fname} is likely a PPT converted to PDF.")
+                    return False
+                elif portrait_pages == total_pages:
+                    logging.info(f"{fname} is likely an original PDF.")
+                    return True
+                elif landscape_pages == total_pages:
+                    logging.info(f"{fname} is likely a PPT converted to PDF.")
+                    return False
+                else:
+                    landscape_ratio = landscape_pages / portrait_pages
+                    if landscape_ratio > 0.7:
+                        logging.info(f"{fname} is likely a PPT converted to PDF.")
+                        return False
+                    elif landscape_ratio < 0.3:
+                        logging.info(f"{fname} is likely an original PDF.")
+                        return True
+                    else:
+                        logging.info(f"{fname} has a mixed layout.")
+                        return False
     except Exception as e:
-        logging.error(f"Error processing file {file_path}: {e}")
+        logging.error(f"An error occurred while analyzing PDF: {e}")
         return False
 
 
-# Core functionalities
-async def upload_file(userEmailId: str, file: UploadFile):
+async def handle_ingestion_failure(file, error, failed_files, pdf_path=None):
     """
-    Uploads a single file for the given user and processes it.
+    Handle failures in file ingestion and remove the output folders.
+
+    :param file: Name of the file that failed ingestion
+    :param error: Error message for the failure
+    :param failed_files: List to track failed file metadata
+    :param pdf_path: Optional path to the generated PDF file
     """
-    try:
-        user_dir = create_user_directory(userEmailId)
-        file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
-        os.makedirs(file_folder, exist_ok=True)
+    logging.error(f"Ingestion failed for {file}: {error}")
+    if pdf_path and os.path.exists(pdf_path):
+        os.remove(pdf_path)
 
-        file_path = save_uploaded_file(file, file_folder)
-        processing_status = await process_file(file_path)
+    for folder in OUTPUT_PATHS:
+        shutil.rmtree(folder, ignore_errors=True)
 
-        message = (
-            "File uploaded and processed successfully."
-            if processing_status
-            else "File uploaded, but an error occurred during processing."
-        )
-        return {
-            "filename": file.filename,
-            "message": message,
-            "status": processing_status,
+    failed_files.append(
+        {
+            "Name": file,
+            "IngestionError": error,
         }
-
-    except Exception as e:
-        logging.error(f"Error occurred while processing file: {str(e)}")
-        return custom_error_response(f"Failed to process file {file.filename}", 500)
+    )
 
 
-async def upload_files(userEmailId: str, files: List[UploadFile]):
+async def process_pdf(file: str, file_path: str, metadata: dict, failed_files: list):
     """
-    Uploads and processes multiple files for the given user.
-    """
-    try:
-        user_dir = create_user_directory(userEmailId)
-        filenames, statuses = [], []
+    Handle PDF ingestion.
 
-        for file in files:
-            file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
-            os.makedirs(file_folder, exist_ok=True)
-
-            file_path = save_uploaded_file(file, file_folder)
-            filenames.append(file.filename)
-
-            processing_status = await process_file(file_path)
-            statuses.append(processing_status)
-
-        message = get_status_message(statuses)
-        return {
-            "filenames": filenames,
-            "message": message,
-        }
-
-    except Exception as e:
-        logging.error(f"Error uploading files for user {userEmailId}: {e}")
-        return custom_error_response("Failed to upload files.", 500)
-
-
-async def upload_folder(userEmailId: str, files: List[UploadFile]):
-    """
-    Uploads multiple files with folder structure and processes them.
+    :param pdf_file: Name of the PDF file
+    :param files_metadata: Metadata of the PDF file
+    :param failed_files: List to track failed file metadata
     """
     try:
-        user_dir = create_user_directory(userEmailId)
-        filenames, statuses = [], []
-
-        for file in files:
-            file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
-            os.makedirs(file_folder, exist_ok=True)
-
-            file_path = save_uploaded_file(file, file_folder)
-            filenames.append(file.filename)
-
-            processing_status = await process_file(file_path)
-            statuses.append(processing_status)
-
-        message = get_status_message(statuses)
-        return {
-            "filenames": filenames,
-            "message": message,
-        }
-
+        if await is_pdf(file_path, file):
+            print("hi")
+        #     success, error = await pdf_ppt_ingestion_MV(file_path, file, metadata)
+        #     if not success:
+        #         await handle_ingestion_failure(file, error, failed_files)
+        # else:
+        #     success, error = await pdf_ppt_ingestion_MV(file_path, file, metadata)
+        #     if not success:
+        #         await handle_ingestion_failure(file, error, failed_files)
     except Exception as e:
-        logging.error(f"Error uploading folder for user {userEmailId}: {e}")
-        return custom_error_response("Failed to upload folder.", 500)
+        failed_files.append({"Name": file, "IngestionError": str(e)})
 
 
-async def delete_file(userEmailId: str, files: List[str]):
-    """
-    Deletes the specified files for the given user.
-    """
+async def process_attached_file(
+    file: str, file_path: str, metadata: dict, failed_files: list
+):
+    base_name, ext = os.path.splitext(file)
+    lower_ext = ext.lower()
+    lower_case_file = base_name + lower_ext
+    original_file_path = os.path.join(file_path, file)
+    lower_case_path = os.path.join(file_path, lower_case_file)
+
+    if ext.isupper():
+        await os.rename(original_file_path, lower_case_path)
+
     try:
-        user_upload_paths = os.path.join(UPLOAD_DIR, userEmailId)
-
-        if not os.path.exists(user_upload_paths):
-            logging.warning(f"Uploaded mail for user {userEmailId} not found")
-            return custom_error_response(
-                status_code=404, detail="User uploaded mail not found."
-            )
-
-        for file in files:
-            folder_path = os.path.join(user_upload_paths, file)
-
-            if os.path.exists(folder_path) and os.path.isdir(folder_path):
-                shutil.rmtree(folder_path)
-                logging.info(f"Deleted mail: {file}")
-            else:
-                logging.warning(f"Mail not found {file}")
-
-        return {"message": "Mail deleted successfully"}
+        if lower_case_file.endswith(".pdf"):
+            await process_pdf(lower_case_file, file_path, metadata, failed_files)
+        # elif lower_case_file.endswith((".ppt", ".pptx")):
+        #     await process_ppt_pptx(lower_case_file, file_path, metadata, failed_files)
+        # elif lower_case_file.endswith((".doc", ".docx")):
+        #     await process_doc_docx(lower_case_file, metadata, failed_files)
     except Exception as e:
-        logging.error(
-            f"Error occurred while deleting mail for user {userEmailId}: {str(e)}"
-        )
-        return custom_error_response(
-            "Failed to delete mail. Please try again later", 500
-        )
+        logging.error(f"Error processing {file}: {e}")
+        failed_files.append({"Name": file, "IngestionError": str(e)})
 
 
-def get_status_message(statuses: List[bool]) -> str:
-    """
-    Generates a status message based on the result of processing files.
-    """
-    if all(statuses):
-        return "All files uploaded and processed successfully."
-    elif any(statuses):
-        return "Some files were uploaded and processed successfully."
-    else:
-        return "All files were uploaded, but an error occurred during processing."
+async def ingest_files(file_path: str):
+    file_name = os.path.basename(file_path)
+    failed_files = []
+    try:
+        loader = OutlookMessageLoader(file_path)
+        data = loader.load()
+
+        page_content = data[0].page_content
+        metadata = data[0].metadata
+
+        output_dir = os.path.join(os.path.dirname(file_path), "attachments")
+        attachment_files = os.listdir(output_dir)
+
+        for file in attachment_files:
+            await process_attached_file(file, output_dir, metadata, failed_files)
+
+    except Exception as e:
+        logging.error(f"Failed to ingest file {file_name}: {str(e)}")
