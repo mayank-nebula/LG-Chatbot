@@ -1,90 +1,267 @@
 import os
+import base64
+import shutil
 import logging
+import concurrent.futures
 
+import chromadb
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.docstore.document import Document
-from langchain.chains.summarize import load_summarize_chain
+from langchain_chroma import Chroma
+from chromadb.config import Settings
+from pdf2image import convert_from_path
+from langchain_core.documents import Document
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-# from langchain_groq import ChatGroq
-# from langchain_openai import ChatOpenAI
-# from langchain_google_genai import ChatGoogleGenerativeAI
+from create_summary import create_summary
 
+
+# Set up ChromaDB settings
+settings = Settings(anonymized_telemetry=False)
+
+# Load environment variables from a .env file
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(os.path.join(os.getcwd(), "Ingestion_logs.log")),
-        logging.StreamHandler(),
-    ],
+# Define paths for storing output
+output_path = os.path.join(os.getcwd(), "output")
+
+# Initialize ChromaDB client
+CHROMA_CLIENT = chromadb.HttpClient(
+    host=os.environ["CHROMADB_HOST"], port=8000, settings=settings
 )
+
+
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0,
     timeout=None,
     max_retries=2,
-    max_tokens=1024,
     api_key=os.environ["OPENAI_API_KEY"],
-)
-
-# llm = ChatGroq(
-#     model="llama-3.1-8b-instant",
-#     temperature=0,
-#     max_tokens=None,
-#     timeout=None,
-#     max_retries=2,
-#     api_key=os.environ["GROQ_API_KEY"],
-# )
-
-# llm = ChatGoogleGenerativeAI(
-#     model="gemini-1.5-pro",
-#     temperature=0,
-#     max_tokens=None,
-#     timeout=None,
-#     max_retries=2,
-#     api_key=os.environ["GEMINI_API_KEY"],
-# )
-
-
-map_prompt_template = """
-                      Write a detailed and elaborated summary of the following text that includes the main points and any important details.
-                      Aim for a summary length of approximately 500 words
-                      {text}
-                      """
-
-map_prompt = PromptTemplate(template=map_prompt_template, input_variables=["text"])
-
-
-combine_prompt_template = """
-                      Write a comprehensive summary of the following text delimited by triple backquotes.
-                      Aim for a summary length of approximately 250 words with out missing the important information the text.
-                      ```{text}```
-                      COMPREHENSIVE SUMMARY:
-                      """
-
-combine_prompt = PromptTemplate(
-    template=combine_prompt_template, input_variables=["text"]
+    max_tokens=1024,
 )
 
 
-summary_chain = load_summarize_chain(
-    llm,
-    chain_type="map_reduce",
-    map_prompt=map_prompt,
-    combine_prompt=combine_prompt,
-)
+class GeneratingError(Exception):
+    pass
 
 
-def create_summary(batch_summary):
+def create_output_directory():
+    """
+    Creates the output directory if it doesn't exist.
+    """
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+
+def pdf_to_images(fpath, fname):
+    """
+    Converts a PDF file into images for each page and saves them to the output directory.
+    """
+    create_output_directory()
+
+    images = convert_from_path(os.path.join(fpath, fname))
+
+    for i, image in enumerate(images):
+        slide_image_path = os.path.join(output_path, f"slide_{i + 1}.png")
+        image.save(slide_image_path, "PNG")
+
+    logging.info("Slides extracted")
+
+
+def encode_image(image_path):
+    """
+    Encodes an image to a base64 string.
+
+    Args:
+        image_path (str): Path to the image file.
+    """
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+def image_summarize(img_base64, prompt):
+    """
+    Summarizes the content of an image using a GPT model.
+
+    Args:
+        img_base64 (str): Base64 encoded image string.
+        prompt (str): Prompt for the model to generate the summary.
+    """
+    msg = llm.invoke(
+        [
+            HumanMessage(
+                content=[
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"},
+                    },
+                ]
+            )
+        ]
+    )
+    return msg.content
+
+
+def generate_img_summaries(
+    path,
+):
+    """
+    Generates summaries for images in a directory and returns them along with their base64 encodings.
+
+    Args:
+        path (str): Path to the directory containing images.
+        deliverables_list_metadata (dict): Metadata associated with the deliverables.
+    """
+    image_summaries = {}
+    img_base64_list = {}
+    prompt = """use this image to extract and analyze the information thoroughly"""
+    for img_file in os.listdir(path):
+        if img_file.endswith((".jpg", ".png")):
+            img_name, _ = os.path.splitext(img_file)
+            img_path = os.path.join(path, img_file)
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(encode_image, img_path)
+                try:
+                    base64_image = future.result(timeout=60)
+                except concurrent.futures.TimeoutError:
+                    return False
+
+            img_base64_list[img_name] = base64_image
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(image_summarize, base64_image, prompt)
+                try:
+                    summary = future.result(timeout=120)
+                except concurrent.futures.TimeoutError:
+                    return False
+            image_summaries[img_name] = f"Summary : {summary}"
+    sorted_image_summaries = {
+        key: image_summaries[key]
+        for key in sorted(image_summaries, key=lambda x: int(x.split("_")[1]))
+    }
+    sorted_image_list = {
+        key: img_base64_list[key]
+        for key in sorted(img_base64_list, key=lambda x: int(x.split("_")[1]))
+    }
+    return sorted_image_list, sorted_image_summaries
+
+
+def create_retriever(
+    fname,
+    vectorstore,
+    vectorstore_summary,
+    image_summaries,
+    file_metadata,
+    batch_size=75,
+):
+
+    combined_summaries = {}
+
+    if image_summaries:
+        combined_summaries.update(image_summaries)
+
+    doc_keys = list(combined_summaries.keys())
+    total_docs = len(doc_keys)
+
+    all_document_summaries = []
+
+    for start_idx in range(0, total_docs, batch_size):
+        end_idx = min(start_idx + batch_size, total_docs)
+        batch_keys = doc_keys[start_idx:end_idx]
+
+        batch_summaries = {key: combined_summaries[key] for key in batch_keys}
+
+        summary = create_summary(batch_summaries)
+
+        if summary:
+            all_document_summaries.append(summary)
+        else:
+            raise GeneratingError("Summary Generation Failed")
+
+    if len(all_document_summaries) > 1:
+        final_summary = " ".join(all_document_summaries)
+    else:
+        final_summary = all_document_summaries[0]
+
+    def add_documents(vectorstore, doc_summaries):
+        for start_idx in range(0, total_docs, batch_size):
+            end_idx = min(start_idx + batch_size, total_docs)
+            batch_keys = doc_keys[start_idx:end_idx]
+
+            batch_summaries = {key: doc_summaries[key] for key in batch_keys}
+
+            summary_docs = [
+                Document(
+                    page_content=s,
+                    metadata={
+                        "Title": fname,
+                        # rest of metadata
+                    },
+                )
+                for i, (key, s) in enumerate(batch_summaries.items())
+            ]
+            vectorstore.add_documents(summary_docs)
+
+    add_documents(vectorstore, combined_summaries)
+
+    summary_docs_summaryRetriever = [
+        Document(
+            page_content=f"Summry of the file {fname} - {final_summary}",
+            metadata={
+                "Title": fname,
+                # rest of metadata
+            },
+        )
+    ]
+    vectorstore_summary.add_documents(summary_docs_summaryRetriever)
+
+    logging.info(f"Ingestion Done {file_metadata['Name']}")
+
+
+def pdf_ppt_ingestion_MV(
+    fpath,
+    fname,
+    file_metadata,
+):
     try:
-        accumulated_value = " ".join(batch_summary.values())
-        doc = Document(page_content=accumulated_value)
-        summary_result = summary_chain.invoke([doc])
-        logging.info("Summary created successfully.")
-        return summary_result["output_text"]
+        pdf_to_images(fpath, fname)
+
+        result = generate_img_summaries(
+            output_path,
+        )
+
+        if result is False:
+            shutil.rmtree(output_path)
+            raise Exception("Failed to generate Image Summaries")
+
+        img_base64_list, image_summaries = result
+        shutil.rmtree(output_path)
+
+        embeddings = OpenAIEmbeddings(
+            model="text-embedding-3-large", api_key=os.environ["OPENAI_API_KEY"]
+        )
+
+        vectorstore = Chroma(
+            collection_name="EmailAssistant",
+            client=CHROMA_CLIENT,
+            embedding_function=embeddings,
+        )
+        vectorstore_summary = Chroma(
+            collection_name="EmailAssistant_Summary",
+            client=CHROMA_CLIENT,
+            embedding_function=embeddings,
+        )
+
+        create_retriever(
+            fname,
+            vectorstore,
+            vectorstore_summary,
+            image_summaries,
+            file_metadata,
+        )
+        return True, None
     except Exception as e:
-        logging.error(f"Failed to create summary. {e}")
-        return None
+        logging.error(f"Error in PowerPoint ingestion: {e}")
+        return False, str(e)
