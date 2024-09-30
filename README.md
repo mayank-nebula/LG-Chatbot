@@ -1,6 +1,1 @@
-if output_dir.exists() and output_dir.is_dir():
-        try:
-            shutil.rmtree(output_dir)
-            logging.info(f"Deleted output directory: {output_dir}")
-        except Exception as e:
-            logging.error(f"Error deleting output directory: {output_dir}. Error: {e}")
+ERROR:root:Failed to process .msg file uploads\Mayank.Sharma9@evalueserve.com\File Processing Failures_ Causes_ Sample Files for Review.msg: [Errno 2] No such file or directory: 'uploads\\Mayank.Sharma9@evalueserve.com\\File Processing Failures_ Causes_ Sample Files for Review\\GAE035MCK.07112006.Global Public Health - Nutrition strategy report draft_Strategic Framework_07112006.doc'
