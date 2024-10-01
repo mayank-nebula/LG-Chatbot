@@ -1,5 +1,7 @@
-# Extracting names (handling extra whitespaces including tabs and spaces)
-names = re.findall(r'([^\t<]+?)\s*<', data['to'])
+pattern = r'([\w\s]+)\s*<([^>]+)>'
 
-# Extracting emails
-emails = re.findall(r'<\s*([^>]+)\s*>', data['to'])
+matches = re.findall(pattern, data['to'])
+
+# Separating names and emails
+names = [match[0].strip() for match in matches]
+emails = [match[1].strip() for match in matches]
