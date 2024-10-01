@@ -163,7 +163,12 @@ async def process_attached_file(
     lower_case_path = os.path.join(file_path, lower_case_file)
 
     if ext.isupper():
-        await os.rename(original_file_path, lower_case_path)
+        try:
+            await os.rename(original_file_path, lower_case_path)
+        except OSError as e:
+            logging.error(f"Error renaming file {file}: {e}")
+            failed_files.append({"Name": file, "IngestionError": str(e)})
+            return
 
     try:
         if lower_case_file.endswith(".pdf"):
@@ -189,6 +194,11 @@ async def ingest_files(file_path: str):
         )
 
         output_dir = os.path.join(os.path.dirname(file_path), "attachments")
+        
+        if not os.path.exists(output_dir):
+            logging.error(f"Output directory {output_dir} does not exist.")
+            return False
+
         attachment_files = os.listdir(output_dir)
 
         for file in attachment_files:
