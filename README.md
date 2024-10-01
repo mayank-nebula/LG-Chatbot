@@ -1,20 +1,37 @@
-pattern = r'([^<>]+)?<([^<>]+)>'
-    matches = re.findall(pattern, email_field)
+def extract_email_details(email_field: str):
+    """
+    Extract names and emails from a given string.
+    
+    Args:
+    email_field (str): A string containing name and email information,
+                       separated by semicolons.
+    
+    Returns:
+    tuple: Two lists - names and emails.
+    """
+    # Split the input string by semicolons
+    entries = email_field.split(';')
     
     names = []
     emails = []
     
-    if matches:
-        for name, email in matches:
-            names.append(name.strip() if name.strip() else None)
-            emails.append(email.strip() if email.strip() else None)
-    else:
-        # If no matches, check if it's just an email or just a name
-        if '@' in email_field and '<' not in email_field:
-            names.append(None)
-            emails.append(email_field.strip())
+    for entry in entries:
+        entry = entry.strip()
+        if not entry:
+            continue
+        
+        # Pattern to match name and email, allowing for tab or space separation
+        # and optional angle brackets
+        pattern = r'([^<>@\t]+)?[\t ]*<?([^<>\s@]+@[^<>\s@]+)>?'
+        match = re.search(pattern, entry)
+        
+        if match:
+            name, email = match.groups()
+            names.append(name.strip() if name and name.strip() else None)
+            emails.append(email.strip())
         else:
-            names.append(email_field.strip())
+            # If no match, assume it's just a name
+            names.append(entry.strip())
             emails.append(None)
     
     return names, emails
