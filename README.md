@@ -12,12 +12,13 @@ from ingestion.pdf_ingestion import pdf_ingestion
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import UnstructuredEmailLoader
 
-# CONVERSION_TIMEOUT = 180
-
 load_dotenv()
 
+# Constants for paths
 OUTPUT_PATHS = ["output"]
+CONVERSION_TIMEOUT = 180
 
+# Initialize LLM
 llm_gpt = AzureChatOpenAI(
     api_key=os.environ["AZURE_OPENAI_API_KEY"],
     azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
@@ -28,11 +29,17 @@ llm_gpt = AzureChatOpenAI(
 
 
 def load_prompts():
+    """
+    Load prompts from a JSON file.
+    """
     with open("../prompts.json", "r") as file:
         return json.load(file)
 
 
 def extract_email_details(email_field):
+    """
+    Extract names and emails from a given string.
+    """
     pattern = r"([\w\s]+)\s*<([^>]+)>"
     matches = re.findall(pattern, email_field)
     names = [match[0].strip() for match in matches]
@@ -40,207 +47,181 @@ def extract_email_details(email_field):
     return names, emails
 
 
-async def extract_metadata(
-    metadata: dict, file_path: str, metadata_extraction_prompt: str, email_body: str
-):
-    metadata_extract_msg = extract_msg.Message(file_path)
-    metadata_json = json.loads(metadata_extract_msg.getJson())
+async def extract_metadata(metadata, file_path, metadata_extraction_prompt, email_body):
+    """
+    Extract structured and agentic metadata from an email.
+    """
+    try:
+        metadata_extract_msg = extract_msg.Message(file_path)
+        metadata_json = json.loads(metadata_extract_msg.getJson())
 
-    result = {
-        "sent_to_name": [],
-        "sent_to_email": [],
-        "sent_from_name": [],
-        "sent_from_email": [],
-        "sent_cc_name": [],
-        "sent_cc_email": [],
-        "sent_bcc_name": [],
-        "sent_bcc_email": [],
-    }
+        # Initialize fields for the metadata
+        result = {
+            "sent_to_name": [], "sent_to_email": [],
+            "sent_from_name": [], "sent_from_email": [],
+            "sent_cc_name": [], "sent_cc_email": [],
+            "sent_bcc_name": [], "sent_bcc_email": [],
+        }
 
-    if metadata_json.get("to"):
-        result["sent_to_name"], result["sent_to_email"] = extract_email_details(
-            metadata_json["to"]
-        )
+        # Extract 'to', 'from', 'cc', and 'bcc' fields
+        for field in ["to", "from", "cc", "bcc"]:
+            if metadata_json.get(field):
+                result[f"sent_{field}_name"], result[f"sent_{field}_email"] = extract_email_details(
+                    metadata_json[field]
+                )
 
-    if metadata_json.get("from"):
-        result["sent_from_name"], result["sent_from_email"] = extract_email_details(
-            metadata_json["from"]
-        )
+        # Update the base metadata with the extracted data
+        metadata.update(result)
 
-    if metadata_json.get("cc"):
-        result["sent_cc_name"], result["sent_cc_email"] = extract_email_details(
-            metadata_json["cc"]
-        )
+        # LLM-based agentic metadata extraction
+        prompt = ChatPromptTemplate.from_template(metadata_extraction_prompt)
+        chain = {"content": lambda x: x} | prompt | llm_gpt
+        agentic_metadata = await chain.invoke(email_body)
 
-    if metadata_json.get("bcc"):
-        result["sent_bcc_name"], result["sent_bcc_email"] = extract_email_details(
-            metadata_json["bcc"]
-        )
+        # Merge LLM-generated metadata with the existing metadata
+        agentic_metadata_json = json.loads(agentic_metadata)
+        metadata.update(agentic_metadata_json)
 
-    metadata.update(result)
-
-    prompt = ChatPromptTemplate.from_template(metadata_extraction_prompt)
-    chain = {"content": lambda x: x} | prompt | llm_gpt
-
-    agentic_metadata = await chain.invoke(email_body)
-    agentic_metadata_json = json.loads(agentic_metadata)
-
-    metadata.update(agentic_metadata_json)
+    except Exception as e:
+        logging.error(f"Error extracting metadata from {file_path}: {e}")
+        return None
 
     return metadata
 
 
-async def is_pdf(fpath: str, fname: str):
+async def is_pdf(file_path):
     """
-    Determine if a PDF file is likely to be an original PDF or a converted PPT.
-
-    :param fpath: Path to the folder containing the file
-    :param fname: Name of the file
-    :return: True if it is likely an original PDF, False otherwise
+    Determine if a file is a PDF or a converted PPT based on page layouts.
     """
     try:
-        with open(os.path.join(fpath, fname), "rb") as file:
-            with pdfplumber.open(file) as pdf:
-                page_layouts = set((page.width, page.height) for page in pdf.pages)
-                aspect_ratios = [width / height for width, height in page_layouts]
+        with pdfplumber.open(file_path) as pdf:
+            page_layouts = set((page.width, page.height) for page in pdf.pages)
+            aspect_ratios = [width / height for width, height in page_layouts]
 
-                total_pages = len(aspect_ratios)
-                landscape_pages = sum(1 for ratio in aspect_ratios if ratio > 1)
-                portrait_pages = total_pages - landscape_pages
+            landscape_pages = sum(1 for ratio in aspect_ratios if ratio > 1)
+            portrait_pages = len(aspect_ratios) - landscape_pages
 
-                if len(set(page_layouts)) == 1 and aspect_ratios[0] > 1:
-                    logging.info(f"{fname} is likely a PPT converted to PDF.")
-                    return False
-                elif portrait_pages == total_pages:
-                    logging.info(f"{fname} is likely an original PDF.")
-                    return True
-                elif landscape_pages == total_pages:
-                    logging.info(f"{fname} is likely a PPT converted to PDF.")
+            if len(set(page_layouts)) == 1 and aspect_ratios[0] > 1:
+                logging.info(f"{file_path} is likely a PPT converted to PDF.")
+                return False
+            elif portrait_pages == len(aspect_ratios):
+                logging.info(f"{file_path} is likely an original PDF.")
+                return True
+            elif landscape_pages == len(aspect_ratios):
+                logging.info(f"{file_path} is likely a PPT converted to PDF.")
+                return False
+            else:
+                landscape_ratio = landscape_pages / portrait_pages
+                if landscape_ratio > 0.7:
+                    logging.info(f"{file_path} is likely a PPT converted to PDF.")
                     return False
                 else:
-                    landscape_ratio = landscape_pages / portrait_pages
-                    if landscape_ratio > 0.7:
-                        logging.info(f"{fname} is likely a PPT converted to PDF.")
-                        return False
-                    elif landscape_ratio < 0.3:
-                        logging.info(f"{fname} is likely an original PDF.")
-                        return True
-                    else:
-                        logging.info(f"{fname} has a mixed layout.")
-                        return False
+                    logging.info(f"{file_path} is likely an original PDF.")
+                    return True
+
     except Exception as e:
-        logging.error(f"An error occurred while analyzing PDF: {e}")
+        logging.error(f"Error analyzing PDF: {e}")
         return False
 
 
-async def handle_ingestion_failure(
-    file: str, error: str, failed_files: list, pdf_path: str = None
-):
+async def handle_ingestion_failure(file, error, failed_files, pdf_path=None):
     """
-    Handle failures in file ingestion and remove the output folders.
-
-    :param file: Name of the file that failed ingestion
-    :param error: Error message for the failure
-    :param failed_files: List to track failed file metadata
-    :param pdf_path: Optional path to the generated PDF file
+    Handle failure during file ingestion.
     """
     logging.error(f"Ingestion failed for {file}: {error}")
-
+    
+    # Cleanup failed output directories
+    for folder in OUTPUT_PATHS:
+        shutil.rmtree(folder, ignore_errors=True)
+    
+    # If a temporary PDF was created, remove it
     if pdf_path and os.path.exists(pdf_path):
         os.remove(pdf_path)
 
-    for folder in OUTPUT_PATHS:
-        shutil.rmtree(folder, ignore_errors=True)
-
-    failed_files.append(
-        {
-            "Name": file,
-            "IngestionError": error,
-        }
-    )
+    # Record the failure
+    failed_files.append({"Name": file, "IngestionError": error})
 
 
-async def process_pdf(file: str, file_path: str, metadata: dict, failed_files: list):
+async def process_file_by_type(file, file_path, metadata, failed_files):
     """
-    Handle PDF ingestion.
-
-    :param pdf_file: Name of the PDF file
-    :param files_metadata: Metadata of the PDF file
-    :param failed_files: List to track failed file metadata
+    Process file based on its type (PDF, PPT).
     """
     try:
-        if await is_pdf(file_path, file):
+        if await is_pdf(file_path):
             success, error = await pdf_ingestion(file_path, file, metadata)
-            if not success:
-                await handle_ingestion_failure(file, error, failed_files)
         else:
             success, error = await ppt_ingestion(file_path, file, metadata)
-            if not success:
-                await handle_ingestion_failure(file, error, failed_files)
+
+        if not success:
+            await handle_ingestion_failure(file, error, failed_files)
+
     except Exception as e:
-        failed_files.append({"Name": file, "IngestionError": str(e)})
+        await handle_ingestion_failure(file, str(e), failed_files)
 
 
-async def process_attached_file(
-    file: str, file_path: str, metadata: dict, failed_files: list
-):
-    base_name, ext = os.path.splitext(file)
-    lower_ext = ext.lower()
-    lower_case_file = base_name + lower_ext
-    original_file_path = os.path.join(file_path, file)
-    lower_case_path = os.path.join(file_path, lower_case_file)
-
-    if ext.isupper():
-        try:
-            await os.rename(original_file_path, lower_case_path)
-        except OSError as e:
-            logging.error(f"Error renaming file {file}: {e}")
-            failed_files.append({"Name": file, "IngestionError": str(e)})
-            return
-
+async def process_attachment(file, file_path, metadata, failed_files):
+    """
+    Process an attached file and determine how to handle it based on its type.
+    """
     try:
+        base_name, ext = os.path.splitext(file)
+        lower_ext = ext.lower()
+        lower_case_file = base_name + lower_ext
+        original_file_path = os.path.join(file_path, file)
+        lower_case_path = os.path.join(file_path, lower_case_file)
+
+        # Rename file to lowercase if needed
+        if ext.isupper():
+            await os.rename(original_file_path, lower_case_path)
+
+        # Process PDF files
         if lower_case_file.endswith(".pdf"):
-            await process_pdf(lower_case_file, file_path, metadata, failed_files)
-    except Exception as e:
-        logging.error(f"Error processing {file}: {e}")
+            await process_file_by_type(lower_case_file, file_path, metadata, failed_files)
+
+    except OSError as e:
+        logging.error(f"Error renaming file {file}: {e}")
         failed_files.append({"Name": file, "IngestionError": str(e)})
 
 
-async def ingest_files(file_path: str):
+async def ingest_files(file_path):
+    """
+    Ingest email files and process their attachments.
+    """
     file_name = os.path.basename(file_path)
     failed_files = []
+    
     try:
+        # Load prompts
         prompts = load_prompts()
 
+        # Load email data
         loader = UnstructuredEmailLoader(file_path, mode="elements")
         data = loader.load()
-
         metadata = data[0].metadata
 
-        final_metadata = (
-            await extract_metadata(metadata, file_path, prompts["metadata_extraction"])
-            if os.path.splitext(file_name)[1] == ".msg"
-            else metadata
-        )
+        # Extract additional metadata if it's an MSG file
+        if file_name.endswith(".msg"):
+            metadata = await extract_metadata(
+                metadata, file_path, prompts["metadata_extraction"], data[0].page_content
+            )
 
+        # Check and create output directories
         output_dir = os.path.join(os.path.dirname(file_path), "attachments")
-
         if not os.path.exists(output_dir):
             logging.error(f"Output directory {output_dir} does not exist.")
             return False
 
+        # Process attachments
         attachment_files = os.listdir(output_dir)
-
         for file in attachment_files:
-            await process_attached_file(file, output_dir, final_metadata, failed_files)
-
+            await process_attachment(file, output_dir, metadata, failed_files)
             if failed_files:
                 logging.error(f"Failed to ingest file {file}")
                 return False
 
-        logging.info(f"File {file_name} processed successfully")
+        logging.info(f"File {file_name} processed successfully.")
         return True
 
     except Exception as e:
-        logging.error(f"Failed to ingest file {file_name}: {str(e)}")
+        logging.error(f"Failed to ingest file {file_name}: {e}")
         return False
