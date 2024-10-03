@@ -1,87 +1,14 @@
-import os
-import logging
-import extract_msg
-from email import policy
-from email.parser import BytesParser
-
-ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".ppt", ".pptx"}
-
-
-async def extract_eml_attachments(eml_file: str, output_dir: str):
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-
-        with open(eml_file, "rb") as f:
-            msg = BytesParser(policy=policy.default).parse(f)
-
-        for part in msg.iter_attachments():
-            filename = part.get_filename()
-            if filename:
-                ext = os.path.splitext(filename)[1].lower()
-                if ext in ALLOWED_EXTENSIONS:
-                    attachment_path = os.path.join(output_dir, filename)
-                    with open(attachment_path, "wb") as fp:
-                        fp.write(part.get_payload(decode=True))
-                    logging.info(f"Attachment {filename} saved at {attachment_path}")
-                else:
-                    logging.info(
-                        f"Skipped attachment {filename} (unsupported file type)"
-                    )
-    except Exception as e:
-        raise e
-
-
-async def extract_msg_attachments(msg_file: str, output_dir: str):
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-
-        msg = extract_msg.Message(msg_file)
-
-        for attachment in msg.attachments:
-            filename = (
-                attachment.longFilename
-                if attachment.longFilename
-                else attachment.shortFilename
-            )
-            if filename:
-                ext = os.path.splitext(filename)[1].lower()
-                if ext in ALLOWED_EXTENSIONS:
-                    attachment_path = os.path.join(output_dir, filename)
-                    with open(attachment_path, "wb") as fp:
-                        fp.write(attachment.data)
-                    logging.info(f"Attachment {filename} saved at {attachment_path}")
-                else:
-                    logging.info(
-                        f"Skipped attachment {filename} (unsupported file type)"
-                    )
-    except Exception as e:
-        raise e
-
-
-async def mail_content_extraction(file_path: str):
+@router.post("/upload-file")
+async def upload_single_file(
+    file: UploadFile = File(...),
+    token_data: TokenData = Depends(authenticate_jwt),
+):
     """
-    Processes a file (.msg or .eml) and extracts attachments, if any.
+    Route for uploading a single file.
     """
-    output_dir = os.path.join(os.path.dirname(file_path), "attachments")
+    userEmailId = token_data.email
+    return await file_controller.upload_file(userEmailId, file)
 
-    try:
-        if file_path.endswith(".msg"):
-            logging.info(f"Processing .msg file: {file_path}")
-            await extract_msg_attachments(
-                file_path,
-                output_dir,
-            )
-        elif file_path.endswith(".eml"):
-            logging.info(f"Processing .eml file: {file_path}")
-            await extract_eml_attachments(
-                file_path,
-                output_dir,
-            )
-        logging.info(f"Finished processing file: {file_path}")
-        return True
-    except Exception as e:
-        logging.error(f"Error processing file {file_path}: {str(e)}")
-        return False
 
 
 
@@ -91,11 +18,18 @@ import logging
 from typing import List
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
-
-# from ingestion.ingest_files import ingest_files
+from ingestion.ingest_files import ingest_files
+from utils.chromadb_utils import initialize_chroma_client
 from utils.mailContentExtraction_utils import mail_content_extraction
+from utils.progess_utils import create_progess, update_progess, delete_files
 
 UPLOAD_DIR = os.path.join("uploads")
+CHROMA_CLIENT = initialize_chroma_client()
+
+collection_normal = CHROMA_CLIENT.get_or_create_collection(name="EmailAssistant")
+collection_summary = CHROMA_CLIENT.get_or_create_collection(
+    name="EmailAssistant_Summary"
+)
 
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
@@ -125,64 +59,91 @@ def save_uploaded_file(file: UploadFile, folder_path: str) -> str:
     return file_path
 
 
-async def process_file(file_path: str) -> bool:
+def process_file(file_path: str) -> bool:
     """
     Processes the uploaded file using the pre-processing function.
     """
     try:
-        return await mail_content_extraction(file_path)
+        return mail_content_extraction(file_path)
     except Exception as e:
         logging.error(f"Error processing file {file_path}: {e}")
-        return False
+        return False, e
+
+
+def get_status_message(statuses: List[bool]) -> str:
+    """
+    Generates a status message based on the result of processing files.
+    """
+    if all(statuses):
+        return "All files uploaded and processed successfully."
+    elif any(statuses):
+        return "Some files were uploaded and processed successfully."
+    else:
+        return "All files were uploaded, but an error occurred during processing."
+
+
+def delete_from_collection(file):
+    try:
+        collection_normal.delete(where={"filename": file})
+        collection_summary.delete(where={"filename": file})
+        return True, None
+    except Exception as e:
+        logging.error(f"An error occurred while deleting from chromaDB: {e}")
+        return False, e
 
 
 # Core functionalities
-async def upload_file(file_path: str, file_name: str):
+async def upload_file(
+    userEmailId: str,
+    file: UploadFile,
+):
     """
     Uploads a single file for the given user and processes it.
     """
     try:
-        processing_status = await process_file(file_path)
+        user_dir = create_user_directory(userEmailId)
+        file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
+        os.makedirs(file_folder, exist_ok=True)
 
-        # ingestion_status, ingestion_error = await ingest_files(file_path)
+        file_path = save_uploaded_file(file, file_folder)
 
-        # if not ingestion_status:
-        #     raise ingestion_error
+        processing_status, processing_status_error = process_file(file_path)
 
-        logging.info(f"File {os.path.basename(file_path)} ingested succesfully.")
+        if not processing_status:
+            raise processing_status_error
+
+        create_progress_status, create_progress_error = await create_progess(
+            userEmailId, file.filename, "Upload Successful"
+        )
+
+        if not create_progress_status:
+            raise create_progress_error
+
+        ingestion_status, ingestion_error = await ingest_files(file_path)
+
+        if not ingestion_status:
+            raise ingestion_error
+
+        update_progess_status, update_progess_error = await update_progess(
+            userEmailId, file.filename, "Ingestion Successful"
+        )
+
+        if not update_progess_status:
+            raise update_progess_error
+
+        message = (
+            "File uploaded and processed successfully."
+            if update_progess_status
+            else "File uploaded, but an error occurred during processing."
+        )
+        return {
+            "filename": file.filename,
+            "message": message,
+            "status": processing_status,
+        }
 
     except Exception as e:
+        delete_from_collection(file.filename)
+        await update_progess(userEmailId, file.filename, "Processing Failed")
         logging.error(f"Error occurred while processing file: {str(e)}")
-
-
-
-import os
-from typing import List
-from controller import file_controller
-from fastapi.responses import JSONResponse
-from auth.utils.jwt_utils import TokenData, authenticate_jwt
-from fastapi import APIRouter, UploadFile, BackgroundTasks, File, Depends, Body
-
-router = APIRouter()
-
-
-@router.post("/upload-file")
-async def upload_single_file(
-    background_tasks: BackgroundTasks,
-    token_data: TokenData = Depends(authenticate_jwt),
-    file: UploadFile = File(...),
-):
-    """
-    Route for uploading a single file.
-    """
-    userEmailId = token_data.email
-    user_dir = file_controller.create_user_directory(userEmailId)
-    file_folder = os.path.join(user_dir, os.path.splitext(file.filename)[0])
-    os.makedirs(file_folder, exist_ok=True)
-
-    file_path = file_controller.save_uploaded_file(file, file_folder)
-
-    background_tasks.add_task(file_controller.upload_file, file_path)
-    # return await file_controller.upload_file(userEmailId, file)
-    return JSONResponse({"message": "File upload started."})
-
+        return custom_error_response(f"Failed to process file {file.filename}", 500)
