@@ -1,29 +1,22 @@
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        # Dictionary to map user_email_id to their WebSocket connection
+        self.active_connections: Dict[str, WebSocket] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, user_email_id: str):
         await websocket.accept()
-        self.active_connections.append(websocket)
+        self.active_connections[user_email_id] = websocket
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    def disconnect(self, user_email_id: str):
+        if user_email_id in self.active_connections:
+            del self.active_connections[user_email_id]
 
-    async def send_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
+    async def send_message(self, message: str, user_email_id: str):
+        websocket = self.active_connections.get(user_email_id)
+        if websocket:
+            await websocket.send_text(message)
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections:
+        # Optionally, broadcast to all connected users (not needed in this case)
+        for connection in self.active_connections.values():
             await connection.send_text(message)
-
-manager = ConnectionManager()
-
-# WebSocket endpoint for real-time updates
-@app.websocket("/ws/{user_email_id}")
-async def websocket_endpoint(websocket: WebSocket, user_email_id: str):
-    await manager.connect(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()  # Keep connection alive
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
