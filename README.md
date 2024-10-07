@@ -1,44 +1,29 @@
-async def upload_files(
-    userEmailId: str, files: List[UploadFile], background_tasks: BackgroundTasks
-):
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+# WebSocket endpoint for real-time updates
+@app.websocket("/ws/{user_email_id}")
+async def websocket_endpoint(websocket: WebSocket, user_email_id: str):
+    await manager.connect(websocket)
     try:
-        user_dir = create_user_directory(userEmailId)
-        filenames = []
-        existing_files = []
-
-        for file in files:
-            if not file.filename:
-                raise Exception("No File Uploaded.")
-            current_time = datetime.utcnow()
-            formatted_time = current_time.strftime("%Y-%m-%d-%H-%M-%S")
-            file_folder = os.path.join(
-                user_dir, f"{os.path.splitext(file.filename)[0]}_{formatted_time}"
-            )
-
-            os.makedirs(file_folder, exist_ok=True)
-            file_path = save_uploaded_file(file, file_folder)
-            filenames.append(file.filename)
-
-            filesize = os.path.getsize(file_path)
-
-            background_tasks.add_task(
-                process_file_async,
-                userEmailId,
-                file_path,
-                file.filename,
-                filesize,
-                file_folder,
-                current_time,
-            )
-
-        if filenames:
-            return {
-                "status": True,
-                "message": f"All {len(filenames)} files uploaded successfully.",
-                "uploaded_files": filenames,
-            }
-        else:
-            return {
-                "status": False,
-                "message": "No files were uploaded. All files already exist.",
-            }
+        while True:
+            data = await websocket.receive_text()  # Keep connection alive
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
