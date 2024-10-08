@@ -1,183 +1,111 @@
-[
-  {
-    _id: ObjectId('6703cd7043739f07369f8adc'),
-    sent_to_name: [ 'Eddie Liang', 'Mayank Sharma' ],
-    sent_to_email: [ 'Eddie.Liang@evalueserve.com', 'Mayank.Sharma9@evalueserve.com' ],
-    sent_from_name: [ 'Kamal Chawla' ],
-    sent_from_email: [ 'Kamal.Chawla@evalueserve.com' ],
-    sent_cc_name: [],
-    sent_cc_email: [],
-    sent_bcc_name: [],
-    sent_bcc_email: [],
-    subject: 'RE: Scientia DocX Staging Environment Access',
-    date: '2024-09-18 02:03:27+00:00',
-    filename: 'RE_ Scientia DocX Staging Environment Access.msg',
-    entity_extraction: [
-      'Mayank Sharma',      'Eddie Liang',
-      'Kamal Chawla',       'Manik Bansal',
-      'Dillon Mydland',     'Brian Sanders',
-      'Smita Sahoo',        'Evalueserve',
-      'Gates Ventures',     'Canada',
-      'September 18, 2024', 'September 17, 2024',
-      'September 16, 2024', 'September 12, 2024',
-      'September 10, 2024', 'September 9, 2024',
-      'September 5, 2024',  'September 4, 2024',
-      'September 3, 2024',  'August 30, 2024',
-      'August 29, 2024',    'August 28, 2024',
-      'August 27, 2024',    'August 26, 2024'
-    ],
-    intent: 'Informational',
-    sentiment: 'Neutral',
-    action_items: [
-      'Mayank Sharma to check',
-      'Team to troubleshoot chatbot functionality',
-      "Monitor Chatbot's functionality on the Scientia Staging SharePoint site",
-      'Route traffic via an Application Gateway and a Firewall',
-      'Remount storage account to the VM',
-      'Lock down the VM',
-      'Increase memory of Scientia-DocX-Gateway-Staging-www from 32GB to 64GB',
-      'Shut down old VMs after phase 1 of the project',
-      'Create a custom content filter for Azure OpenAI models',
-      'Transfer doc-store file from DEV VMs to Scientia-DocX-Gateway-Staging-www'
-    ],
-    response_deadline: null
-  },
-  {
-    _id: ObjectId('6703e4436d3a630ce6d03e4b'),
-    sent_to_name: [
-      'Mayank Sharma',
-      'Divyam Jain',
-      'Preeti Rani',
-      'Smita Sahoo',
-      'Eddie Liang'
-    ],
-    sent_to_email: [
-      'Mayank.Sharma9@evalueserve.com',
-      'Divyam.Jain@evalueserve.com',
-      'Preeti.Rani@evalueserve.com',
-      'Smita.Sahoo@evalueserve.com',
-      'Eddie.Liang@evalueserve.com'
-    ],
-    sent_from_name: [ 'Kamal Chawla' ],
-    sent_from_email: [ 'Kamal.Chawla@evalueserve.com' ],
-    sent_cc_name: [],
-    sent_cc_email: [],
-    sent_bcc_name: [],
-    sent_bcc_email: [],
-    subject: 'GV Email Analytics Project- Plan for week 30th September - 4th October 2024',
-    date: '2024-09-30 02:09:50+00:00',
-    filename: 'GV Email Analytics Project- Plan for week 30th September - 4th October 2024.msg',
-    entity_extraction: [
-      'Team',
-      '30th September 2024',
-      '4th October 2024',
-      'Preeti',
-      'Divyam',
-      'Mayank',
-      'Eddie',
-      'Kamal',
-      'Manik',
-      'Smita'
-    ],
-    intent: 'Informational',
-    sentiment: 'Neutral',
-    action_items: [
-      'Structured metadata Extraction (Agentic + standard) and storage in CSV/Mongo/mysql - Preeti',
-      'Structured RAG - Ability to ask questions from structured RAG - Preeti',
-      'File(s)/Folder upload functionality (both front end as well as back-end) - Divyam and Mayank',
-      'Functional front end and back-end for showing the files, their status - Divyam and Mayank',
-      'Ability to delete email(s) / uploaded folders - Divyam and Mayank',
-      'Project enablement and Required Details for the project - Eddie',
-      'Solution Design - Smita'
-    ],
-    response_deadline: null
-  },
-  {
-    _id: ObjectId('6703e6414f31d2c49bfd8c48'),
-    sent_to_name: [ 'Divyam Jain' ],
-    sent_to_email: [ 'Divyam.Jain@evalueserve.com' ],
-    sent_from_name: [ 'Smita Sahoo' ],
-    sent_from_email: [ 'Smita.Sahoo@evalueserve.com' ],
-    sent_cc_name: [],
-    sent_cc_email: [],
-    sent_bcc_name: [],
-    sent_bcc_email: [],
-    subject: 'RE: Scientia Chatbot button CSS',
-    date: '2024-10-07 06:25:42+00:00',
-    filename: 'RE_ Scientia Chatbot button CSS.msg',
-    entity_extraction: [ 'Divyam', 'Smita', 'Evalueserve', 'October 7, 2024' ],
-    intent: 'request',
-    sentiment: 'neutral',
-    action_items: [ 'Provide the HTML version of the code' ],
-    response_deadline: null
-  },
-  {
-    _id: ObjectId('67042d636ebce962dea88d82'),
-    sent_to_name: [ 'Manuel Lemos' ],
-    sent_to_email: [ 'mlemos@linux.local' ],
-    sent_from_name: [ 'mlemos' ],
-    sent_from_email: [ 'mlemos@acm.org' ],
-    sent_cc_name: [],
-    sent_cc_email: [],
-    sent_bcc_name: [],
-    sent_bcc_email: [],
-    subject: "Testing Manuel Lemos' MIME E-mail composing and sending PHP class: HTML message",
-    date: '2005-04-30 22:28:29',
-    filename: 'test_sample_message.eml',
-    entity_extraction: [],
-    intent: 'informational',
-    sentiment: 'neutral',
-    action_items: [],
-    response_deadline: null
-  },
-  {
-    _id: ObjectId('6704ba2ffdd79a274b75a2e2'),
-    sent_to_name: [
-      'Mayank Sharma',
-      'Divyam Jain',
-      'Preeti Rani',
-      'Smita Sahoo',
-      'Eddie Liang'
-    ],
-    sent_to_email: [
-      'Mayank.Sharma9@evalueserve.com',
-      'Divyam.Jain@evalueserve.com',
-      'Preeti.Rani@evalueserve.com',
-      'Smita.Sahoo@evalueserve.com',
-      'Eddie.Liang@evalueserve.com'
-    ],
-    sent_from_name: [ 'Kamal Chawla' ],
-    sent_from_email: [ 'Kamal.Chawla@evalueserve.com' ],
-    sent_cc_name: [],
-    sent_cc_email: [],
-    sent_bcc_name: [],
-    sent_bcc_email: [],
-    subject: 'GV Email Analytics Project- Plan for week 30th September - 4th October 2024',
-    date: '2024-09-30 02:09:50+00:00',
-    filename: 'GV Email Analytics Project- Plan for week 30th September - 4th October 2024.msg',
-    entity_extraction: [
-      'Team',
-      'Preeti',
-      'Divyam',
-      'Mayank',
-      'Eddie',
-      'Kamal',
-      'Manik',
-      'Smita',
-      '30th September 2024',
-      '4th October 2024'
-    ],
-    intent: 'Informational',
-    sentiment: 'Neutral',
-    action_items: [
-      'Structured metadata Extraction (Agentic + standard) and storage in CSV/Mongo/mysql - Preeti',
-      'Structured RAG - Ability to ask questions from structured RAG - Preeti',
-      'File(s)/Folder upload functionality (both front end as well as back-end) - Divyam and Mayank',
-      'Functional front end and back-end for showing the files, their status - Divyam and Mayank',
-      'Ability to delete email(s) / uploaded folders - Divyam and Mayank',
-      'Project enablement and Required Details for the project - Eddie',
-      'Solution Design - Smita'
-    ],
-    response_deadline: null
-  }
-]
+async def upload_files(
+    userEmailId: str, files: List[UploadFile], background_tasks: BackgroundTasks
+):
+    user_dir = create_user_directory(userEmailId)
+    filenames = []
+    failed_files = []
+
+    for file in files:
+        if not file.filename:
+            failed_files.append("Unnamed file")
+            continue
+
+        try:
+            current_time = datetime.utcnow()
+            formatted_time = current_time.strftime("%Y-%m-%d-%H-%M-%S")
+            file_folder = os.path.join(
+                user_dir, f"{os.path.splitext(file.filename)[0]}_{formatted_time}"
+            )
+
+            os.makedirs(file_folder, exist_ok=True)
+            file_path = save_uploaded_file(file, file_folder)
+            filesize = os.path.getsize(file_path)
+
+            filenames.append({"filename": file.filename, "size": filesize})
+
+            background_tasks.add_task(
+                process_file_async,
+                userEmailId,
+                file_path,
+                file.filename,
+                filesize,
+                file_folder,
+                current_time,
+            )
+        except Exception as e:
+            failed_files.append(f"{file.filename}: {str(e)}")
+
+    if filenames:
+        status = True
+        if failed_files:
+            message = f"Uploaded {len(filenames)} file(s), {len(failed_files)} file(s) failed."
+        else:
+            message = f"Successfully uploaded {len(filenames)} file(s)."
+    else:
+        status = False
+        message = f"Upload Failed: {len(filenames)} file(s) failed to upload."
+
+    return {
+        "status": status,
+        "message": message,
+        "uploaded_files": filenames,
+        "failed_files": failed_files,
+    }
+
+
+async def upload_folder(
+    userEmailId: str, files: List[UploadFile], background_tasks: BackgroundTasks
+):
+    user_dir = create_user_directory(userEmailId)
+    filenames = []
+    failed_files = []
+
+    for file in files:
+        if not Path(file.filename).name:
+            failed_files.append("Unnamed file")
+            continue
+        try:
+            # folder_name = Path(file.filename).parent
+            folder_name = "test"
+            current_time = datetime.utcnow()
+            formatted_time = current_time.strftime("%Y-%m-%d-%H-%M-%S")
+            file_folder = os.path.join(
+                user_dir,
+                folder_name,
+                f"{os.path.splitext(Path(file.filename).name)[0]}_{formatted_time}",
+            )
+
+            os.makedirs(file_folder, exist_ok=True)
+            file_path = save_uploaded_file(file, file_folder, True)
+            filesize = os.path.getsize(file_path)
+            filenames.append({"filename": Path(file.filename).name, "size": filesize})
+
+            background_tasks.add_task(
+                process_file_async,
+                userEmailId,
+                file_path,
+                Path(file.filename).name,
+                filesize,
+                file_folder,
+                current_time,
+                folder_name
+            )
+        except Exception as e:
+            failed_files.append(f"{Path(file.filename).name}: {str(e)}")
+
+    if filenames:
+        status = True
+        if failed_files:
+            message = f"Uploaded {len(filenames)} file(s), {len(failed_files)} file(s) failed."
+        else:
+            message = f"Successfully uploaded {len(filenames)} file(s)."
+    else:
+        status = False
+        message = f"Upload Failed: {len(filenames)} file(s) failed to upload."
+
+    return {
+        "status": status,
+        "message": message,
+        "uploaded_files": filenames,
+        "failed_files": failed_files,
+    }
