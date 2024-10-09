@@ -1,36 +1,27 @@
-from pydantic import BaseModel
-from typing import List, Any, Optional
-
-
-class Message(BaseModel):
+def standalone_question(
+    question: str, chat_history: list, llm_gpt: AzureChatOpenAI
+) -> str:
     """
-    Pydantic model for handling incoming user messages in the chat system.
+    Forms a standalone question based on the user's input and chat history.
 
-    Attributes:
-    - question (str): The question or message sent by the user.
-    - chatId (Optional[str]): The ID of the chat thread, if any.
-    - chatHistory (List[Any]): The previous chat history associated with the chat session.
-    - filters (List[str]): Any filters applied to the message (e.g., filtering documents).
-    - image (Optional[str]): Whether the message contains an image or image-related query.
-    - userEmailId (str): The email ID of the user sending the message.
-    - regenerate (Optional[str]): Whether this is a request to regenerate a previous response.
-    - feedbackRegenerate (Optional[str]): Whether this is a feedback-based regeneration.
-    - reason (Optional[str]): Reason provided for the regeneration request.
-    - userLookupId (int): The lookup ID of the user, used for user identification and permission checks.
-    - filtersMetadata (List[Any]): Metadata associated with the applied filters.
-    - isGPT (Optional[bool]): Flag indicating whether the message is being processed by GPT or another model.
+    Args:
+    - question (str): The user's question.
+    - chat_history (list): The previous chat history.
+    - llm_gpt (AzureChatOpenAI): The LLM used to process the prompt.
+
+    Returns:
+    - str: The standalone question.
     """
-
-    question: str
-    chatId: Optional[str] = None
-    chatHistory: List[Any] = []
-    filters: List[str] = []
-    image: Optional[str] = "Yes"
-    userEmailId: str
-    regenerate: Optional[str] = "No"
-    feedbackRegenerate: Optional[str] = "No"
-    reason: Optional[str] = ""
-    userLookupId: int
-    filtersMetadata: List[Any] = []
-    isGPT: Optional[bool] = False
-    anonymousFilter: Optional[str] = ""
+    try:
+        formatted_chat_history = format_chat_history(chat_history)
+        prompt_text = prompts["standalone_question"]
+        prompt = ChatPromptTemplate.from_template(prompt_text)
+        chain = (
+            {"chat_history": lambda _: formatted_chat_history, "question": lambda x: x}
+            | prompt
+            | llm_gpt
+        )
+        new_question = chain.invoke(question)
+        return new_question.content
+    except Exception as e:
+        raise Exception(f"Error generating standalone question: {str(e)}")
