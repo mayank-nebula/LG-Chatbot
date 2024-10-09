@@ -1,73 +1,53 @@
-async def update_chat(
+async def content_generator_salutation(
+    question: str,
     message: Message,
-    ai_text: str,
-    chat_id: str,
-    flag: bool,
+    llm_gpt: AzureChatOpenAI,
     collection_chat: AsyncIOMotorCollection,
-    sources: dict = None,
-) -> str:
-    """
-    Updates a chat thread by adding or modifying messages.
-
-    Args:
-    - message: The incoming message object.
-    - ai_text (str): The AI-generated response.
-    - chat_id (str): The chat ID of the conversation.
-    - flag (bool): Whether this is a regeneration or modification.
-    - collection_chat: The MongoDB collection for chats.
-    - sources (dict): The sources for the AI response (if applicable).
-
-    Returns:
-    - str: The ID of the updated or newly added message.
-    """
-    message_id = None
+) -> AsyncGenerator[str, None]:
     try:
-        # Remove the last message if regeneration is requested
-        if message.regenerate == "Yes" or flag:
-            await collection_chat.update_one(
-                {"_id": ObjectId(chat_id)},
-                {"$pop": {"chats": 1}, "$set": {"updatedAt": datetime.utcnow()}},
-            )
+        formatted_chat_history = (
+            format_chat_history(message.chatHistory)
+            if message.chatHistory
+            else "No Previous Conversation"
+        )
+        ai_text = ""
+        chat_id = None
+        flag = False
 
-        # Update feedback if requested
-        if message.feedbackRegenerate == "Yes":
-            chat = await collection_chat.find_one({"_id": ObjectId(chat_id)})
-            if chat and "chats" in chat and len(chat["chats"]) > 0:
-                last_chat_index = len(chat["chats"]) - 1
-                await collection_chat.update_one(
-                    {
-                        "_id": ObjectId(chat_id),
-                        f"chats.{last_chat_index}.flag": {"$exists": False},
-                    },
-                    {
-                        "$set": {
-                            f"chats.{last_chat_index}.flag": True,
-                            "updatedAt": datetime.utcnow(),
-                        }
-                    },
-                )
+        if not message.chatId:
+            chat_id = await create_new_title_chat(message, collection_chat, llm_gpt)
+            flag = True
+            yield json.dumps({"type": "chatId", "content": str(chat_id)})
 
-        # Add the new message to the chat
-        new_chat = {
-            "_id": ObjectId(),
-            "user": message.reason if message.reason else message.question,
-            "ai": ai_text,
-            "sources": sources or {},
-        }
-        update_fields = {
-            "$push": {"chats": new_chat},
-            "$set": {
-                "updatedAt": datetime.utcnow(),
-                "filtersMetadata": message.filtersMetadata or [],
-                "isGPT": message.isGPT,
-            },
-        }
-        await collection_chat.update_one({"_id": ObjectId(chat_id)}, update_fields)
-        chat = await collection_chat.find_one({"_id": ObjectId(chat_id)})
+        prompt_text = prompts["content_generator_salutation"]
 
-        if chat and "chats" in chat:
-            message_id = chat["chats"][-1]["_id"]
+        prompt = ChatPromptTemplate.from_template(prompt_text)
 
-        return message_id
+        chain = (
+            {
+                "chat_history": lambda _: formatted_chat_history,
+                "question": lambda x: x,
+            }
+            | prompt
+            | llm_gpt
+            | StrOutputParser()
+        )
+
+        async for chunk in chain.astream(question):
+            ai_text += chunk
+            yield json.dumps({"type": "text", "content": chunk})
+
+        message_id = await update_chat(
+            message,
+            ai_text,
+            str(chat_id) if chat_id else message.chatId,
+            flag,
+            collection_chat,
+        )
+
+        yield json.dumps({"type": "messageId", "content": str(message_id)})
+        yield json.dumps({"type": "sources", "content": None})
+
     except Exception as e:
-        raise Exception(f"Error updating chat: {str(e)}")
+        logging.error(f"An Error Occurred: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
