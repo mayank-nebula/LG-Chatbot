@@ -1,51 +1,36 @@
-from datetime import datetime
 from pydantic import BaseModel
-from typing import List, Optional
-from bson import ObjectId
+from typing import List, Any, Optional
 
 
-class ChatMessage(BaseModel):
+class Message(BaseModel):
     """
-    Model for individual messages in a chat.
+    Pydantic model for handling incoming user messages in the chat system.
 
     Attributes:
-    - user (Optional[str]): The user who sent the message.
-    - ai (Optional[str]): The AI's response.
-    - sources (Optional[dict]): The sources used in the response, if applicable.
-    - feedback (Optional[str]): Any feedback provided on the message.
-    - reason (Optional[str]): Reason for the feedback, if any.
-    - flag (Optional[bool]): A flag indicating whether the message is flagged (e.g., for re-evaluation).
+    - question (str): The question or message sent by the user.
+    - chatId (Optional[str]): The ID of the chat thread, if any.
+    - chatHistory (List[Any]): The previous chat history associated with the chat session.
+    - filters (List[str]): Any filters applied to the message (e.g., filtering documents).
+    - image (Optional[str]): Whether the message contains an image or image-related query.
+    - userEmailId (str): The email ID of the user sending the message.
+    - regenerate (Optional[str]): Whether this is a request to regenerate a previous response.
+    - feedbackRegenerate (Optional[str]): Whether this is a feedback-based regeneration.
+    - reason (Optional[str]): Reason provided for the regeneration request.
+    - userLookupId (int): The lookup ID of the user, used for user identification and permission checks.
+    - filtersMetadata (List[Any]): Metadata associated with the applied filters.
+    - isGPT (Optional[bool]): Flag indicating whether the message is being processed by GPT or another model.
     """
 
-    _id: Optional[ObjectId] = None
-    user: Optional[str] = None
-    ai: Optional[str] = None
-    sources: Optional[dict] = {}
-    feedback: Optional[str] = None
-    reason: Optional[str] = None
-    flag: Optional[bool] = None
-
-
-class Chat(BaseModel):
-    """
-    Model for the overall chat structure.
-
-    Attributes:
-    - userEmailId (str): The email ID of the user associated with the chat.
-    - title (str): The title of the chat.
-    - chats (List[ChatMessage]): A list of ChatMessage objects representing the conversation.
-    - bookmark (Optional[bool]): Whether the chat is bookmarked by the user.
-    - filtersMetadata (Optional[List[dict]]): Metadata for filters applied to the chat, if any.
-    - isGPT (Optional[bool]): Flag to indicate if the chat used a GPT-based model.
-    - updatedAt (Optional[datetime]): Timestamp of when the chat was last updated.
-    - createdAt (Optional[datetime]): Timestamp of when the chat was created.
-    """
-
+    question: str
+    chatId: Optional[str] = None
+    chatHistory: List[Any] = []
+    filters: List[str] = []
+    image: Optional[str] = "Yes"
     userEmailId: str
-    title: str
-    chats: List[ChatMessage]
-    bookmark: Optional[bool] = False
-    filtersMetadata: Optional[List[dict]] = []
+    regenerate: Optional[str] = "No"
+    feedbackRegenerate: Optional[str] = "No"
+    reason: Optional[str] = ""
+    userLookupId: int
+    filtersMetadata: List[Any] = []
     isGPT: Optional[bool] = False
-    updatedAt: Optional[datetime] = None
-    createdAt: Optional[datetime] = None
+    anonymousFilter: Optional[str] = ""
