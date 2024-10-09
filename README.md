@@ -1,53 +1,82 @@
-async def content_generator_salutation(
-    question: str,
+import os
+import logging
+from dotenv import load_dotenv
+from models.message import Message
+from fastapi import APIRouter, Depends
+from controller import chat_controller
+from langchain_openai import AzureChatOpenAI
+from utils.db_utils import get_chat_collection
+from motor.motor_asyncio import AsyncIOMotorCollection
+from auth.utils.jwt_utils import TokenData, authenticate_jwt
+from fastapi.responses import JSONResponse, StreamingResponse
+from utils.chat_utils import standalone_question, question_intent
+
+load_dotenv()
+
+router = APIRouter()
+
+
+def custom_error_response(detail: str, status_code: int = 400):
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
+
+@router.post("/chat")
+async def generate_chat_content(
     message: Message,
-    llm_gpt: AzureChatOpenAI,
-    collection_chat: AsyncIOMotorCollection,
-) -> AsyncGenerator[str, None]:
+    token_data: TokenData = Depends(authenticate_jwt),
+    collection_chat: AsyncIOMotorCollection = Depends(get_chat_collection),
+):
+    userEmailId = token_data.email
     try:
-        formatted_chat_history = (
-            format_chat_history(message.chatHistory)
-            if message.chatHistory
-            else "No Previous Conversation"
-        )
-        ai_text = ""
-        chat_id = None
-        flag = False
-
-        if not message.chatId:
-            chat_id = await create_new_title_chat(message, collection_chat, llm_gpt)
-            flag = True
-            yield json.dumps({"type": "chatId", "content": str(chat_id)})
-
-        prompt_text = prompts["content_generator_salutation"]
-
-        prompt = ChatPromptTemplate.from_template(prompt_text)
-
-        chain = (
-            {
-                "chat_history": lambda _: formatted_chat_history,
-                "question": lambda x: x,
-            }
-            | prompt
-            | llm_gpt
-            | StrOutputParser()
+        llm = AzureChatOpenAI(
+            api_key=os.environ["AZURE_OPENAI_API_KEY"],
+            azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+            azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME_GPT_4O"],
+            api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+            temperature=0,
+            streaming=True,
         )
 
-        async for chunk in chain.astream(question):
-            ai_text += chunk
-            yield json.dumps({"type": "text", "content": chunk})
+        intent = question_intent(message.question, message.chatHistory, llm)
+        if "summary_rag" in intent:
+            generator = chat_controller.content_generator(
+                message.question,
+                userEmailId,
+                llm,
+                message,
+                collection_chat,
+                "summary_rag",
+            )
+        elif "normal_rag" in intent:
+            generator = chat_controller.content_generator(
+                message.question,
+                userEmailId,
+                llm,
+                message,
+                collection_chat,
+                "normal_rag",
+            )
+        elif "structured_rag" in intent:
+            question = (
+                standalone_question(message.question, message.chatHistory, llm)
+                if message.chatHistory
+                else (message.question.strip())
+            )
+            generator = chat_controller.content_generator_struture(
+                question, userEmailId, llm, message, collection_chat
+            )
+        elif "salutation" in intent:
+            question = (
+                standalone_question(message.question, message.chatHistory, llm)
+                if message.chatHistory
+                else (message.question.strip())
+            )
+            generator = chat_controller.content_generator_salutation(
+                question, userEmailId, llm, message, collection_chat
+            )
 
-        message_id = await update_chat(
-            message,
-            ai_text,
-            str(chat_id) if chat_id else message.chatId,
-            flag,
-            collection_chat,
-        )
-
-        yield json.dumps({"type": "messageId", "content": str(message_id)})
-        yield json.dumps({"type": "sources", "content": None})
+        return StreamingResponse(generator, media_type="application/json")
 
     except Exception as e:
-        logging.error(f"An Error Occurred: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        logging.error(f"Error occurred while generating response: {str(e)}")
+        return custom_error_response("Error occurred while generating response", 500)
