@@ -1,27 +1,27 @@
-def standalone_question(
-    question: str, chat_history: list, llm_gpt: AzureChatOpenAI
-) -> str:
+from langchain_core.prompts import ChatPromptTemplate
+def load_prompts():
+    with open("prompts.json", "r") as file:
+        return json.load(file)
+
+
+prompts = load_prompts()
+
+
+def format_chat_history(chat_history: list) -> str:
     """
-    Forms a standalone question based on the user's input and chat history.
+    Formats chat history into a human-readable string for processing by the LLM.
 
     Args:
-    - question (str): The user's question.
-    - chat_history (list): The previous chat history.
-    - llm_gpt (AzureChatOpenAI): The LLM used to process the prompt.
+    - chat_history (list): A list of dictionaries containing user and AI responses.
 
     Returns:
-    - str: The standalone question.
+    - str: A formatted string of chat history.
     """
     try:
-        formatted_chat_history = format_chat_history(chat_history)
-        prompt_text = prompts["standalone_question"]
-        prompt = ChatPromptTemplate.from_template(prompt_text)
-        chain = (
-            {"chat_history": lambda _: formatted_chat_history, "question": lambda x: x}
-            | prompt
-            | llm_gpt
+        return "\n".join(
+            [f"Human: {chat['user']}\nAssistant: {chat['ai']}" for chat in chat_history]
         )
-        new_question = chain.invoke(question)
-        return new_question.content
+    except KeyError as e:
+        raise ValueError(f"Key missing in chat history: {str(e)}")
     except Exception as e:
-        raise Exception(f"Error generating standalone question: {str(e)}")
+        raise Exception(f"Error formatting chat history: {str(e)}")
