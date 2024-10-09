@@ -1,19 +1,20 @@
-def create_new_title(question: str, llm_gpt: AzureChatOpenAI) -> str:
+def create_search_kwargs(filters):
     """
-    Generates a concise and informative title based on the user's question.
+    Creates search kwargs for filtering a ChromaDB collection.
 
     Args:
-    - question (str): The user's question.
-    - llm_gpt (AzureChatOpenAI): The LLM used to generate the title.
+        filters (list): List of filter values.
 
     Returns:
-    - str: The generated title.
+        dict: The search kwargs for filtering.
     """
-    try:
-        prompt_text = prompts["create_new_title"]
-        prompt = ChatPromptTemplate.from_template(prompt_text)
-        new_title = {"element": lambda x: x} | prompt | llm_gpt
-        response = new_title.invoke(question)
-        return response.content
-    except Exception as e:
-        raise Exception(f"Error generating title: {str(e)}")
+    if isinstance(filters, str):
+        filter_condition = {"Title": filters}
+        search_kwargs = {"filter": filter_condition}
+        return search_kwargs
+
+    search_kwargs = {"filter": {"Title": {"$in": filters}}}
+
+    return search_kwargs
+
+  "create_new_title": "Given the following question, create a concise and informative title that accurately reflects the content and MAKE SURE TO ANSWER IN JUST 4 WORDS. Just give the title name without any special characters.\n {element}.Don't use your own knowledge, form question based on the first question.",
