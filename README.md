@@ -1,36 +1,19 @@
-async def create_new_title_chat(
-    message: Message, collection_chat: AsyncIOMotorCollection, llm_gpt: AzureChatOpenAI
-):
+def create_new_title(question: str, llm_gpt: AzureChatOpenAI) -> str:
     """
-    Creates a new chat thread with a generated title based on the user's question.
+    Generates a concise and informative title based on the user's question.
 
     Args:
-        message (Message): The message object containing user information and question.
+    - question (str): The user's question.
+    - llm_gpt (AzureChatOpenAI): The LLM used to generate the title.
 
     Returns:
-        str: The ID of the newly created chat thread.
+    - str: The generated title.
     """
     try:
-        title = create_new_title(message.question, llm_gpt)
-        new_chat = {
-            "userEmailId": message.userEmailId,
-            "title": title,
-            "chats": [
-                {
-                    "_id": ObjectId(),
-                    "user": message.question,
-                }
-            ],
-            "filtersMetadata": (
-                message.filtersMetadata if message.filtersMetadata else []
-            ),
-            "isGPT": message.isGPT,
-            "createdAt": datetime.utcnow(),
-            "updatedAt": datetime.utcnow(),
-        }
-
-        inserted_chat = await collection_chat.insert_one(new_chat)
-        return inserted_chat.inserted_id
+        prompt_text = prompts["create_new_title"]
+        prompt = ChatPromptTemplate.from_template(prompt_text)
+        new_title = {"element": lambda x: x} | prompt | llm_gpt
+        response = new_title.invoke(question)
+        return response.content
     except Exception as e:
-        logging.error(f"Error creating new chat: {e}")
-        raise HTTPException(status_code=500, detail="Error creating new chat")
+        raise Exception(f"Error generating title: {str(e)}")
