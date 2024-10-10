@@ -1,3 +1,6 @@
+from langchain.chains.llm import LLMChain
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+
 prompt_template = """
                       Write a comprehensive summary of the following text delimited by triple backquotes.
                       Aim for a summary length of approximately 250 words with out missing the important information the text.
