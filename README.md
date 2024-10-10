@@ -1,40 +1,251 @@
-import json
-from typing import Dict
-from fastapi import WebSocket
-
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-
-    async def connect(self, websocket: WebSocket, user_email_id: str):
-        await websocket.accept()
-        self.active_connections[user_email_id] = websocket
-
-    def disconnect(self, user_email_id: str):
-        if user_email_id in self.active_connections:
-            del self.active_connections[user_email_id]
-
-    async def send_message(self, message: str, user_email_id: str):
-        websocket = self.active_connections.get(user_email_id)
-        if websocket:
-            await websocket.send_text(json.dumps(message))
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections.values():
-            await connection.send_text(json.dumps(message))
-
-
-manager = ConnectionManager()
-
-@app.websocket("/ws/{userEmailId}")
-async def websocket_endpoint(
-    websocket: WebSocket,
-    userEmailId: str,
-):
-    await manager.connect(websocket, userEmailId)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(userEmailId)
+aenum==3.1.15
+aiohappyeyeballs==2.4.0
+aiohttp==3.10.5
+aiosignal==1.3.1
+annotated-types==0.7.0
+anyio==4.6.0
+appdirs==1.4.4
+APScheduler==3.10.4
+asgiref==3.8.1
+asttokens==2.4.1
+attrs==24.2.0
+azure-core==1.31.0
+azure-storage-blob==12.23.0
+backoff==2.2.1
+bcrypt==4.2.0
+beautifulsoup4==4.12.3
+bs4==0.0.2
+build==1.2.2
+cachetools==5.5.0
+case_conversion==2.1.0
+certifi==2024.8.30
+cffi==1.17.1
+chardet==5.2.0
+charset-normalizer==3.3.2
+chroma-hnswlib==0.7.6
+chromadb==0.5.7
+click==8.1.7
+clipboard==0.0.4
+colorama==0.4.6
+coloredlogs==15.0.1
+colour==0.1.5
+comm==0.2.2
+cryptography==43.0.1
+cursor==1.3.5
+dataclasses-json==0.6.7
+debugpy==1.8.5
+decorator==4.4.2
+Deprecated==1.2.14
+dill==0.3.8
+distro==1.9.0
+dnspython==2.6.1
+durationpy==0.7
+email_validator==2.2.0
+executing==2.1.0
+faiss-cpu==1.8.0.post1
+fastapi==0.115.0
+fastapi-cli==0.0.5
+filelock==3.16.1
+flatbuffers==24.3.25
+frozenlist==1.4.1
+fsspec==2024.9.0
+fuzzywuzzy==0.18.0
+gender-guesser==0.4.0
+gitdb==4.0.11
+GitPython==3.1.43
+google-ai-generativelanguage==0.6.6
+google-api-core==2.20.0
+google-api-python-client==2.146.0
+google-auth==2.35.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+google-generativeai==0.7.2
+google_search_results==2.4.2
+googleapis-common-protos==1.65.0
+greenlet==3.1.1
+gritql==0.1.5
+groq==0.11.0
+grpcio==1.66.1
+grpcio-status==1.62.3
+h11==0.14.0
+html_text==0.6.2
+httpcore==1.0.5
+httplib2==0.22.0
+httptools==0.6.1
+httpx==0.27.2
+huggingface-hub==0.25.1
+humanfriendly==10.0
+idna==3.10
+imageio==2.35.1
+imageio-ffmpeg==0.5.1
+importlib_metadata==8.4.0
+importlib_resources==6.4.5
+infi.systray==0.1.12
+inflect==7.4.0
+ipykernel==6.29.5
+ipython==8.27.0
+isodate==0.6.1
+jedi==0.19.1
+Jinja2==3.1.4
+jiter==0.5.0
+jsonpatch==1.33
+jsonpointer==3.0.0
+jsonschema==4.23.0
+jsonschema-specifications==2023.12.1
+jupyter_client==8.6.3
+jupyter_core==5.7.2
+kubernetes==31.0.0
+langchain==0.3.0
+langchain-chroma==0.1.4
+langchain-community==0.3.0
+langchain-core==0.3.5
+langchain-experimental==0.3.0
+langchain-google-genai==2.0.0
+langchain-groq==0.2.0
+langchain-openai==0.2.0
+langchain-text-splitters==0.3.0
+langgraph==0.2.26
+langgraph-checkpoint==1.0.11
+langserve==0.3.0
+langsmith==0.1.126
+libcst==1.4.0
+lxml==5.3.0
+lxml_html_clean==0.2.2
+markdown-it-py==3.0.0
+MarkupSafe==2.1.5
+marshmallow==3.22.0
+matplotlib-inline==0.1.7
+maybe-else==0.2.1
+mbstrdecoder==1.1.3
+mdurl==0.1.2
+mmh3==5.0.1
+monotonic==1.6
+more-itertools==10.5.0
+motor==3.6.0
+moviepy==1.0.3
+mpmath==1.3.0
+msal==1.31.0
+msgpack==1.1.0
+msoffcrypto-tool==5.4.2
+multidict==6.1.0
+mypy-extensions==1.0.0
+nest-asyncio==1.6.0
+numpy==1.26.4
+O365==2.0.36
+oauthlib==3.2.2
+office365==0.3.15
+Office365-REST-Python-Client==2.5.13
+olefile==0.47
+onnxruntime==1.19.2
+openai==1.47.1
+opentelemetry-api==1.27.0
+opentelemetry-exporter-otlp-proto-common==1.27.0
+opentelemetry-exporter-otlp-proto-grpc==1.27.0
+opentelemetry-instrumentation==0.48b0
+opentelemetry-instrumentation-asgi==0.48b0
+opentelemetry-instrumentation-fastapi==0.48b0
+opentelemetry-proto==1.27.0
+opentelemetry-sdk==1.27.0
+opentelemetry-semantic-conventions==0.48b0
+opentelemetry-util-http==0.48b0
+orjson==3.10.7
+overrides==7.7.0
+packaging==24.1
+pandas==2.2.3
+parsedatetime==2.6
+parso==0.8.4
+passlib==1.7.4
+pathmagic==0.3.14
+pillow==10.4.0
+pip-review==1.3.0
+pip-tools==7.4.1
+pipdeptree==2.23.4
+platformdirs==4.3.6
+posthog==3.6.6
+prettierfier==1.0.3
+proglog==0.1.10
+prompt_toolkit==3.0.47
+proto-plus==1.24.0
+protobuf==4.25.5
+psutil==6.0.0
+pure_eval==0.2.3
+pyasn1==0.6.1
+pyasn1_modules==0.4.1
+pycparser==2.22
+pydantic==2.9.2
+pydantic-settings==2.5.2
+pydantic_core==2.23.4
+pydub==0.25.1
+Pygments==2.18.0
+pyinstrument==4.7.3
+pyiotools==0.3.18
+PyJWT==2.9.0
+pymiscutils==0.3.14
+pymongo==4.9.1
+pyparsing==3.1.4
+PyPDF2==3.0.1
+pyperclip==1.9.0
+PyPika==0.48.9
+pyproject-toml==0.0.10
+pyproject_hooks==1.1.0
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.2
+PyQt5_sip==12.15.0
+pyreadline3==3.5.4
+pysubtypes==0.3.18
+python-dateutil==2.9.0.post0
+python-docx==1.1.2
+python-dotenv==1.0.1
+python-multipart==0.0.10
+pytz==2024.2
+pywin32==306
+PyYAML==6.0.2
+pyzmq==26.2.0
+readchar==4.2.0
+referencing==0.35.1
+regex==2024.9.11
+requests==2.32.3
+requests-oauthlib==2.0.0
+rich==13.8.1
+rpds-py==0.20.0
+rsa==4.9
+Send2Trash==1.8.3
+serpapi==0.1.5
+shellingham==1.5.4
+simplejson==3.19.3
+six==1.16.0
+smmap==5.0.1
+sniffio==1.3.1
+soupsieve==2.6
+SQLAlchemy==2.0.35
+sse-starlette==2.1.3
+stack-data==0.6.3
+starlette==0.38.6
+sympy==1.13.3
+tabulate==0.9.0
+tenacity==8.5.0
+tiktoken==0.7.0
+tokenizers==0.20.0
+toml==0.10.2
+tomlkit==0.12.5
+tornado==6.4.1
+tqdm==4.66.5
+traitlets==5.14.3
+typeguard==4.3.0
+typepy==1.3.2
+typer==0.12.5
+typing-inspect==0.9.0
+typing_extensions==4.12.2
+tzdata==2024.2
+tzlocal==5.2
+uritemplate==4.1.1
+urllib3==2.2.3
+uvicorn==0.23.2
+watchfiles==0.24.0
+wcwidth==0.2.13
+websocket-client==1.8.0
+websockets==13.1
+wrapt==1.16.0
+XlsxWriter==3.2.0
+yarl==1.12.1
+zipp==3.20.2
