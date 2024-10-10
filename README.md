@@ -1,218 +1,27 @@
-aiobotocore==2.15.1
-aiohappyeyeballs==2.4.0
-aiohttp==3.10.6
-aioitertools==0.12.0
-aiosignal==1.3.1
-annotated-types==0.7.0
-antlr4-python3-runtime==4.9.3
-anyio==4.6.0
-asgiref==3.8.1
-attrs==24.2.0
-backoff==2.2.1
-bcrypt==4.2.0
-beautifulsoup4==4.12.3
-botocore==1.35.23
-build==1.2.2
-cachetools==5.5.0
-certifi==2024.8.30
-cffi==1.17.1
-chardet==5.2.0
-charset-normalizer==3.3.2
-chroma-hnswlib==0.7.6
-chromadb==0.5.7
-click==8.1.7
-colorama==0.4.6
-coloredlogs==15.0.1
-contourpy==1.3.0
-cryptography==43.0.1
-cycler==0.12.1
-dataclasses-json==0.6.7
-deepdiff==8.0.1
-Deprecated==1.2.14
-distro==1.9.0
-dnspython==2.6.1
-durationpy==0.7
-EbookLib==0.18
-effdet==0.4.1
-emoji==2.13.2
-et-xmlfile==1.1.0
-fastapi==0.115.0
-filelock==3.16.1
-filetype==1.2.0
-flatbuffers==24.3.25
-fonttools==4.54.1
-frozenlist==1.4.1
-fsspec==2024.9.0
-google-ai-generativelanguage==0.6.6
-google-api-core==2.20.0
-google-api-python-client==2.147.0
-google-auth==2.35.0
-google-auth-httplib2==0.2.0
-google-cloud-vision==3.7.4
-google-generativeai==0.7.2
-googleapis-common-protos==1.65.0
-greenlet==3.1.1
-groq==0.11.0
-grpcio==1.63.0
-grpcio-status==1.62.3
-h11==0.14.0
-httpcore==1.0.5
-httplib2==0.22.0
-httptools==0.6.1
-httpx==0.27.2
-huggingface-hub==0.25.1
-humanfriendly==10.0
-idna==3.10
-importlib_metadata==8.4.0
-importlib_resources==6.4.5
-iopath==0.1.10
-Jinja2==3.1.4
-jiter==0.5.0
-jmespath==1.0.1
-joblib==1.4.2
-jsonpatch==1.33
-jsonpath-python==1.0.6
-jsonpointer==3.0.0
-kiwisolver==1.4.7
-kubernetes==31.0.0
-langchain==0.3.0
-langchain-chroma==0.1.4
-langchain-community==0.3.0
-langchain-core==0.3.5
-langchain-experimental==0.3.1
-langchain-google-genai==2.0.0
-langchain-groq==0.2.0
-langchain-openai==0.2.0
-langchain-text-splitters==0.3.0
-langdetect==1.0.9
-langsmith==0.1.128
-layoutparser==0.3.4
-lxml==5.3.0
-Markdown==3.7
-markdown-it-py==3.0.0
-MarkupSafe==2.1.5
-marshmallow==3.22.0
-matplotlib==3.9.2
-mdurl==0.1.2
-mmh3==5.0.1
-monotonic==1.6
-mpmath==1.3.0
-msal==1.31.0
-msg-parser==1.2.0
-multidict==6.1.0
-mypy-extensions==1.0.0
-nest-asyncio==1.6.0
-networkx==3.3
-nltk==3.9.1
-numpy==1.26.4
-oauthlib==3.2.2
-Office365-REST-Python-Client==2.5.13
-olefile==0.47
-omegaconf==2.3.0
-onnx==1.14.1
-onnxruntime==1.18.0
-openai==1.47.1
-opencv-python==4.10.0.84
-openpyxl==3.1.5
-opentelemetry-api==1.27.0
-opentelemetry-exporter-otlp-proto-common==1.27.0
-opentelemetry-exporter-otlp-proto-grpc==1.27.0
-opentelemetry-instrumentation==0.48b0
-opentelemetry-instrumentation-asgi==0.48b0
-opentelemetry-instrumentation-fastapi==0.48b0
-opentelemetry-proto==1.27.0
-opentelemetry-sdk==1.27.0
-opentelemetry-semantic-conventions==0.48b0
-opentelemetry-util-http==0.48b0
-orderly-set==5.2.2
-orjson==3.10.7
-overrides==7.7.0
-packaging==24.1
-pandas==2.2.3
-pdf2image==1.17.0
-pdfminer.six==20231228
-pdfplumber==0.11.4
-pi_heif==0.18.0
-pikepdf==9.2.1
-pillow==10.4.0
-pillow_heif==0.18.0
-portalocker==2.10.1
-posthog==3.6.6
-proto-plus==1.24.0
-protobuf==4.25.5
-psutil==6.0.0
-pyasn1==0.6.1
-pyasn1_modules==0.4.1
-pycocotools==2.0.8
-pycparser==2.22
-pydantic==2.9.2
-pydantic-settings==2.5.2
-pydantic_core==2.23.4
-Pygments==2.18.0
-PyJWT==2.9.0
-pymongo==4.9.1
-pypandoc==1.13
-pyparsing==3.1.4
-pypdf==5.0.0
-pypdfium2==4.30.0
-PyPika==0.48.9
-pyproject_hooks==1.1.0
-pyreadline3==3.5.4
-pytesseract==0.3.13
-python-dateutil==2.9.0.post0
-python-docx==1.1.2
-python-dotenv==1.0.1
-python-iso639==2024.4.27
-python-magic==0.4.27
-python-multipart==0.0.10
-python-oxmsg==0.0.1
-python-pptx==1.0.2
-pytz==2024.2
-pywin32==306
-PyYAML==6.0.2
-RapidFuzz==3.10.0
-regex==2024.9.11
-requests==2.32.3
-requests-oauthlib==2.0.0
-requests-toolbelt==1.0.0
-rich==13.8.1
-rsa==4.9
-s3fs==2024.9.0
-safetensors==0.4.5
-scipy==1.14.1
-shellingham==1.5.4
-six==1.16.0
-sniffio==1.3.1
-soupsieve==2.6
-SQLAlchemy==2.0.35
-starlette==0.38.6
-sympy==1.13.3
-tabulate==0.9.0
-tenacity==8.5.0
-tiktoken==0.7.0
-timm==1.0.9
-tokenizers==0.19.1
-torch==2.4.1
-torchvision==0.19.1
-tqdm==4.66.5
-transformers==4.44.2
-typer==0.12.5
-typing-inspect==0.9.0
-typing_extensions==4.12.2
-tzdata==2024.2
-unstructured==0.15.13
-unstructured-client==0.25.9
-unstructured-inference==0.7.36
-unstructured-ingest==0.0.18
-unstructured.pytesseract==0.3.13
-uritemplate==4.1.1
-urllib3==2.2.3
-uvicorn==0.30.6
-watchfiles==0.24.0
-websocket-client==1.8.0
-websockets==13.1
-wrapt==1.16.0
-xlrd==2.0.1
-XlsxWriter==3.2.0
-yarl==1.12.1
-zipp==3.20.2
+prompt_template = """
+                      Write a comprehensive summary of the following text delimited by triple backquotes.
+                      Aim for a summary length of approximately 250 words with out missing the important information the text.
+                      ```{text}```
+                      COMPREHENSIVE SUMMARY:
+                      """
+
+prompt = PromptTemplate.from_template(prompt_template)
+
+
+llm_chain = LLMChain(llm=llm, prompt=prompt)
+stuff_chain = StuffDocumentsChain(
+        llm_chain=llm_chain, document_variable_name="text"
+    )
+
+def create_summary():
+    try:
+        # accumulated_value = " ".join(batch_summary.values())
+        accumulated_value = """Large language models, also known as LLMs, are very large deep learning models that are pre-trained on vast amounts of data. The underlying transformer is a set of neural networks that consist of an encoder and a decoder with self-attention capabilities. The encoder and decoder extract meanings from a sequence of text and understand the relationships between words and phrases in it.
+        Transformer LLMs are capable of unsupervised training, although a more precise explanation is that transformers perform self-learning. It is through this process that transformers learn to understand basic grammar, languages, and knowledge."""
+        doc = Document(page_content=accumulated_value)
+        summary_result = stuff_chain.invoke([doc])
+        logging.info("Summary created successfully.")
+        return summary_result["output_text"]
+    except Exception as e:
+        logging.error(f"Failed to create summary. {e}")
+        return None
