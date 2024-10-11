@@ -1,4 +1,5 @@
-Hey Eddie, 3 important things for the Production:
-1.	 The SSL certificate is causing issue, I think just like the first time it is incomplete. APIs are working fine. I can access http server internally, but https server internally throws error.
-2.	User Permissions are not set for us, I can only see Manik’s user permission. Unless we are given permissions we cannot test the final application.
-3.	For the missing files permission, I need to manually set the metadata for those files, otherwise they will be re-ingested in the nightly cycle. Unless the permissions are set in the final deliverables list, I cannot proceed further. 
+SSL Certificate Issue: The SSL certificate is incomplete, similar to the first instance. APIs are functioning, and the HTTP server is accessible internally, but the HTTPS server is throwing errors internally. This needs to be addressed.
+
+User Permissions: Permissions are not set for our team. Currently, only Manik's permissions are visible. We cannot proceed with testing the final application until the correct permissions are applied.
+
+Missing Files Permission: Metadata for the missing files must be manually set to prevent them from being re-ingested in the nightly cycle. Without proper permissions in the final deliverables list, this process cannot move forward.
