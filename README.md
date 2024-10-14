@@ -43,7 +43,7 @@ except Exception as e:
     raise RuntimeError("Failed to initialize Azure AD client application")
 
 
-async def microsoft_login():
+async def azure_ad_login():
     try:
         # authorization_url = app.get_authorization_request_url(
         #     scopes=["User.Read"], redirect_uri=AZURE_AD_REDIRECT_URI
@@ -51,7 +51,7 @@ async def microsoft_login():
 
         authorization_url = await run_in_threadpool(
             app.get_authorization_request_url,
-            scopes=["openid", "User.Read"],
+            scopes=["User.Read"],
             redirect_uri=AZURE_AD_REDIRECT_URI,
         )
         logging.info("Azure AD authorization URL generated")
@@ -63,7 +63,7 @@ async def microsoft_login():
         )
 
 
-async def microsoft_callback(code: str, collection_user: AsyncIOMotorCollection):
+async def azure_ad_callback(code: str, collection_user: AsyncIOMotorCollection):
     try:
         # result = app.acquire_token_by_authorization_code(
         #     code, scopes=["User.Read"], redirect_uri=AZURE_AD_REDIRECT_URI
@@ -72,7 +72,7 @@ async def microsoft_callback(code: str, collection_user: AsyncIOMotorCollection)
         result = await run_in_threadpool(
             app.acquire_token_by_authorization_code,
             code,
-            scopes=["openid", "User.Read"],
+            scopes=["User.Read"],
             redirect_uri=AZURE_AD_REDIRECT_URI,
         )
 
@@ -93,14 +93,12 @@ async def microsoft_callback(code: str, collection_user: AsyncIOMotorCollection)
             logging.error("No valid user email found")
             return custom_error_response("No valid user email found", 400)
 
-        user = await collection_user.find_one(
-            {"userEmailId": user_email, "loginMethod": "MICROSOFT_SSO"}
-        )
+        user = await collection_user.find_one({"userEmailId": user_email})
         if not user:
             user = User(
                 userEmailId=user_email,
                 userFullName=user_info.get("name"),
-                loginMethod="MICROSOFT_SSO",
+                loginMethod="AZURE_AD",
                 role=user_info.get("roles", []),
                 createdAt=str(datetime.utcnow()),
                 updatedAt=str(datetime.utcnow()),
