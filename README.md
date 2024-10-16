@@ -1,30 +1,43 @@
-async def get_specific_chat(
-    chat_id: str,
-    userEmailId: str,
-    collection_chat: AsyncIOMotorCollection,
-):
-    try:
-        chat = await collection_chat.find_one(
-            {"_id": ObjectId(chat_id), "userEmailId": userEmailId}
-        )
-        if not chat:
-            raise custom_error_response("Chat not found", 404)
+import logging
+from cryptography.fernet import Fernet
+from typing import Optional
+from your_key_module import load_key
 
-        filtered_chats = chat.get("chats", [])
-        for chat_item in filtered_chats:
-            if "_id" in chat_item:
-                chat_item["_id"] = str(chat_item["_id"])
-            elif ["user","ai","feedback","reason"] in chat_item:
-                chat_item[""] = decrypt_data(chair[""],"Hello")
+class EncryptedLogger(logging.Logger):
+    """Custom logger class that automatically encrypts all log messages using Fernet"""
+    
+    _fernet: Optional[Fernet] = None
+    _initialized: bool = False
+    
+    @classmethod
+    def _ensure_initialized(cls):
+        """Initialize encryption if not already done"""
+        if not cls._initialized:
+            key = load_key()
+            cls._fernet = Fernet(key)
+            cls._initialized = True
+    
+    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1):
+        """Override the internal logging method to encrypt messages"""
+        self._ensure_initialized()
+        if isinstance(msg, str):
+            encrypted_data = self._fernet.encrypt(msg.encode())
+            msg = encrypted_data.decode()
+        super()._log(level, msg, args, exc_info, extra, stack_info, stacklevel)
 
-        return {
-            "message": "Chat retrieved successfully",
-            "title": decrypt_data(chat["title"], "Hello"),
-            "chats": filtered_chats,  # todo
-            "updatedAt": chat["updatedAt"],
-            "createdAt": chat["createdAt"],
-            "filtersMetadata": decrypt_data(chat["filtersMetadata"]),
-        }
-    except Exception as e:
-        logging.error(f"An error occurred while retrieving chat {userEmailId}: {e}")
-        return custom_error_response(f"An error occurred while retrieving chat", 400)
+# Configure logging to use our custom logger class
+logging.setLoggerClass(EncryptedLogger)
+
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("app.encrypted.log"),
+        logging.StreamHandler()
+    ]
+)
+
+def get_logger(name: str) -> EncryptedLogger:
+    """Get a logger instance that automatically encrypts messages"""
+    return logging.getLogger(name)
