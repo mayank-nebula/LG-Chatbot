@@ -1,49 +1,55 @@
-# logger_base.py
 import logging
 from cryptography.fernet import Fernet
-from typing import Optional
 
-class EncryptedLogger(logging.Logger):
-    """Custom logger class that automatically encrypts all log messages using Fernet"""
+# Assuming this is your encryption function
+def load_key() -> bytes:
+    # Load your key here
+    return b'your-fernet-key'
+
+def encrypt_string(plain_text: str) -> str:
+    key = load_key()
+    fernet = Fernet(key)
+    encrypted_data = fernet.encrypt(plain_text.encode())
+    return encrypted_data.decode()
+
+# Custom formatter that encrypts log messages
+class EncryptedFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        # Get the original log message
+        original_message = super().format(record)
+        # Encrypt the message
+        encrypted_message = encrypt_string(original_message)
+        return encrypted_message
+
+# Configure the logging
+def setup_logger():
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)  # Set the logging level (INFO, DEBUG, etc.)
+
+    # Create file handler and console handler
+    file_handler = logging.FileHandler("app.log")
+    console_handler = logging.StreamHandler()
+
+    # Use the encrypted formatter
+    formatter = EncryptedFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     
-    _fernet: Optional[Fernet] = None
-    _initialized: bool = False
-    
-    @classmethod
-    def initialize_encryption(cls, key: bytes):
-        """Initialize encryption with the provided key"""
-        if not cls._initialized:
-            cls._fernet = Fernet(key)
-            cls._initialized = True
-    
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, stacklevel=1):
-        """Override the internal logging method to encrypt messages"""
-        if self._fernet and isinstance(msg, str):
-            encrypted_data = self._fernet.encrypt(msg.encode())
-            msg = encrypted_data.decode()
-        super()._log(level, msg, args, exc_info, extra, stack_info, stacklevel)
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
 
-# Configure logging to use our custom logger class
-logging.setLoggerClass(EncryptedLogger)
+    # Add handlers to the logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
 
-# Configure basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app.encrypted.log"),
-        logging.StreamHandler()
-    ]
-)
+    return logger
 
-def get_logger(name: str) -> EncryptedLogger:
-    """Get a logger instance that automatically encrypts messages"""
+# Function to get logger in other modules
+def get_logger(name: str) -> logging.Logger:
+    setup_logger()  # Ensure logger is set up
     return logging.getLogger(name)
 
-# logger_config.py
-from your_key_module import load_key
-from logger_base import EncryptedLogger
-
-# Initialize encryption with the key
-key = load_key()
-EncryptedLogger.initialize_encryption(key)
+# Example usage
+if __name__ == "__main__":
+    logger = get_logger(__name__)
+    logger.info("This is an info message")
+    logger.debug("This is a debug message")
+    logger.error("This is an error message")
