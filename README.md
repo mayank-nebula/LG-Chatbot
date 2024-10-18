@@ -1,31 +1,39 @@
-import pickle
-import chromadb
+async def create_progess(
+    userEmailId: str,
+    filename: str,
+    status: str,
+    filesize: int,
+    current_time: datetime,
+    folder: str,
+):
+    try:
+        collection_file = get_file_collection(userEmailId)
 
-document_ids = []
-final_documents = []
+        file = await collection_file.find_one(
+            {
+                "userEmailId": userEmailId,
+                "filename": encrypt_data(filename, "Hello"),
+                "size": filesize,
+            }
+        )
 
-client = chromadb.HttpClient(host="10.1.0.4", port=8000)
-collection = client.get_collection("GatesVentures_Scientia")
+        if file and decrypt_data(file["status"], "Hello") == "Processing Failed":
+            return await update_progess(userEmailId, status, str(file["_id"]))
+        elif file and decrypt_data(file["status"], "Hello") != "Processing Failed":
+            raise Exception("File already exists.")
 
-with open("GatesVentures_Scientia.pkl", "rb") as file:
-    docstore = pickle.load(file)
+        new_file = File(
+            userEmailId=userEmailId,
+            filename=encrypt_data(filename, "Hello"),
+            status=encrypt_data(status, "Hello"),
+            size=filesize,
+            folder=encrypt_data(folder if folder else ".", "Hello"),
+            createdAt=current_time,
+            updatedAt=current_time,
+        )
 
-ids = results["ids"]
-metadatas = results["metadatas"]
-
-for i, metadata in enumerate(metadatas):
-    if not metadata.get("DeliverablePermissions").strip():
-        document_ids.append(metadata["GatesVentures_Scientia"])
-        metadata["DeliverablePermissions"] = "HLSConfidential"
-        document_id = ids[i]
-        colletion.update(document_id, metadatas=metadata)
-
-docstore_documents = docstore.mget(document_ids)
-
-for id, docstore_document in zip(document_ids, docstore_documents):
-    docstore_document.metadata["DeliverablePermissions"] = "HLSConfidential"
-    final_documents.append[(id, docstore_document)]
-
-docstore.mset(final_documents)
-with open("GatesVentures_Scientia.pkl", "wb") as file:
-    pickle.dump(docstore, file)
+        result = await collection_file.insert_one(new_file.dict())
+        return str(result.inserted_id)
+    except Exception as e:
+        logger.error(f"An error occurred while creating progress: {str(e)}")
+        raise e
