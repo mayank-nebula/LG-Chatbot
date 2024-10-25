@@ -1,4 +1,4 @@
-router.get("/user-create", chattingController.postUserCreate);
+router.post("/user-create", chattingController.postUserCreate);
 
 
 
@@ -24,7 +24,6 @@ exports.getAllChats = async (req, res, next) => {
 };
 
 
-
 exports.postUserCreate = async (req, res, next) => {
   try {
     const userLookupId = req.body.userLookupId;
@@ -40,7 +39,7 @@ exports.postUserCreate = async (req, res, next) => {
     );
     const permission = await getUserPermissions(
       userPermissionCSV,
-      userLookupId
+      "194"
     );
     const csvStats = fs.statSync(userPermissionCSV);
     const csvLastModified = csvStats.mtime.getTime();
@@ -58,8 +57,9 @@ exports.postUserCreate = async (req, res, next) => {
       if (userLastUpdated < csvLastModified) {
         user.userPermissions = permission;
         await user.save();
+        res.status(200).json({ message: "user updated" });
       }
-      res.status(200).json({ message: "user updated" });
+      res.status(200).json({ message: "no user changes" });
     }
   } catch (err) {
     if (!err.statusCode) {
