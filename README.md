@@ -1,31 +1,11 @@
-import os
-import pandas as pd
-from pymongo import MongoClient
-
-# MongoDB setup
-client = MongoClient("mongodb://10.2205.0.5:27017/")
-db = client["GatesVentures_Scientia"]
-collection = db["questions"]
-
-# Load the CSV
-csv_file = "files_metadata.csv"
-metadata_df = pd.read_csv(csv_file)
-
-# Function to remove file extensions
-def get_name_without_extension(name):
-    return os.path.splitext(name)[0]  # Splits name and extension
-
-# Iterate over each row in the DataFrame
-for _, row in metadata_df.iterrows():
-    name_without_extension = get_name_without_extension(row["Name"])
-    doc_id = row["ID"]
-
-    # Query MongoDB for documents with the matching name
-    mongo_document = collection.find_one({"name": name_without_extension})
-
-    # Add the new field with `id` if a document is found
-    if mongo_document:
-        collection.update_one(
-            {"_id": mongo_document["_id"]},
-            {"$set": {"id": doc_id}}
-        )
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+9|express_application  |     at ServerResponse.setHeader (node:_http_outgoing:655:11)
+9|express_application  |     at ServerResponse.header (/home/mayank.sharma9/GV/express/node_modules/express/lib/response.js:795:10)
+9|express_application  |     at ServerResponse.send (/home/mayank.sharma9/GV/express/node_modules/express/lib/response.js:175:12)
+9|express_application  |     at ServerResponse.json (/home/mayank.sharma9/GV/express/node_modules/express/lib/response.js:279:15)
+9|express_application  |     at /home/mayank.sharma9/GV/express/app.js:60:26
+9|express_application  |     at Layer.handle_error (/home/mayank.sharma9/GV/express/node_modules/express/lib/router/layer.js:71:5)
+9|express_application  |     at trim_prefix (/home/mayank.sharma9/GV/express/node_modules/express/lib/router/index.js:326:13)
+9|express_application  |     at /home/mayank.sharma9/GV/express/node_modules/express/lib/router/index.js:286:9
+9|express_application  |     at Function.process_params (/home/mayank.sharma9/GV/express/node_modules/express/lib/router/index.js:346:12)
+9|express_application  |     at next (/home/mayank.sharma9/GV/express/node_modules/express/lib/router/index.js:280:10)
