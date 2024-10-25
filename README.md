@@ -3,9 +3,9 @@ import pandas as pd
 from pymongo import MongoClient
 
 # MongoDB setup
-client = MongoClient("mongodb://localhost:27017/")
-db = client["your_database_name"]
-collection = db["your_collection_name"]
+client = MongoClient("mongodb://10.2205.0.5:27017/")
+db = client["GatesVentures_Scientia"]
+collection = db["questions"]
 
 # Load the CSV
 csv_file = "files_metadata.csv"
