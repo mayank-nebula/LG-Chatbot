@@ -1,3 +1,17 @@
+def parse_permissions(permissions_str):
+    """
+    Parses the permissions string into a dictionary with each permission set to True.
+    
+    Args:
+        permissions_str (str): Semicolon-separated string of permissions.
+
+    Returns:
+        dict: Dictionary with permissions as keys and True as values.
+    """
+    permissions = [perm.strip() for perm in permissions_str.split(";") if perm.strip()]
+    return {perm: True for perm in permissions}
+
+
 import chromadb
 
 chroma_client = chromadb.HttpClient(host="localhost", port=8000)
