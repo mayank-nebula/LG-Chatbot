@@ -1,21 +1,33 @@
-Login Security:
+import chromadb
 
-JWT Token Authentication: Secure login is managed with JWT tokens, validating each request to prevent unauthorized access.
-Password Hashing: User passwords are securely stored in a hashed format, making them unreadable even if accessed.
-Azure AD Integration: Supports login with corporate credentials, providing centralized identity management and multi-factor authentication.
-Data Encryption:
+chroma_client = chromadb.HttpClient(host="localhost", port=8000)
+collection = chroma_client.get_or_create_collection("GatesVentures_Scientia_Summary")
 
-Encrypted Email and Attachments: All user-uploaded emails and their attachments are stored in an encrypted format, ensuring they are unreadable without decryption.
-Data Isolation:
 
-Separate Collections: Each user has individual MongoDB and ChromaDB collections for chats, files, and email metadata, ensuring complete data separation to prevent cross-access.
-Data Deletion:
+def coversion(permission_string):
+    permissions = [p for p in permission_string.split(";") if p.strip()]
+    permissions = set(filter(None, permissions))
+    permission_dict = {f"{perm}": True for perm in permissions}
+    return permission_dict
 
-Complete Removal of Deleted Data: When users delete emails, all related content and metadata are permanently removed, leaving no residual information.
-Encrypted Database Collections:
 
-Encryption at Rest: MongoDB collections for chats and files are encrypted, so data remains unreadable even if accessed directly from the backend, providing an added layer of security.
-Encrypted Request Logging:
+def update_collection(ids, metadatas):
+    for i, metadata in enumerate(metadatas):
+        if metadata.get("DeliverablePermissions"):
+            doc_id = ids[i]
+            flag = coversion(metadata["DeliverablePermissions"])
+            updated = {**metadata, **flag}
 
-Detailed Request Logs: Logs of each request made by every user are maintained, capturing essential request details for security monitoring.
-Encrypted Logs: These logs are encrypted to protect sensitive information, ensuring log data is secure and unreadable without decryption.
+            collection.update(doc_id, metadatas=updated)
+
+
+def main():
+    result = collection.get()
+    ids = result["ids"]
+    metadatas = result["metadatas"]
+
+    update_collection(ids, metadatas)
+
+
+if __name__ == "__main__":
+    main()
