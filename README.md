@@ -1,3 +1,9 @@
+# Function to save each question and answer immediately to CSV
+def save_to_csv(question, question_value, answer):
+    with open("questions_answers.csv", mode="a", newline="") as file:
+        writer = csv.writer(file, quoting=csv.QUOTE_ALL)  # Quote all fields to handle commas
+        writer.writerow([question, question_value, answer])
+
 # Function to save updated questions dictionary to JSON
 def save_questions_to_json(questions, filename="questions.json"):
     with open(filename, "w") as file:
