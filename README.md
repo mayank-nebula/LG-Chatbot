@@ -1,1 +1,20 @@
-b'{"type": "chatId", "content": "67206ccf24988e5d8c16cb0a"}{"type": "text", "content": ""}{"type": "text", "content": "The"}{"type": "text", "content": " total"}{"type": "text", "content": " revenue"}{"type": "text", "content": " figures"}{"type": "text", "content": " for"}{"type": "text", "content": " Bristol"}{"type": "text", "content": "-"}{"type": "text", "content": "My"}{"type": "text", "content": "ers"}{"type": "text", "content": " Squ"}{"type": "text", "content": "ibb"}{"type": "text", "content": " were"}{"type": "text", "content": " as"}{"type": "text", "content": " follows"}{"type": "text", "content": ":\\n\\n"}{"type": "text", "content": "-"}{"type": "text", "content": " **"}{"type": "text", "content": "201"}{"type": "text", "content": "0"}{"type": "text", "content": ":**"}{"type": "text", "content": " $"}{"type": "text", "content": "19"}{"type": "text", "content": ","}{"type": "text", "content": "484"}{"type": "text", "content": " million"}{"type": "text", "content": "\\n"}{"type": "text", "content": "-"}{"type": "text", "content": " **"}{"type": "text", "content": "201"}{"type": "text", "content": "1"}{"type": "text", "content": ":**"}{"type": "text", "content": " $"}{"type": "text", "content": "21"}{"type": "text", "content": ","}{"type": "text", "content": "244"}{"type": "text", "content": " million"}{"type": "text", "content": "\\n\\n"}{"type": "text", "content": "The"}{"type": "text", "content": " percentage"}{"type": "text", "content": " growth"}{"type": "text", "content": " between"}{"type": "text", "content": " these"}{"type": "text", "content": " years"}{"type": "text", "content": " was"}{"type": "text", "content": " "}{"type": "text", "content": "9"}{"type": "text", "content": "."}{"type": "text", "content": "0"}{"type": "text", "content": "%."}{"type": "text", "content": ""}{"type": "messageId", "content": "67206cd124988e5d8c16cb0b"}{"type": "sources", "content": {"GAE294MCK.01222013.GPH - BMS VF_Background and Overview_01222013.doc :references: Page 2, Page 6, Page 3, Page 4": "https://gatesventures.sharepoint.com/sites/scientia/_layouts/15/Doc.aspx?sourcedoc=%7B8E8648FF-AC29-46DE-8023-5401F92886C7%7D&file=GAE294MCK.01222013.GPH%20-%20BMS%20VF_Background%20and%20Overview_01222013.doc&action=default&mobileredirect=true"}}'
+for line in response.iter_lines():
+            if line:
+                # Split concatenated JSON objects
+                line_str = line.decode('utf-8')
+                json_objects = line_str.replace('}{', '}\n{').splitlines()
+
+                # Process each JSON object individually
+                for obj in json_objects:
+                    try:
+                        line_data = json.loads(obj)
+                        # Accumulate only if the type is "text"
+                        if line_data.get("type") == "text":
+                            accumulated_answer += line_data.get("content", "")
+                        # Stop if "sources" type is reached
+                        elif line_data.get("type") == "sources":
+                            return accumulated_answer
+                    except json.JSONDecodeError as e:
+                        print(f"JSON decoding error: {e}")
+                        continue
+    return accumulated_answer
