@@ -1,25 +1,53 @@
+import requests
+import csv
 import json
-from pymongo import MongoClient
 
-# Connect to MongoDB
-client = MongoClient("mongodb://localhost:27017/")  # Update with your MongoDB connection string
-db = client["your_database_name"]  # Replace with your database name
-collection = db["your_collection_name"]  # Replace with your collection name
+# Define the API endpoint
+url = "http://localhost:6677"
 
-# Retrieve questions as key-value pairs with document names
-questions_dict = {}
+# Read questions from a JSON file
+with open("questions.json", "r") as file:
+    questions = json.load(file)  # Format: {"question1": "", "question2": "", ...}
 
-# Fetch all documents in the collection
-for document in collection.find({}, {"documentName": 1, "questions": 1}):
-    document_name = document.get("documentName")
-    questions = document.get("questions", [])
+# Headers (if required)
+headers = {
+    "Content-Type": "application/json"
+}
 
-    # Populate dictionary with questions as keys and document name as values
-    for question in questions:
-        questions_dict[question] = document_name
+# Function to send the request and accumulate the streamed response until the end
+def get_full_answer(url, question, headers):
+    accumulated_answer = ""
+    with requests.post(url, json={"question": question}, headers=headers, stream=True) as response:
+        for line in response.iter_lines():
+            if line:
+                line_data = json.loads(line.decode('utf-8'))
+                # Accumulate only if the type is "answer"
+                if line_data.get("type") == "answer":
+                    accumulated_answer += line_data.get("context", "")
+                # Break on "sources" type indicating the end of the response
+                elif line_data.get("type") == "sources":
+                    break
+    return accumulated_answer
 
-# Save the result to a JSON file
-with open("questions_document_map.json", "w") as json_file:
-    json.dump(questions_dict, json_file, indent=4)
+# Process each question and save question and answer in CSV
+def save_to_csv(data):
+    with open("questions_answers.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Question", "Answer"])  # Write header once
+        for question, answer in data.items():
+            writer.writerow([question, answer])
 
-print("Data has been saved to questions_document_map.json")
+# Main logic
+if __name__ == "__main__":
+    answers = {}
+    for question in questions.keys():
+        try:
+            # Get the full answer for the current question
+            answer = get_full_answer(url, question, headers)
+            answers[question] = answer
+            print(f"Saved: Question - {question} | Answer - {answer}")
+        except Exception as e:
+            print(f"An error occurred for question '{question}':", e)
+
+    # Save all question-answer pairs to CSV
+    save_to_csv(answers)
