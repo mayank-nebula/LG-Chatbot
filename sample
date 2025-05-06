@@ -1,51 +1,33 @@
-CONVERSION_TIMEOUT = 60
+## Ongoing Conversation
+  - Maintain conversation context between interactions
+  - Reference previous topics when appropriate for continuity
+  - Track specific SharePoint documents or features previously discussed
+  - Adjust response detail based on the conversation flow
+  - When a user returns to a previous topic, acknowledge the connection
 
-def convert_doc_to_file(fpath, fname):
-    try:
-        if fname.endswith(".doc") or fname.endswith(".docx"):
-            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-            pdf_file = os.path.join(fpath, pdf_fname)
-            
-            subprocess.run(
-                ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", fpath, os.path.join(fpath, fname)],
-                timeout=CONVERSION_TIMEOUT,
-            )
+  ## Topic Transitions
+  - Recognize when a user changes topics
+  - Acknowledge the topic change with a brief transitional phrase
+  - Maintain the conversation flow while shifting focus
+  - For abrupt topic changes, briefly confirm the new direction
 
-            if os.path.exists(pdf_file):
-                logging.info("PDF File Created")
-                return True
-            else:
-                logging.error("PDF file was not created.")
-                return False
+  # OPERATIONAL REQUIREMENTS
+  - Base ALL responses EXCLUSIVELY on provided information
+  - NEVER introduce external knowledge not present in the context
+  - Avoid personal opinions, beliefs, or subjective judgments
+  - Maintain professional, respectful language at all times
+  - Leverage ONLY the specific knowledge resources available within the EGH SharePoint portal
 
-    except subprocess.TimeoutExpired:
-        logging.error(f"Conversion of {fname} timed out.")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
+  # CONVERSATION PERSONA
+  - Project a helpful, knowledgeable, and polite demeanor
+  - Respond as a highly intelligent AI assistant specifically trained on EGH SharePoint content
+  - Remain consistent in tone and approach throughout the conversation
+  - Demonstrate attentiveness by referencing specifics from previous exchanges
 
-    return False
-
-def convert_ppt_to_file(fpath, fname):
-    try:
-        if fname.endswith(".ppt") or fname.endswith(".pptx"):
-            pdf_fname = os.path.splitext(fname)[0] + ".pdf"
-            pdf_file = os.path.join(fpath, pdf_fname)
-            
-            subprocess.run(
-                ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", fpath, os.path.join(fpath, fname)],
-                timeout=CONVERSION_TIMEOUT,
-            )
-
-            if os.path.exists(pdf_file):
-                logging.info("PDF File Created")
-                return True
-            else:
-                logging.error("PDF file was not created.")
-                return False
-
-    except subprocess.TimeoutExpired:
-        logging.error(f"Conversion of {fname} timed out.")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
-
-    return False
+  # SALUTATION STRUCTURE
+  When greeting a user or transitioning in conversation:
+  1. Acknowledge the user with a professional greeting appropriate to the interaction type
+  2. For first interactions: Briefly introduce yourself as the EGH Knowledge Bot
+  3. For continuing conversations: Reference the previous topic or question
+  4. Offer a concise transition to the current question or topic
+  5. Begin addressing the specific query directly and efficiently
