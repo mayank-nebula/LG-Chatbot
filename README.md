@@ -1,12 +1,63 @@
-How Deep Research Complements the RAG Pipelines
-Deep Research can fill the gap by enabling multi-source reasoning over the existing pipelines. Instead of routing a query to a single pipeline, a Deep Research orchestrator can invoke multiple pipelines (and external searches) as needed. For example, a query might first retrieve relevant documents via the normal RAG, then use those results plus query refinement to fetch data from the SQL agent, and finally generate a combined summary. This performs a two-stage retrieval and aggregation from multiple indexes. In practical terms, an answer might merge document snippets and database figures, each retrieved and weighted appropriately.
-Example query: Compare ASHER in India and Pakistan and how many documents are there for ASHER in each country. The orchestrator might break this into two tasks: a textual comparison of “ASHER in India” vs “ASHER in Pakistan” (handled by RAG), and a database count query for each country. It sends appropriate queries to each pipeline (e.g. a vector search for related documents and a SQL count query on a document metadata table). The results – descriptive text snippets and numerical counts – are then aggregated and fed together into the LLM to produce a coherent answer like: “In India, ASHER appears in X documents and in Pakistan Y documents, with the term used in contexts describing ...”.
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, List
+from datetime import datetime
 
-Key principles for this integration include:
-1.	Multi-Source Routing: Multi-Source Routing: Instead of one-shot retrieval, the orchestrator first analyses the query to decide which sources (pipelines) to query. It can leverage semantic embeddings or small classifiers to categorize the query and match it to pipeline domains. For instance, queries with numeric or tabular cues (like “count”, “list”, or specific table/field names) can be routed to a SQL or structured data pipeline, while open-ended questions or narrative prompts go to RAG. 
-2.	Query Refinement: Deep Research can rewrite or decompose queries to match each pipeline’s format and capabilities. An LLM or rule-based parser can take the original user query and generate pipeline-specific sub-queries. For example, a high-level question can be split into sub-questions: one aimed at structured data (for the SQL agent) and one for textual content (for the RAG engine). The orchestrator might use prompt templates like “Translate the user’s request into a SQL query for the sales database” or “Rephrase the question to search document content.” In the ASHER example, the system would produce one sub-query such as SELECT COUNT (*) FROM documents WHERE title LIKE '%ASHER%' AND country='India'; and similarly for Pakistan, while also creating a textual search query “ASHER India context”. Intermediate results can feed back into this loop: e.g., if the RAG results mention specific dates or sources, the orchestrator can refine the SQL query to focus on those details. Techniques like chain-of-thought prompting help ensure the breakdown is logical. By decomposing complex tasks, the system ensures each pipeline gets a query in the form it expects, improving accuracy and completeness of the final answer. Parallel & Iterative Retrieval: Rather than one sequential fetch, the orchestrator can run multiple retrievals in parallel for speed. 
-3.	Evidence Aggregation: To boost performance and thoroughness, the orchestrator can run multiple retrievals in parallel and iteratively refine results. Independent queries to RAG and to the SQL agent, for instance, can be dispatched simultaneously using asynchronous calls or multi-threading, so that text search and database lookup happen at the same time. After the first-round returns, the orchestrator reviews the results and may trigger additional retrieval rounds if needed. For example, if the RAG pipeline uncovers a key term not originally in the query, that term can be used to launch a new search or SQL query in parallel. This iterative loop continues until a stopping condition (such as no new relevant information or reaching a confidence threshold) is met. Concurrency frameworks or event loops manage these parallel tasks and aggregate responses. The system might also implement timeouts and fallback strategies: if one pipeline is slow or times out, the orchestrator can proceed with available results from other pipelines. This combination of parallel calls and iterative refinement ensures that the orchestrator converges on a comprehensive set of evidence quickly.
-4.	Evidence Aggregation: After retrieving from several pipelines, the system merges the results into a unified response context. This involves re-ranking, filtering, and formatting the evidence. First, the orchestrator collects all text snippets, figures, and records, then deduplicates and filters irrelevant pieces. For instance, if two documents from RAG contain the same factual statement, the duplicate is removed. Each piece of evidence is scored by relevance – using factors like semantic match to the query, source trustworthiness, or metadata – to prioritize the most useful content. The orchestrator then forms a composite context for the LLM. This might mean concatenating key sentences from text sources with tabular summaries of numerical data, or embedding data points as inline facts. The final context could include short citations or source tags (e.g., “[Doc1]”, “[DB]”) to help the LLM distinguish evidence sources. For example, the combined context might present: “ASHER appears in 42 documents from India and 37 from Pakistan [Source: DocDB]; textual analysis shows ASHER in India is often referenced with economic projects, whereas in Pakistan it appears in cultural reports.” All this aggregated content is then provided to the LLM as the basis for the final answer, ensuring it has a full, multi-faceted view of the question.
 
-In summary, a Deep Research orchestrator combines architectural patterns like modular services, async execution, and intelligent query processing. It enhances RAG pipelines by automatically determining which sources to query, how to ask each one, and when to merge the answers. The result is a cohesive answer that leverages both unstructured text and structured data. For example, answering the ASHER query end-to-end might involve the orchestrator running the text and SQL pipelines in parallel, collecting evidence (“ASHER is linked to projects X in India [DocA] and to initiatives Y in Pakistan [DocB]” and “Counts: India=42, Pakistan=37”), and then prompting the LLM with all information so it can compose a final summary that cites both documents and database figures. This layered design – routing, refinement, parallel retrieval, and aggregation – is what makes Deep Research a powerful complement to traditional RAG pipelines.
+class File(BaseModel):
+    message_id: Optional[str] = Field(
+        default=None, alias="Message-ID", description="Unique ID of the email message"
+    )
+    in_reply_to: Optional[str] = Field(
+        default=None, alias="In-Reply-to", description="Message ID this file is replying to"
+    )
+    references: List[str] = Field(
+        default_factory=list, description="List of referenced message IDs"
+    )
+    userEmailId: EmailStr = Field(..., description="Email of the user associated with the file")
+    filename: str = Field(..., description="Name of the file")
+    status: str = Field(..., description="Processing status of the file")
+    size: int = Field(..., description="Size of the file in bytes")
+    folder: str = Field(..., description="Folder where the file is stored")
+    type: str = Field(..., description="Type/category of the file")
+    createdAt: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp when the file was created (set automatically)"
+    )
+    updatedAt: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp when the file was last updated (set automatically)"
+    )
 
+
+class FailedFile(BaseModel):
+    userEmailId: EmailStr = Field(..., description="Email of the user associated with the file")
+    filename: str = Field(..., description="Name of the file")
+    status: str = Field(..., description="Processing status of the file")
+    size: int = Field(..., description="Size of the file in bytes")
+    folder: str = Field(..., description="Folder where the file is stored")
+    type: str = Field(..., description="Type/category of the file")
+    createdAt: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp when the file was created (set automatically)"
+    )
+    updatedAt: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp when the file was last updated (set automatically)"
+    )
+
+
+class NormalFile(BaseModel):
+    userEmailId: EmailStr = Field(..., description="Email of the user associated with the file")
+    filename: str = Field(..., description="Name of the file")
+    status: str = Field(..., description="Processing status of the file")
+    size: int = Field(..., description="Size of the file in bytes")
+    folder: str = Field(..., description="Folder where the file is stored")
+    type: str = Field(..., description="Type/category of the file")
+    createdAt: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp when the file was created (set automatically)"
+    )
+    updatedAt: Optional[datetime] = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp when the file was last updated (set automatically)"
+    )
