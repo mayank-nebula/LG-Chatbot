@@ -1,136 +1,47 @@
-import queue
-from typing import List
-from datetime import datetime
+def split_image_text_types(docs, sources, prompt_container, extra_sources) -> Dict[str, List[str]]:
+    texts = []
+    summary = []
+    b64_images = []
 
+    for doc in docs:
+        decoded_doc = doc.decode("utf-8")
+        final_doc = json.loads(decoded_doc)
 
-class Task:
-    def __init__(
-        self,
-        user_email_id: str,
-        file_path: str,
-        filename: str,
-        folder_path: str,
-        create_progress_id: str,
-        type_of_mail: str,
-        old_folder_name: str,
-        new_folder_name: str,
-        queued_mail_reference: str,
-        filesize: str,
-        current_time: datetime,
-        workspace_id: str,
-        tags: List[str],
-    ):
-        self.user_email_id = user_email_id
-        self.filename = filename
-        self.file_path = file_path
-        self.folder_path = folder_path
-        self.create_progress_id = create_progress_id
-        self.type_of_mail = type_of_mail
-        self.old_folder_name = old_folder_name
-        self.new_folder_name = new_folder_name
-        self.queued_mail_reference = queued_mail_reference
-        self.filesize = filesize
-        self.current_time = current_time
-        self.workspace_id = workspace_id
-        self.tags = tags
+        doc_content = final_doc["page_content"]
+        metadata = final_doc["metadata"]
 
-    def __str__(self):
-        return f"Task(user_email_id={self.user_email_id}, filename={self.filename}, file_path={self.file_path}, folder_path={self.folder_path}, create_progress_id={self.create_progress_id}, type_of_mail={self.type_of_mail}, old_folder_name={self.old_folder_name}, new_folder_name={self.new_folder_name}, queued_mail_reference={self.queued_mail_reference}, filesize={self.filesize}, current_time={self.current_time}), workspace_id={self.workspace_id}, tags={self.tags}"
+        slide_number = metadata.get("slide_number", "")
+        id = metadata.get("id")
 
-    def __repr__(self):
-        return f"Task(user_email_id={self.user_email_id}, filename={self.filename}, file_path={self.file_path}, folder_path={self.folder_path}, create_progress_id={self.create_progress_id}, type_of_mail={self.type_of_mail}, old_folder_name={self.old_folder_name}, new_folder_name={self.new_folder_name}, queued_mail_reference={self.queued_mail_reference}, filesize={self.filesize}, current_time={self.current_time}), workspace_id={self.workspace_id}, tags={self.tags}"
+        title = metadata.get("title", "")
+        _, ext = os.path.splitext(title)
 
+        if ext in [".pdf", ".doc", ".docx", ".ppt", ".pptx"]:
+            filename = metadata.get("filename") 
+            if filename and filename not in extra_sources:
+                extra_sources[filename] = id
 
-class QueueManager:
-    _instance = None
+        if ext.lower() in [".pdf", ".doc", ".docx"]:
+            slide_number = slide_number.replace("slide_", "Page ")
+        elif ext.lower() in [".ppt", ".pptx"]:
+            slide_number = slide_number.replace("slide_", "Slide ")
 
-    def __init__(self):
-        if QueueManager._instance is not None:
-            raise Exception("This class is a singleton!")
-        self.queues = {}
-
-    @staticmethod
-    def get_instance():
-        if QueueManager._instance is None:
-            QueueManager._instance = QueueManager()
-        return QueueManager._instance
-
-    def get_queue(self, workspace_id):
-        if workspace_id not in self.queues:
-            self.queues[workspace_id] = queue.Queue()
-        return self.queues[workspace_id]
-
-    def process_one_task_by_user(self, workspace_id):
-        if workspace_id in self.queues:
-            user_queue = self.queues[workspace_id]
-            if not user_queue.empty():
-                task = user_queue.get()
-                return task
-            else:
-                del self.queues[workspace_id]
-
-        return None
-
-    def process_task_by_user_and_id(self, workspace_id, queued_mail_reference):
-        if workspace_id not in self.queues:
-            return None
-
-        user_queue = self.queues[workspace_id]
-        if user_queue.empty():
-            return None
-
-        all_tasks = []
-        target_task = None
-
-        while not user_queue.empty():
-            task = user_queue.get()
-            if (
-                task.queued_mail_reference == queued_mail_reference
-                and target_task is None
-            ):
-                target_task = task
-            else:
-                all_tasks.append(task)
-
-        for task in all_tasks:
-            user_queue.put(task)
-
-        if target_task:
-            return target_task
+        existing_key = next((k for k in sources.keys() if k.startswith(title)), None)
+        if existing_key:
+            formatted_name = f", {slide_number}" if slide_number else ""
+            new_key = existing_key + formatted_name
+            sources[new_key] = sources.pop(existing_key)
         else:
-            return None
+            new_key = f"{title}{' :references: ' if slide_number else ''}{slide_number}"
+            sources[new_key] = id
 
+        if looks_like_base64(doc_content):
+            resized_image = resize_base64_image(doc_content, size=(512, 512))
+            b64_images.append(resized_image)
+            summary.append(final_doc["summary"])
+            prompt_container[title] = final_doc["summary"]
+        else:
+            texts.append(doc_content)
+            prompt_container[title] = doc_content
 
-def add_task(
-    user_email_id: str,
-    file_path: str,
-    filename: str,
-    folder_path: str,
-    create_progress_id: str,
-    type_of_mail: str,
-    old_folder_name: str,
-    new_folder_name: str,
-    queued_mail_reference: str,
-    filesize: str,
-    current_time: datetime,
-    workspace_id: str,
-    tags: List[str],
-):
-    task = Task(
-        user_email_id=user_email_id,
-        file_path=file_path,
-        filename=filename,
-        folder_path=folder_path,
-        create_progress_id=create_progress_id,
-        type_of_mail=type_of_mail,
-        old_folder_name=old_folder_name,
-        new_folder_name=new_folder_name,
-        queued_mail_reference=queued_mail_reference,
-        filesize=filesize,
-        current_time=current_time,
-        workspace_id=workspace_id,
-        tags=tags,
-    )
-    manager = QueueManager.get_instance()
-    user_queue = manager.get_queue(workspace_id=workspace_id)
-    user_queue.put(task)
+    return {"images": b64_images, "texts": texts, "summary": summary}
