@@ -1,208 +1,61 @@
-async def process_file_async(
-    user_email_id: str,
-    file_path: str,
-    filename: str,
-    folder_path: str,
-    create_progress_id: str,
-    type_of_mail: str,
-    old_folder_name: str,
-    new_folder_name: str,
-    workspace_id: str,
-    tags: List[str],
-) -> None:
-    try:
-        new_attachments = None
-        attachment_collection = get_attachment_collection(workspace_id=workspace_id)
-        attachment_doc = await attachment_collection.find_one(
-            {"_id": ObjectId(create_progress_id)}
-        )
+Understanding How Our Smart Document Search Works
 
-        if attachment_doc:
-            existing_attachment = attachment_doc.get("filename", [])
-        else:
-            existing_attachment = []
+Our solution uses advanced AI techniques to help you find relevant information quickly and accurately from your uploaded documents. This document explains what happens behind the scenes—without getting too technical—when you ask a question.
 
-        _, ext = os.path.splitext(filename)
-        if ext in [".msg", ".eml"]:
-            attachment_name = mail_content_extraction(file_path=file_path)
-            if attachment_name:
-                new_attachments = {
-                    "_id": ObjectId(create_progress_id),
-                    "userEmailId": user_email_id,
-                    "userFullName": extract_full_name(user_email_id=user_email_id),
-                    "filename": encrypt_data(
-                        data=attachment_name, key=config.ENCRYPT_DECRYPT_KEY
-                    ),
-                    "createdAt": datetime.now(timezone.utc),
-                    "updatedAt": datetime.now(timezone.utc),
-                }
-        else:
-            new_attachments = {
-                "_id": ObjectId(create_progress_id),
-                "userEmailId": user_email_id,
-                "userFullName": extract_full_name(user_email_id=user_email_id),
-                "filename": encrypt_data(
-                    data=[filename], key=config.ENCRYPT_DECRYPT_KEY
-                ),
-                "createdAt": datetime.now(timezone.utc),
-                "updatedAt": datetime.now(timezone.utc),
-            }
 
-        await update_progess(
-            status="Processing",
-            id=create_progress_id,
-            type_of_mail=type_of_mail,
-            workspace_id=workspace_id,
-        )
-        await publish_message(
-            user_email_id=user_email_id,
-            payload={
-                "file_id": create_progress_id,
-                "filename": filename,
-                "process": "Processing",
-                "reason": "Processing",
-            },
-        )
 
-        llm_generated_tags = await ingest_files(
-            filepath=file_path,
-            created_id=create_progress_id,
-            type_of_mail=type_of_mail,
-            existing_attachment=decrypt_data(
-                data=existing_attachment, key=config.ENCRYPT_DECRYPT_KEY
-            ),
-            workspace_id=workspace_id,
-            tags=tags,
-        )
-        await update_progess(
-            status="Ingestion Successful",
-            id=create_progress_id,
-            type_of_mail=type_of_mail,
-            workspace_id=workspace_id,
-        )
-        await publish_message(
-            user_email_id=user_email_id,
-            payload={
-                "file_id": create_progress_id,
-                "filename": filename,
-                "tags": llm_generated_tags,
-                "process": "Ingestion Successful",
-                "reason": "Ingestion Successful",
-            },
-        )
+1. How Your Question is Understood
 
-        if type_of_mail in ["Full-Chain", "Sub-Chain"]:
-            transfer_files(
-                old_folder=old_folder_name,
-                new_folder=new_folder_name,
-                mail_type=type_of_mail,
-                workspace_id=workspace_id,
-            )
-        tags_to_save = llm_generated_tags if llm_generated_tags else tags
-        if attachment_doc:
-            await attachment_collection.update_one(
-                {"_id": ObjectId(create_progress_id)},
-                {
-                    "$push": {
-                        "filename": {
-                            "$each": encrypt_data(
-                                data=attachment_name, key=config.ENCRYPT_DECRYPT_KEY
-                            )
-                        }
-                    },
-                    "$set": {
-                        "updatedAt": datetime.now(timezone.utc),
-                        "tags": tags_to_save,
-                    },
-                },
-            )
-        elif new_attachments:
-            new_attachments["tags"] = tags_to_save
-            await attachment_collection.insert_one(new_attachments)
-    except Exception as e:
-        print("hi")
-        shutil.rmtree(folder_path)
-        delete_from_collection(
-            id=create_progress_id,
-            workspace_id=workspace_id,
-        )
-        await delete_from_structured_collection(
-            ids=[create_progress_id],
-            workspace_id=workspace_id,
-        )
-        await delete_from_attachment_collection(
-            ids=[create_progress_id],
-            workspace_id=workspace_id,
-        )
-        await update_progess(
-            status="Processing Failed",
-            id=create_progress_id,
-            type_of_mail=type_of_mail,
-            type="failed",
-            workspace_id=workspace_id,
-        )
-        await publish_message(
-            user_email_id=user_email_id,
-            payload={
-                "file_id": create_progress_id,
-                "filename": filename,
-                "process": "Processing Failed",
-                "reason": f"{str(e)}",
-            },
-        )
-        logger.exception(f"Error occurred while processing file {filename}: {str(e)}")
-    finally:
-        try:
-            while True:
-                queued_task = await manager.process_task_by_user_and_id(
-                    workspace_id=workspace_id, queued_mail_reference=create_progress_id
-                )
-                if not queued_task:
-                    break
+When you ask a question, the system doesn't just look for exact words—it tries to understand what you're really asking. It breaks your question down into its core meaning and compares that meaning with the content of your documents.
 
-                (
-                    created_id_queue,
-                    type_of_mail_queue,
-                    old_folder_name_queue,
-                    new_folder_name_queue,
-                    _,
-                ) = await create_progress(
-                    user_email_id=queued_task.user_email_id,
-                    filename=queued_task.filename,
-                    status="Upload Successful",
-                    filesize=queued_task.filesize,
-                    current_time=queued_task.current_time,
-                    filepath=queued_task.folder_path,
-                    workspace_id=queued_task.workspace_id,
-                    tags=queued_task.tags,
-                )
+This means even if your question is phrased differently from how the information appears in your files, the system can still find a match based on intent and context.
 
-                await publish_message(
-                    user_email_id=user_email_id,
-                    payload={
-                        "file_id": queued_task.create_progress_id,
-                        "filename": queued_task.filename,
-                        "process": "",
-                        "reason": "Delete this queued file",
-                    },
-                )
 
-                await delete_files(
-                    ids=[queued_task.create_progress_id],
-                    workspace_id=queued_task.workspace_id,
-                )
 
-                await process_file_async(
-                    user_email_id=user_email_id,
-                    file_path=queued_task.file_path,
-                    filename=queued_task.filename,
-                    folder_path=queued_task.folder_path,
-                    create_progress_id=created_id_queue,
-                    type_of_mail=type_of_mail_queue,
-                    old_folder_name=old_folder_name_queue,
-                    new_folder_name=new_folder_name_queue,
-                    workspace_id=queued_task.workspace_id,
-                    tags=queued_task.tags,
-                )
-        except Exception as e:
-            print(e)
+2. How Your Documents Are Prepared
+
+To make it easier and faster to search, your documents are broken into smaller, manageable parts as soon as you upload them:
+
+ For PDF, Word, and PowerPoint files, the content is split page by page. Each page becomes its own searchable unit.
+ For emails (EML and MSG files), the entire email is treated as one unit.
+
+This setup means the system doesn’t need to scan the whole file every time you ask a question. Instead, it looks at these smaller sections to find exactly what you need.
+
+
+
+3. How Answers Are Found
+
+After understanding your question, the system searches through the smaller document parts (pages or emails) to find the most relevant ones:
+
+ It chooses the top 4 sections that are closest in meaning to your question.
+ These sections are then used to form a response to your query.
+ The system also shows you exactly where the answer came from—such as the file name and page number or email message.
+
+This gives you both a helpful answer and a clear source to verify the information.
+
+
+
+4. What Happens When You Select a Specific Document
+
+If you already know which document might have the answer and choose it before asking your question:
+
+ The system limits its search to that specific file.
+ Even then, it still selects only the top 4 most relevant parts from within that file.
+
+This helps improve accuracy by focusing only on the content you care about and avoids bringing in unrelated information from other documents.
+
+
+
+5. Key Benefits
+
+ Fast & Accurate: The system pinpoints the most relevant parts without scanning every word.
+ Focused Results: You can narrow down your search by choosing a specific document.
+ Clear Sources: Every answer includes a reference to where the information came from.
+
+
+
+Summary
+
+Think of our system as a smart assistant that breaks your files into pages or full emails, understands what you're asking, and picks out the most relevant pieces to answer your question. Whether you’re looking through all documents or just one, it finds what matters most and shows you exactly where it came from.
+
+If you’d like to see this in action, we’re happy to walk you through a live example!
