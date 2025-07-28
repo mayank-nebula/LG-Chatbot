@@ -10,5 +10,5 @@ SELECTCOLUMNS(
         'Ignite Metrics'[MaxYearMonth],
         DESC
     ),
-    "LatestMonthYear", 'Ignite Metrics'[WAVE_DATE]
+    "LatestMonthYear", DATEVALUE('Ignite Metrics'[WAVE_DATE])
 )
