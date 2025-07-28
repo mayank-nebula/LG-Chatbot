@@ -4,11 +4,10 @@ SELECTCOLUMNS(
         1,
         FILTER(
             'Ignite Metrics',
-            'Ignite Metrics'[SUB_INDICATION] = "PC_TOTAL"
-                && NOT ISBLANK('Ignite Metrics'[MaxYearMonth])
+            NOT ISBLANK('Ignite Metrics'[DATE_ID])
         ),
-        'Ignite Metrics'[MaxYearMonth],
+        DATEVALUE('Ignite Metrics'[DATE_ID]),
         DESC
     ),
-    "LatestMonthYear", DATEVALUE('Ignite Metrics'[WAVE_DATE])
+    "LatestYearMonth", 'Ignite Metrics'[DATE_ID]
 )
