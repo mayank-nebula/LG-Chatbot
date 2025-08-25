@@ -1,13 +1,7 @@
-EVALUATE
-SELECTCOLUMNS(
-    TOPN(
-        1,
-        FILTER(
-            'Ignite Metrics',
-            NOT ISBLANK('Ignite Metrics'[DATE_ID])
-        ),
-        DATEVALUE('Ignite Metrics'[DATE_ID]),
-        DESC
-    ),
-    "LatestYearMonth", 'Ignite Metrics'[DATE_ID]
-)
+"Analyze the entire video and divide it into meaningful segments. "
+        "Only create a new segment when the scene, topic, or mood changes significantly. "
+        "For each segment, provide:\n"
+        "- start (time in seconds)\n"
+        "- end (time in seconds)\n"
+        "- detail: a full description of what happens in that segment, including what is seen on screen, what is heard, and the emotional tone.\n\n"
+        "Return the result strictly as a JSON array."
