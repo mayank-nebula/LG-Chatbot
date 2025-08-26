@@ -45,11 +45,11 @@ prompt = ChatPromptTemplate.from_messages([
      "Always extract text before storing embeddings. "
      "Summarize past chats concisely. "
      "Respond clearly and politely."),
-    MessagesPlaceholder("chat_history"),   # memory slot
+    MessagesPlaceholder("chat_history"),
+    ("system", "Here are the available tools:\n{tools}\nTool names: {tool_names}"),
     ("human", "{input}"),
-    MessagesPlaceholder("agent_scratchpad"),  # reasoning scratchpad
+    MessagesPlaceholder("agent_scratchpad"),
 ])
-
 # --- Create ReAct Agent ---
 react_agent = create_react_agent(llm, tools, prompt)
 
