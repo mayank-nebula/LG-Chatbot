@@ -3,7 +3,15 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain.memory import SQLChatMessageHistory, ConversationSummaryMemory
 
+# --- Tools ---
+def extract_text(file_path: str) -> str:
+    return f"Extracted text from {file_path}"
 
+def store_embeddings(text: str) -> str:
+    return f"Stored embeddings for: {text[:30]}..."
+
+def search_db(query: str) -> str:
+    return f"Results for query: {query}"
 
 tools = [
     Tool(name="extract_text", func=extract_text, description="Extract text from a PDF"),
