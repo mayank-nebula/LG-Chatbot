@@ -1,39 +1,19 @@
-// create_questions
+all_items = []
+continuation_token = None
 
+while True:
+    params = {}
+    if continuation_token:
+        params["continuationToken"] = continuation_token
 
+    resp = requests.get(BASE_URL, headers=headers, params=params)
 
+    if not resp.ok:
+        raise RuntimeError(f"Error {resp.status_code}: {resp.text}")
 
-// create_summary
+    data = resp.json()
+    all_items.extend(data.get("items", []))
 
-
-
-
-//file_deletion
-
-
-//file_type_decide
-
-
-//graph_token_manager
-
-
-
-
-//pdf_doc_docx_ingestion
-
-
-
-ppt_pptx_ingestion
-
-
-
-//sharepoint_file_acquisition
-
-
-
-
-
-
-
-
-// question_model
+    continuation_token = resp.headers.get("X-Continuation-Token")
+    if not continuation_token:  # no more pages
+        break
