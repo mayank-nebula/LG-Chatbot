@@ -1,72 +1,70 @@
 import requests
-import xml.etree.ElementTree as ET
 from langchain.tools import tool
+from typing import List, Dict
 
 
-def search_pmc(question: str, retmax: int = 5) -> list[str]:
+WHO_PUBLICATIONS_URL = "https://www.who.int/api/multimedias/publications"
+
+
+def fetch_who_publications(limit: int = 5) -> List[Dict]:
     """
-    Search PubMed Central (PMC) for articles related to the question.
-    Returns a list of PMCIDs (strings).
+    Fetch a list of WHO publications metadata (raw).
     """
-    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-    params = {"db": "pmc", "term": question, "retmax": retmax, "retmode": "json"}
-    resp = requests.get(url, params=params)
+    resp = requests.get(WHO_PUBLICATIONS_URL)
     resp.raise_for_status()
     data = resp.json()
-    return data["esearchresult"]["idlist"]  # list[str]
+    # The JSON is expected to be a list of items
+    if isinstance(data, dict):
+        # Sometimes it's wrapped in a key, adjust if needed
+        # e.g. data.get("value")
+        publications = data.get("value", [])
+    else:
+        publications = data
+    return publications[:limit]
 
 
-def _parse_pmc_xml(xml_text: str) -> dict:
+def filter_publications_by_query(
+    pubs: List[Dict], query: str
+) -> List[Dict]:
     """
-    Parse PMC XML into structured dict with title, abstract, body, and link.
+    Filter the WHO publications list by query string matching title or description.
+    (Simple case: substring match, case-insensitive).
     """
-    root = ET.fromstring(xml_text)
-
-    # Title
-    title_node = root.find(".//front//article-meta//title-group//article-title")
-    title = " ".join(title_node.itertext()).strip() if title_node is not None else None
-
-    # Abstract
-    abstract_node = root.find(".//abstract")
-    abstract = " ".join(abstract_node.itertext()).strip() if abstract_node is not None else None
-
-    # Body
-    body_node = root.find(".//body")
-    body = " ".join(body_node.itertext()).strip() if body_node is not None else None
-
-    # PMCID
-    pmcid_node = root.find('.//article-id[@pub-id-type="pmcid"]')
-    pmcid = pmcid_node.text.strip() if pmcid_node is not None else None
-    link = f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmcid}/" if pmcid else None
-
-    return {"pmcid": pmcid, "title": title, "abstract": abstract, "body": body, "link": link}
-
-
-def fetch_pmc(pmcid: str) -> dict:
-    """
-    Fetch and parse a PMC article by PMCID.
-    Returns dict with pmcid, title, abstract, body, and link.
-    """
-    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-    params = {"db": "pmc", "id": pmcid, "retmode": "xml"}
-    resp = requests.get(url, params=params)
-    resp.raise_for_status()
-    return _parse_pmc_xml(resp.text)
+    q = query.lower()
+    filtered = []
+    for item in pubs:
+        # Try to get a title field
+        title = item.get("Title") or item.get("MetaTitle") or item.get("UrlName") or ""
+        description = item.get("Description") or item.get("Summary") or item.get("MetaDescription") or ""
+        if q in title.lower() or q in description.lower():
+            filtered.append(item)
+    return filtered
 
 
 @tool
-def search_and_fetch_pmc(question: str, retmax: int = 5) -> list[dict]:
+def search_who_pubs(query: str, limit: int = 5) -> List[Dict]:
     """
-    Agent-facing tool:
-    Search PMC for a question and return a list of parsed article dicts:
-    [{pmcid, title, abstract, body, link}, ...]
+    Agent-tool: search WHO publications by query. Returns a list of dicts with
+    title, link, summary/description, publication date.
     """
-    pmcids = search_pmc(question, retmax)
+    pubs = fetch_who_publications(limit=50)  # fetch more; will filter
+    matched = filter_publications_by_query(pubs, query)
     results = []
-    for pmcid in pmcids:
-        try:
-            article = fetch_pmc(pmcid)
-            results.append(article)
-        except Exception as e:
-            print(f"Error fetching {pmcid}: {e}")
+    for item in matched[:limit]:
+        # build structured dict
+        title = item.get("Title") or item.get("MetaTitle") or item.get("UrlName")
+        description = item.get("Description") or item.get("Summary") or item.get("MetaDescription")
+        pub_date = item.get("PublicationDate")
+        url_name = item.get("UrlName")
+        # Construct a link (assuming UrlName maps to some WHO URL)
+        # Often WHO articles at: https://www.who.int/publications/<UrlName>
+        link = None
+        if url_name:
+            link = f"https://www.who.int/publications/{url_name}"
+        results.append({
+            "title": title,
+            "link": link,
+            "description": description,
+            "publication_date": pub_date
+        })
     return results
