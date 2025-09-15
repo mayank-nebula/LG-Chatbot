@@ -1,70 +1,32 @@
-import requests
-from langchain.tools import tool
-from typing import List, Dict
-
-
-WHO_PUBLICATIONS_URL = "https://www.who.int/api/multimedias/publications"
-
-
-def fetch_who_publications(limit: int = 5) -> List[Dict]:
+def parse_line(line, num_columns):
     """
-    Fetch a list of WHO publications metadata (raw).
+    Parse a row string into exactly num_columns fields.
+    - Fields separated by commas
+    - Fields may contain commas but always end with '.'
+    - Empty fields marked as '--' become ''
     """
-    resp = requests.get(WHO_PUBLICATIONS_URL)
-    resp.raise_for_status()
-    data = resp.json()
-    # The JSON is expected to be a list of items
-    if isinstance(data, dict):
-        # Sometimes it's wrapped in a key, adjust if needed
-        # e.g. data.get("value")
-        publications = data.get("value", [])
-    else:
-        publications = data
-    return publications[:limit]
+    tokens = line.strip().split(",")
+    fields = []
 
+    # First column (e.g. "country" or whatever the first header is)
+    first = tokens[0].strip()
+    fields.append("" if first == "--" else first)
 
-def filter_publications_by_query(
-    pubs: List[Dict], query: str
-) -> List[Dict]:
-    """
-    Filter the WHO publications list by query string matching title or description.
-    (Simple case: substring match, case-insensitive).
-    """
-    q = query.lower()
-    filtered = []
-    for item in pubs:
-        # Try to get a title field
-        title = item.get("Title") or item.get("MetaTitle") or item.get("UrlName") or ""
-        description = item.get("Description") or item.get("Summary") or item.get("MetaDescription") or ""
-        if q in title.lower() or q in description.lower():
-            filtered.append(item)
-    return filtered
+    # Collect remaining fields dynamically
+    current = []
+    for token in tokens[1:]:
+        token = token.strip()
+        token = "" if token == "--" else token   # normalize empty
+        current.append(token)
+        if token.endswith("."):  # end of one field
+            field = ",".join(current).strip()
+            fields.append(field)
+            current = []
+            if len(fields) == num_columns:
+                break
 
+    # Ensure correct number of fields
+    while len(fields) < num_columns:
+        fields.append("")
 
-@tool
-def search_who_pubs(query: str, limit: int = 5) -> List[Dict]:
-    """
-    Agent-tool: search WHO publications by query. Returns a list of dicts with
-    title, link, summary/description, publication date.
-    """
-    pubs = fetch_who_publications(limit=50)  # fetch more; will filter
-    matched = filter_publications_by_query(pubs, query)
-    results = []
-    for item in matched[:limit]:
-        # build structured dict
-        title = item.get("Title") or item.get("MetaTitle") or item.get("UrlName")
-        description = item.get("Description") or item.get("Summary") or item.get("MetaDescription")
-        pub_date = item.get("PublicationDate")
-        url_name = item.get("UrlName")
-        # Construct a link (assuming UrlName maps to some WHO URL)
-        # Often WHO articles at: https://www.who.int/publications/<UrlName>
-        link = None
-        if url_name:
-            link = f"https://www.who.int/publications/{url_name}"
-        results.append({
-            "title": title,
-            "link": link,
-            "description": description,
-            "publication_date": pub_date
-        })
-    return results
+    return fields
