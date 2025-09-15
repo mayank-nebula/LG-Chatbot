@@ -58,3 +58,4 @@ def parse_line(line, num_columns):
         fields.append("")
     
     return fields
+
