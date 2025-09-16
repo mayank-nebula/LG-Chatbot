@@ -1,157 +1,98 @@
+def fetch_modular_content(item_id: str) -> dict:
+    """Fetch modular_content from a given item ID."""
+    url = f"{BASE_URL}/{ENVIRONMENT_ID}/items/{item_id}"
+    response = requests.get(url, headers=headers)
+    return response.json().get("modular_content", {})
+
+
+def parse_oda_data(country_name: str, country_code: str, oda_ref: str) -> list:
+    """Extract ODA rows for a country."""
+    oda_rows = []
+    oda_content = fetch_modular_content(oda_ref)
+
+    for oda_item in oda_content.values():
+        year = oda_item["elements"]["year"]["value"][0]["name"]
+        value = oda_item["elements"]["value"]["value"]
+        oda_rows.append([country_name, country_code, year, value])
+
+    return oda_rows
+
+
+def parse_sector_data(country_name: str, country_code: str, sector_refs: list) -> list:
+    """Extract funding rows for all sectors and sub-sectors of a country."""
+    funding_rows = []
+
+    for sector_ref in sector_refs:
+        sector_content = fetch_modular_content(sector_ref)
+
+        for sector_item in sector_content.values():
+            sector_name = sector_item["elements"]["sector"]["value"][0]["name"]
+            sub_sector_refs = sector_item["elements"]["sub_sector"]["value"]
+
+        for sub_sector_ref in sub_sector_refs:
+            sub_sector_content = fetch_modular_content(sub_sector_ref)
+
+            for sub_sector_item in sub_sector_content.values():
+                sub_sector_name = sub_sector_item["system"]["name"]
+                year = sub_sector_item["elements"]["year"]["value"][0]["name"]
+                value = sub_sector_item["elements"]["value"]["value"]
+
+                clean_sub_sector_name = (
+                    sub_sector_name.replace(country_name, "")
+                    .replace(year, "")
+                    .strip()
+                )
+
+                funding_rows.append(
+                    [country_name, country_code, year, sector_name, clean_sub_sector_name, value]
+                )
+
+    return funding_rows
+
+
+def write_csv(filepath: str, header: list, rows: list) -> None:
+    """Write rows to a CSV file with header."""
+    with open(filepath, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
 def process_global_health_funding():
     url = f"{BASE_URL}/{ENVIRONMENT_ID}/items/global_health_funding_page"
-    resp = requests.get(url, headers=headers)
-    data = resp.json()
+    response = requests.get(url, headers=headers)
+    page_data = response.json()
 
     kontent_service_folder = os.path.join(os.getcwd(), "kontent_service")
     os.makedirs(kontent_service_folder, exist_ok=True)
 
-    global_health_funding_page_folder = os.path.join(
-        kontent_service_folder, "global_health_funding_page"
-    )
-    os.makedirs(global_health_funding_page_folder, exist_ok=True)
+    global_health_folder = os.path.join(kontent_service_folder, "global_health_funding_page")
+    os.makedirs(global_health_folder, exist_ok=True)
 
-    title = data["item"]["elements"]["title"]["value"]
-    sub_title = data["item"]["elements"]["sub_title"]["value"]
-    map_data_source = data["item"]["elements"]["map_data_source"]["value"]
-    top_10_countries_title = data["item"]["elements"]["top_10_countries_title"]["value"]
+    # Extract metadata (not used later, but available if needed)
+    title = page_data["item"]["elements"]["title"]["value"]
+    subtitle = page_data["item"]["elements"]["sub_title"]["value"]
+    map_source = page_data["item"]["elements"]["map_data_source"]["value"]
+    top_countries_title = page_data["item"]["elements"]["top_10_countries_title"]["value"]
 
-    modular_content = data["modular_content"]
+    country_items = page_data.get("modular_content", {})
 
     oda_header = ["Country", "Country Code", "Year", "Overall ODA Value"]
-    row_oda_data = []
+    funding_header = ["Country", "Country Code", "Year", "Sector", "Sub Sector", "Value"]
 
-    global_health_funding_header = [
-        "Country",
-        "Country Code",
-        "Year",
-        "Sector",
-        "Sub Sector",
-        "Value",
-    ]
-    global_health_funding_row_data = []
+    oda_rows = []
+    funding_rows = []
 
-    for content_key, content_value in modular_content.items():
-        country = content_value["elements"]["country_name"]["value"]
-        country_code = content_value["elements"]["country_code"]["value"]
+    # Process each country
+    for country_item in country_items.values():
+        country_name = country_item["elements"]["country_name"]["value"]
+        country_code = country_item["elements"]["country_code"]["value"]
+        sector_refs = country_item["elements"]["sector_data"]["value"]
+        oda_refs = country_item["elements"]["overall_oda"]["value"]
 
-        sector_data = content_value["elements"]["sector_data"]["value"]
-        overall_oda = content_value["elements"]["overall_oda"]["value"]
+        oda_rows.extend(parse_oda_data(country_name, country_code, oda_refs[0]))
+        funding_rows.extend(parse_sector_data(country_name, country_code, sector_refs))
 
-        url_main = f"{BASE_URL}/{ENVIRONMENT_ID}/items/{overall_oda[0]}"
-        resp_main = requests.get(url_main, headers=headers)
-        data_oda = resp_main.json()
-
-        modular_content_oda = data_oda["modular_content"]
-
-        for (
-            modular_content_oda_key,
-            modular_content_oda_value,
-        ) in modular_content_oda.items():
-            modular_content_oda_year = modular_content_oda_value["elements"]["year"][
-                "value"
-            ][0]["name"]
-            modular_content_oda_value = modular_content_oda_value["elements"]["value"][
-                "value"
-            ]
-
-            row_oda_data.append(
-                [
-                    country,
-                    country_code,
-                    modular_content_oda_year,
-                    modular_content_oda_value,
-                ]
-            )
-
-        for sector_data_indi in sector_data:
-            url_sector_data = f"{BASE_URL}/{ENVIRONMENT_ID}/items/{sector_data_indi}"
-            resp_sector_data = requests.get(url_sector_data, headers=headers)
-            data_sector_data = resp_sector_data.json()
-
-            modular_content_sector_data = data_sector_data["modular_content"]
-
-            for (
-                modular_content_sector_data_key,
-                modular_content_sector_data_value,
-            ) in modular_content_sector_data.items():
-
-                sector_name = modular_content_sector_data_value["elements"]["sector"][
-                    "value"
-                ][0]["name"]
-                sub_sector = modular_content_sector_data_value["elements"][
-                    "sub_sector"
-                ]["value"]
-
-            for sub_sector_indi in sub_sector:
-                url_sub_sector_indi = (
-                    f"{BASE_URL}/{ENVIRONMENT_ID}/items/{sub_sector_indi}"
-                )
-                resp_sub_sector_indi = requests.get(
-                    url_sub_sector_indi, headers=headers
-                )
-                data_sub_sector_indi = resp_sub_sector_indi.json()
-
-                data_sub_sector_indi_modular_content = data_sub_sector_indi[
-                    "modular_content"
-                ]
-
-                for (
-                    data_sub_sector_indi_modular_content_key,
-                    data_sub_sector_indi_modular_content_value,
-                ) in data_sub_sector_indi_modular_content.items():
-
-                    data_sub_sector_indi_modular_content_value_name = (
-                        data_sub_sector_indi_modular_content_value["system"]["name"]
-                    )
-                    data_sub_sector_indi_modular_content_value_year = (
-                        data_sub_sector_indi_modular_content_value["elements"]["year"][
-                            "value"
-                        ][0]["name"]
-                    )
-                    data_sub_sector_indi_modular_content_value_value = (
-                        data_sub_sector_indi_modular_content_value["elements"]["value"][
-                            "value"
-                        ]
-                    )
-
-                    data_to_append = [
-                        country,
-                        country_code,
-                        data_sub_sector_indi_modular_content_value_year,
-                        sector_name,
-                        data_sub_sector_indi_modular_content_value_name.replace(
-                            country, ""
-                        )
-                        .replace(data_sub_sector_indi_modular_content_value_year, "")
-                        .strip(),
-                        data_sub_sector_indi_modular_content_value_value,
-                    ]
-
-                    global_health_funding_row_data.append(data_to_append)
-
-    with open(
-        os.path.join(
-            global_health_funding_page_folder,
-            "overall_oda.csv",
-        ),
-        "w",
-        newline="",
-        encoding="utf-8",
-    ) as f:
-        writer = csv.writer(f)
-        writer.writerow(oda_header)
-        writer.writerows(row_oda_data)
-
-    with open(
-        os.path.join(
-            global_health_funding_page_folder,
-            "global_health_funding.csv",
-        ),
-        "w",
-        newline="",
-        encoding="utf-8",
-    ) as f:
-        writer = csv.writer(f)
-        writer.writerow(global_health_funding_header)
-        writer.writerows(global_health_funding_row_data)
+    # Write results
+    write_csv(os.path.join(global_health_folder, "overall_oda.csv"), oda_header, oda_rows)
+    write_csv(os.path.join(global_health_folder, "global_health_funding.csv"), funding_header, funding_rows)
