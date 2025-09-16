@@ -96,3 +96,102 @@ def process_global_health_funding():
     # Write results
     write_csv(os.path.join(global_health_folder, "overall_oda.csv"), oda_header, oda_rows)
     write_csv(os.path.join(global_health_folder, "global_health_funding.csv"), funding_header, funding_rows)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def process_global_health_funding():
+    url = f"{BASE_URL}/{ENVIRONMENT_ID}/items/global_health_funding_page"
+    response = requests.get(url, headers=headers)
+    page_data = response.json()
+
+    kontent_service_folder = os.path.join(os.getcwd(), "kontent_service")
+    os.makedirs(kontent_service_folder, exist_ok=True)
+
+    global_health_folder = os.path.join(kontent_service_folder, "global_health_funding_page")
+    os.makedirs(global_health_folder, exist_ok=True)
+
+    title = page_data["item"]["elements"]["title"]["value"]
+    subtitle = page_data["item"]["elements"]["sub_title"]["value"]
+    map_source = page_data["item"]["elements"]["map_data_source"]["value"]
+    top_countries_title = page_data["item"]["elements"]["top_10_countries_title"]["value"]
+
+    country_items = page_data.get("modular_content", {})
+
+    oda_header = ["Country", "Country Code", "Year", "Overall ODA Value"]
+    oda_rows = []
+
+    funding_header = ["Country", "Country Code", "Year", "Sector", "Sub Sector", "Value"]
+    funding_rows = []
+
+    for country_item in country_items.values():
+        country_name = country_item["elements"]["country_name"]["value"]
+        country_code = country_item["elements"]["country_code"]["value"]
+        sector_refs = country_item["elements"]["sector_data"]["value"]
+        oda_refs = country_item["elements"]["overall_oda"]["value"]
+
+        # --- ODA Data ---
+        oda_url = f"{BASE_URL}/{ENVIRONMENT_ID}/items/{oda_refs[0]}"
+        oda_response = requests.get(oda_url, headers=headers)
+        oda_content = oda_response.json().get("modular_content", {})
+
+        for oda_item in oda_content.values():
+            year = oda_item["elements"]["year"]["value"][0]["name"]
+            value = oda_item["elements"]["value"]["value"]
+            oda_rows.append([country_name, country_code, year, value])
+
+        # --- Sector Data ---
+        for sector_ref in sector_refs:
+            sector_url = f"{BASE_URL}/{ENVIRONMENT_ID}/items/{sector_ref}"
+            sector_response = requests.get(sector_url, headers=headers)
+            sector_content = sector_response.json().get("modular_content", {})
+
+            for sector_item in sector_content.values():
+                sector_name = sector_item["elements"]["sector"]["value"][0]["name"]
+                sub_sector_refs = sector_item["elements"]["sub_sector"]["value"]
+
+            for sub_sector_ref in sub_sector_refs:
+                sub_sector_url = f"{BASE_URL}/{ENVIRONMENT_ID}/items/{sub_sector_ref}"
+                sub_sector_response = requests.get(sub_sector_url, headers=headers)
+                sub_sector_content = sub_sector_response.json().get("modular_content", {})
+
+                for sub_sector_item in sub_sector_content.values():
+                    sub_sector_name = sub_sector_item["system"]["name"]
+                    year = sub_sector_item["elements"]["year"]["value"][0]["name"]
+                    value = sub_sector_item["elements"]["value"]["value"]
+
+                    clean_sub_sector_name = (
+                        sub_sector_name.replace(country_name, "")
+                        .replace(year, "")
+                        .strip()
+                    )
+
+                    funding_rows.append(
+                        [country_name, country_code, year, sector_name, clean_sub_sector_name, value]
+                    )
+
+    # --- Write CSVs ---
+    with open(os.path.join(global_health_folder, "overall_oda.csv"), "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(oda_header)
+        writer.writerows(oda_rows)
+
+    with open(os.path.join(global_health_folder, "global_health_funding.csv"), "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(funding_header)
+        writer.writerows(funding_rows)
+
