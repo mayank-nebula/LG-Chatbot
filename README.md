@@ -1,4 +1,4 @@
-class DictionaryRegistry:
+**class DictionaryRegistry:
     """Singleton class to manage dictionary registration for agent tools."""
     
     _instance: Optional['DictionaryRegistry'] = None
@@ -65,3 +65,4 @@ def get_value_by_name(var_name: str, key: str) -> Any:
         return None
     
     return dictionary.get(key)
+**
