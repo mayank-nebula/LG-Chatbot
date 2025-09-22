@@ -1,5 +1,4 @@
 from typing import Dict, Any
-
 from langgraph.prebuilt import create_react_agent
 
 from prompt import PromptLoader
@@ -15,16 +14,11 @@ class InternalDataAgent:
     def __init__(self):
         self.registry = DictionaryRegistry()
         self.llm = AzureManager.get_llm()
+        self._agent = None  # store the created agent
 
     def get_value_by_name(self, variable_name: str) -> Dict[str, Any]:
         """
-        Retrieve the value associated with 'key' from a registered dictionary.
-
-        Args:
-            variable_name (str): Name of the registered dictionary.
-
-        Returns:
-            Dict[str, Any]: The value corresponding to the key in the specified dictionary or None if dictionary or key does not exist.
+        Retrieve the value associated with 'variable_name' from a registered dictionary.
         """
         dictionary = self.registry.get_dictionary(variable_name)
 
@@ -47,15 +41,25 @@ class InternalDataAgent:
         return all_data
 
     async def _create_agent(self):
-        """Create the react agent."""
+        """Create the react agent if not already created."""
+        if self._agent is not None:
+            return self._agent
+
         final_data = self._prepare_data()
-        prompt = prompt = await PromptLoader.render_prompt(
+        prompt = await PromptLoader.render_prompt(
             filename="agent", prompt_key="internal_data_agent", final_data=final_data
         )
 
-        return create_react_agent(
+        self._agent = create_react_agent(
             model=self.llm,
             tools=[self.get_value_by_name],
             name="internal_data_expert",
             prompt=prompt,
         )
+        return self._agent
+
+    async def get_agent(self):
+        """Return the initialized agent (creates it if missing)."""
+        if self._agent is None:
+            await self._create_agent()
+        return self._agent
