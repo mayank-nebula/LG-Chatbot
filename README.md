@@ -1,44 +1,214 @@
-async for event in app.astream_events(input, config):
-    kind = event["event"]
-    checkpoint_ns = event.get("metadata", {}).get("langgraph_checkpoint_ns")
-
-    if kind == "on_chat_model_stream" and "supervisor" in checkpoint_ns:
-        token = event["data"]["chunk"].content
-        stripped = token.strip().lower()
-
-        # ==================================================
-        #       NEW LOGIC — INITIAL NAME-BLOCK DETECTION
-        # ==================================================
-
-        if deciding_name_block:
-
-            # Skip empty tokens before we see first meaningful content
-            if not token.strip():
-                continue
-
-            # Accumulate into buffer
-            name_buffer += token
-
-            # --- Case A: Found {\"name\": before newline → IGNORE MODE ---
-            if EXPECTED in name_buffer and "\n" not in name_buffer:
-                ignoring_name_block = True
-                deciding_name_block = False
-                continue
-
-            # --- Case B: newline arrived BEFORE detecting {\"name\": → FLUSH ---
-            if "\n" in name_buffer and EXPECTED not in name_buffer:
-                deciding_name_block = False  # decision made
-                final_response += name_buffer
-                yield json.dumps({"type": "text", "content": name_buffer})
-                name_buffer = ""
-                continue
-
-            # --- Case C: We haven't matched enough to decide yet ---
-            continue  # keep accumulating
-
-        # After decision is made:
-        if ignoring_name_block:
-            # stop ignoring once newline appears
-            if "\n" in token:
-                ignoring_name_block = False
-            continue  # skip until newline
+{
+    "type": "text",
+    "content": ""
+}{
+    "type": "text",
+    "content": ""
+}{
+    "type": "text",
+    "content": "{\""
+}{
+    "type": "text",
+    "content": "name"
+}{
+    "type": "text",
+    "content": "\":\""
+}{
+    "type": "text",
+    "content": "transfer"
+}{
+    "type": "text",
+    "content": "_to"
+}{
+    "type": "text",
+    "content": "_internal"
+}{
+    "type": "text",
+    "content": "_data"
+}{
+    "type": "text",
+    "content": "_ex"
+}{
+    "type": "text",
+    "content": "pert"
+}{
+    "type": "text",
+    "content": "\"}"
+}{
+    "type": "text",
+    "content": "\n"
+}{
+    "type": "text",
+    "content": "**"
+}{
+    "type": "text",
+    "content": "Annual"
+}{
+    "type": "text",
+    "content": " Global"
+}{
+    "type": "text",
+    "content": " Health"
+}{
+    "type": "text",
+    "content": " Appro"
+}{
+    "type": "text",
+    "content": "pri"
+}{
+    "type": "text",
+    "content": "ations"
+}{
+    "type": "text",
+    "content": " ("
+}{
+    "type": "text",
+    "content": "FY"
+}{
+    "type": "text",
+    "content": "17"
+}{
+    "type": "text",
+    "content": "–"
+}{
+    "type": "text",
+    "content": "FY"
+}{
+    "type": "text",
+    "content": "25"
+}{
+    "type": "text",
+    "content": " En"
+}{
+    "type": "text",
+    "content": "acted"
+}{
+    "type": "text",
+    "content": ","
+}{
+    "type": "text",
+    "content": " FY"
+}{
+    "type": "text",
+    "content": "26"
+}{
+    "type": "text",
+    "content": " Proposed"
+}{
+    "type": "text",
+    "content": ")"
+}{
+    "type": "text",
+    "content": " in"
+}{
+    "type": "text",
+    "content": " USD"
+}{
+    "type": "text",
+    "content": " Billion"
+}{
+    "type": "text",
+    "content": "**"
+}{
+    "type": "text",
+    "content": "  \n\n"
+}{
+    "type": "text",
+    "content": "The"
+}{
+    "type": "text",
+    "content": " sharp"
+}{
+    "type": "text",
+    "content": " reversal"
+}{
+    "type": "text",
+    "content": " is"
+}{
+    "type": "text",
+    "content": " reflected"
+}{
+    "type": "text",
+    "content": " in"
+}{
+    "type": "text",
+    "content": " the"
+}{
+    "type": "text",
+    "content": " **"
+}{
+    "type": "text",
+    "content": "FY"
+}{
+    "type": "text",
+    "content": "26"
+}{
+    "type": "text",
+    "content": " US"
+}{
+    "type": "text",
+    "content": " budget"
+}{
+    "type": "text",
+    "content": " request"
+}{
+    "type": "text",
+    "content": "**,"
+}{
+    "type": "text",
+    "content": " which"
+}{
+    "type": "text",
+    "content": " proposes"
+}{
+    "type": "text",
+    "content": " sweeping"
+}{
+    "type": "text",
+    "content": " cuts"
+}{
+    "type": "text",
+    "content": " across"
+}{
+    "type": "text",
+    "content": " global"
+}{
+    "type": "text",
+    "content": " health"
+}{
+    "type": "text",
+    "content": " programs"
+}{
+    "type": "text",
+    "content": " —"
+}{
+    "type": "text",
+    "content": " including"
+}{
+    "type": "text",
+    "content": " the"
+}{
+    "type": "text",
+    "content": " **"
+}{
+    "type": "text",
+    "content": "el"
+}{
+    "type": "text",
+    "content": "imination"
+}{
+    "type": "text",
+    "content": " of"
+}{
+    "type": "text",
+    "content": " funding"
+}{
+    "type": "text",
+    "content": " for"
+}{
+    "type": "text",
+    "content": " family"
+}{
+    "type": "text",
+    "content": " planning"
+}
