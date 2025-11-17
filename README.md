@@ -1,53 +1,43 @@
-import os
 import requests
-from urllib.parse import urlparse
 
-# 🔧 CONFIGURATION
-BASE_URL = "https://your-site.com/wp-json/wp/v2/media"
-DOWNLOAD_DIR = "downloads"
-AUTH = None  # Example: ("username", "password") if authentication is needed
+BASE_URL = "https://letstalksupplychain.com/wp-json/wp/v2/categories"
+PARAMS = {
+    "orderby": "count",
+    "order": "desc",
+    "per_page": 100,  # max allowed
+}
 
-# Create download directory if not exists
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+def fetch_all_categories():
+    page = 1
+    all_categories = []
 
-page = 1
-downloaded = 0
+    while True:
+        # print(f"Fetching page {page}...")
+        
+        resp = requests.get(BASE_URL, params={**PARAMS, "page": page})
+        
+        if resp.status_code == 400:
+            # No more pages
+            break
 
-print("🔍 Fetching media list from WordPress...")
+        resp.raise_for_status()
+        data = resp.json()
+        all_categories.extend(data)
 
-while True:
-    # Fetch a page of media
-    response = requests.get(BASE_URL, params={"per_page": 100, "page": page}, auth=AUTH)
-    
-    if response.status_code == 400:
-        # No more pages
-        break
-    response.raise_for_status()
+        total_pages = int(resp.headers.get("X-WP-TotalPages", 1))
 
-    media_items = response.json()
-    if not media_items:
-        break
+        if page >= total_pages:
+            break
+        
+        page += 1
 
-    for media in media_items:
-        url = media.get("source_url")
-        if not url:
-            continue
+    return all_categories
 
-        filename = os.path.basename(urlparse(url).path)
-        filepath = os.path.join(DOWNLOAD_DIR, filename)
 
-        # Skip if already downloaded
-        if os.path.exists(filepath):
-            continue
+if __name__ == "__main__":
+    categories = fetch_all_categories()
+    # print(f"Total categories fetched: {len(categories)}")
 
-        print(f"⬇️  Downloading: {filename}")
-        file_response = requests.get(url, stream=True)
-        if file_response.status_code == 200:
-            with open(filepath, "wb") as f:
-                for chunk in file_response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            downloaded += 1
-
-    page += 1
-
-print(f"\n✅ Done! Downloaded {downloaded} files to '{DOWNLOAD_DIR}' folder.")
+    # Example: print category name and count
+    for cat in categories:
+        print(f"{cat['name']}: {cat['count']}")
