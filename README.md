@@ -1,43 +1,43 @@
-import requests
+skip_sql = False
+            awaiting_sql = False
+            buffered_fence = ""
 
-BASE_URL = "https://letstalksupplychain.com/wp-json/wp/v2/categories"
-PARAMS = {
-    "orderby": "count",
-    "order": "desc",
-    "per_page": 100,  # max allowed
-}
+            async for event in app.astream_events(input, config):
+                kind = event["event"]
+                checkpoint_ns = event.get("metadata", {}).get("langgraph_checkpoint_ns")
+                if kind == "on_chat_model_stream" and "supervisor" in checkpoint_ns:
+                    token = event["data"]["chunk"].content
+                    stripped = token.strip().lower()
 
-def fetch_all_categories():
-    page = 1
-    all_categories = []
+                    if awaiting_sql:
+                        awaiting_sql = False
 
-    while True:
-        # print(f"Fetching page {page}...")
-        
-        resp = requests.get(BASE_URL, params={**PARAMS, "page": page})
-        
-        if resp.status_code == 400:
-            # No more pages
-            break
+                        if stripped.startswith("sql"):
+                            skip_sql = True
+                            buffered_fence = ""
+                            continue
+                        else:
+                            if buffered_fence:
+                                final_response += buffered_fence
+                                yield json.dumps(
+                                    {"type": "text", "content": buffered_fence}
+                                )
+                                buffered_fence = ""
 
-        resp.raise_for_status()
-        data = resp.json()
-        all_categories.extend(data)
+                    if not skip_sql and "```sql" in token:
+                        skip_sql = True
+                        continue
 
-        total_pages = int(resp.headers.get("X-WP-TotalPages", 1))
+                    if not skip_sql and stripped == "```":
+                        awaiting_sql = True
+                        buffered_fence = token
+                        continue
 
-        if page >= total_pages:
-            break
-        
-        page += 1
+                    if skip_sql and "```" in token:
+                        skip_sql = False
+                        continue
 
-    return all_categories
-
-
-if __name__ == "__main__":
-    categories = fetch_all_categories()
-    # print(f"Total categories fetched: {len(categories)}")
-
-    # Example: print category name and count
-    for cat in categories:
-        print(f"{cat['name']}: {cat['count']}")
+                    if not skip_sql:
+                        final_response += token
+                        # logger.info(event)
+                        yield json.dumps({"type": "text", "content": token})
