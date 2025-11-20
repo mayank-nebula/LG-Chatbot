@@ -1,95 +1,212 @@
-internal_data_agent_supervisor: |
-  ## Role
-  You are the **Unified Interface** for internal data inquiries. To the user, you are the sole source of information. You possess all knowledge directly; you do not have "colleagues" or "sub-agents."
-
-  ### Sub-Agents (INTERNAL USE ONLY)
-  - SQL Agent: Handles structured data metrics (Impact, Funding, Country Stats).
-  - Internal Data Agent: Handles unstructured narratives (USAID reports, Projections, Supply Chain).
-
-  {% if dashboard_data %}
-  ## Dashboard Data Context
-  {{dashboard_data}}
-  *Priority:* If this answers the question, use it immediately. Do not search further.
-  {% endif %}
-
-  ## Routing Logic (INTERNAL THOUGHT PROCESS)
-  *Do not describe this step to the user.*
-  1. Analyze the query.
-  2. If it requires funding numbers, country lists, or specific ODA metrics -> Call **SQL Agent**.
-  3. If it requires report summaries, mortality projections, or supply chain stories -> Call **Internal Data Agent**.
-  4. If it requires both -> Call both and merge the answers.
-
-  ## Silent Routing Protocol (STRICT ENFORCEMENT)
-  * **Rule 1: Complete Invisibility.** NEVER narrate your process.
-      * *Bad:* "I will ask the SQL agent for that data."
-      * *Bad:* "Let me check the `total_health_oda` table."
-      * *Bad:* "Transferring you to my colleague..."
-      * *Good:* Just output the answer directly.
-  * **Rule 2: Unified Voice.** Speak as if you already knew the answer.
-  * **Rule 3: No Technical Leaks.** Never mention database schemas, table names, or variable keys in your final response.
-
-  ## Response Style
-  - **Direct & Factual:** Start immediately with the answer.
-  - **Format:** Use bullet points and **bold** metrics.
-  - **Tone:** Professional, executive summary style.
-  - **Fallback:** If no data is found, say exactly: "I don't have relevant information to answer your question."
-
-  external_data_agent_supervisor: |
-  ## Role
-  You are a Medical Research Expert. You provide authoritative, evidence-based answers derived from high-quality medical sources.
-
-  ### Sub-Agents (INTERNAL USE ONLY)
-  - External Data Agent: Retrieving data from PubMed and ClinicalTrials.gov.
-
-  ## Routing Logic (INTERNAL THOUGHT PROCESS)
-  * **Casual Chat:** Handle greetings/general questions yourself.
-  * **Research Requests:** If the user asks for studies, trials, evidence, or specific medical data, route to the **External Data Agent**.
-
-  ## Silent Routing Protocol (STRICT ENFORCEMENT)
-  * **Rule 1: Zero Narration.** Do not say "I am searching PubMed" or "Let me check the clinical trials database."
-  * **Rule 2: Seamless Output.** Your output must look like a prepared report, not a search log.
-  * **Rule 3: Ownership.** Present the sub-agent's findings as your own final answer.
-
-  ## Response Style
-  - Return the research findings directly.
-  - Maintain Markdown formatting (bullet points, headers).
-  - **Bold** key findings and study titles.
-  - End with the mandatory disclaimer provided by the sub-agent.
-  - If no relevant info is found: "I don't have relevant information to answer your question."
-
-  hybrid_data_agent_supervisor: |
-  ## Role
-  You are a Senior Global Health & Research Analyst. You provide comprehensive answers covering funding, internal projections, and medical research.
-
-  ### Sub-Agents (INTERNAL USE ONLY - DO NOT REVEAL)
-  - SQL Agent: Structured metrics (Funding, ODA, Country Stats).
-  - Internal Data Agent: Unstructured narratives (USAID reports, Projections).
-  - External Data Agent: Public medical research (PubMed, Trials).
-
-  {% if dashboard_data %}
-  ## Dashboard Data Context
-  {{dashboard_data}}
-  *Priority:* Check this first. If sufficient, answer directly.
-  {% endif %}
-
-  ## Routing Logic (INTERNAL THOUGHT PROCESS)
-  * **Medical/Science:** Route to External Data Agent.
-  * **Funding/Stats:** Route to SQL Agent.
-  * **Reports/Narratives:** Route to Internal Data Agent.
-  * **Complex:** Route to multiple agents and synthesize.
-
-  ## Silent Routing Protocol (STRICT ENFORCEMENT)
-  1.  **The "Black Box" Rule:** The user must never know *how* you got the information. They only care about the *result*.
-  2.  **Never Say:**
-      * "I am consulting the SQL agent."
-      * "Querying table `geographies_most_exposed`."
-      * "Let me switch to the medical researcher."
-      * "Transferring..."
-  3.  **Always Say:**
-      * Present the facts directly. (e.g., "According to 2023 data, Kenya receives...")
-  4.  **Unified Persona:** You are one single entity. Do not refer to "we," "my team," or "the system."
-
-  ## Response Style
-  - **Format:** Clean Markdown with **bold** highlights for numbers and key terms.
-  - **Synthesis:** If combining data from two agents, merge them into a single coherent narrative. Do not separate them with headers like "From Agent A:" and "From Agent B:".
-  - **Fallback:** If no data exists across any source: "I don't have relevant information to answer your question."
+data = {
+  system: {
+    id: "63c1ada6-6ae5-4e16-a52c-a1e1ec63ea91",
+    name: "FY2026 House Appropriations Table Data",
+    codename: "fy2026_house_appropriations_table_data",
+    language: "default",
+    type: "fy2026_house_appropriations_table_data_type",
+    collection: "default",
+    sitemap_locations: [],
+    last_modified: "2025-11-03T21:45:49.8884034Z",
+    workflow: "default",
+    workflow_step: "published",
+  },
+  elements: {
+    columns: {
+      type: "modular_content",
+      name: "Columns",
+      value: [
+        "fy_comparison_column",
+        "fy25_cr_column",
+        "fy26_request_column",
+        "fy26_house_column",
+        "fy2026_senate_column",
+        "difference__fy26_house___fy25_cr_column",
+        "difference__fy26_house___fy26_request_column",
+        "difference__fy26_house___fy26_senate_column",
+        "funding_status_column",
+      ],
+    },
+    data: {
+      name: "Tuberculosis",
+      type: "modular_content",
+      name: "Data",
+      value: {
+        tuberculosis_difference__fy26_house___fy25_cr: {
+          system: {
+            id: "2e572e80-3a07-4dfa-9a80-3c6d42c4065e",
+            name: "Tuberculosis Difference: FY26 House - FY25 CR",
+            codename: "tuberculosis_difference__fy26_house___fy25_cr",
+            language: "default",
+            type: "text_fallback_type",
+            collection: "default",
+            sitemap_locations: [],
+            last_modified: "2025-08-20T20:58:18.9487911Z",
+            workflow: "default",
+            workflow_step: "published",
+          },
+          elements: {
+            text_value: { type: "text", name: "Text Value", value: "" },
+            number_value: { type: "number", name: "Number Value", value: 0 },
+            value_type_value: {
+              type: "modular_content",
+              name: "Value Type Value",
+              value: [],
+            },
+          },
+        },
+        tuberculosis_difference__fy26_house___fy25_cr____: {
+          system: {
+            id: "e4bd438e-9e25-4b2a-8887-263fa0fc603a",
+            name: "Tuberculosis Difference: FY26 House - FY25 CR (%)",
+            codename: "tuberculosis_difference__fy26_house___fy25_cr____",
+            language: "default",
+            type: "text_fallback_type",
+            collection: "default",
+            sitemap_locations: [],
+            last_modified: "2025-08-20T20:59:32.7890804Z",
+            workflow: "default",
+            workflow_step: "published",
+          },
+          elements: {
+            text_value: { type: "text", name: "Text Value", value: "" },
+            number_value: { type: "number", name: "Number Value", value: None },
+            value_type_value: {
+              type: "modular_content",
+              name: "Value Type Value",
+              value: ["tuberculosis_difference__fy26_house___fy25_cr_____"],
+            },
+          },
+        },
+        tuberculosis_difference__fy26_house___fy26_request: {
+          system: {
+            id: "e7977a6f-ce69-4f84-ae23-a98b9bb7c03b",
+            name: "Tuberculosis Difference: FY26 House - FY26 Request",
+            codename: "tuberculosis_difference__fy26_house___fy26_request",
+            language: "default",
+            type: "text_fallback_type",
+            collection: "default",
+            sitemap_locations: [],
+            last_modified: "2025-08-20T21:01:11.1545697Z",
+            workflow: "default",
+            workflow_step: "published",
+          },
+          elements: {
+            text_value: { type: "text", name: "Text Value", value: "" },
+            number_value: { type: "number", name: "Number Value", value: 217 },
+            value_type_value: {
+              type: "modular_content",
+              name: "Value Type Value",
+              value: [],
+            },
+          },
+        },
+        tuberculosis_difference__fy26_house___fy26_request_d30badf: {
+          system: {
+            id: "d30badfa-992f-43a2-ae82-640c2672bbc9",
+            name: "Tuberculosis Difference: FY26 House - FY26 Request (%)",
+            codename:
+              "tuberculosis_difference__fy26_house___fy26_request_d30badf",
+            language: "default",
+            type: "text_fallback_type",
+            collection: "default",
+            sitemap_locations: [],
+            last_modified: "2025-08-20T21:02:49.556726Z",
+            workflow: "default",
+            workflow_step: "published",
+          },
+          elements: {
+            text_value: { type: "text", name: "Text Value", value: "122%" },
+            number_value: { type: "number", name: "Number Value", value: None },
+            value_type_value: {
+              type: "modular_content",
+              name: "Value Type Value",
+              value: [],
+            },
+          },
+        },
+        tuberculosis_fy25_cr: {
+          system: {
+            id: "1094f0e3-7173-4b8f-be5c-c75968cdc7f0",
+            name: "Tuberculosis FY25 CR",
+            codename: "tuberculosis_fy25_cr",
+            language: "default",
+            type: "text_fallback_type",
+            collection: "default",
+            sitemap_locations: [],
+            last_modified: "2025-08-20T20:55:17.1738223Z",
+            workflow: "default",
+            workflow_step: "published",
+          },
+          elements: {
+            text_value: { type: "text", name: "Text Value", value: "" },
+            number_value: { type: "number", name: "Number Value", value: 395 },
+            value_type_value: {
+              type: "modular_content",
+              name: "Value Type Value",
+              value: [],
+            },
+          },
+        },
+        tuberculosis_fy26_house: {
+          system: {
+            id: "22498c9a-f73a-4045-bced-e25871074910",
+            name: "Tuberculosis FY26 House",
+            codename: "tuberculosis_fy26_house",
+            language: "default",
+            type: "text_fallback_type",
+            collection: "default",
+            sitemap_locations: [],
+            last_modified: "2025-08-20T20:56:48.3432677Z",
+            workflow: "default",
+            workflow_step: "published",
+          },
+          elements: {
+            text_value: { type: "text", name: "Text Value", value: "" },
+            number_value: { type: "number", name: "Number Value", value: 395 },
+            value_type_value: {
+              type: "modular_content",
+              name: "Value Type Value",
+              value: [],
+            },
+          },
+        },
+        tuberculosis_fy26_request: {
+          system: {
+            id: "77b0621f-920d-486a-8f8c-77fda07207b1",
+            name: "Tuberculosis FY26 Request",
+            codename: "tuberculosis_fy26_request",
+            language: "default",
+            type: "text_fallback_type",
+            collection: "default",
+            sitemap_locations: [],
+            last_modified: "2025-08-20T20:56:02.2779698Z",
+            workflow: "default",
+            workflow_step: "published",
+          },
+          elements: {
+            text_value: { type: "text", name: "Text Value", value: "" },
+            number_value: { type: "number", name: "Number Value", value: 178 },
+            value_type_value: {
+              type: "modular_content",
+              name: "Value Type Value",
+              value: [],
+            },
+          },
+        },
+      },
+    },
+    csvdata: {
+      type: "text",
+      name: "csvData",
+      value:
+        '"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",HIV/AIDS (PEPFAR)<sup>iv</sup>,,,,"4,725","2,910","4,725",-,0,0%,"1,815",62%,-,-,Maintained\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",HIV/AIDS (PEPFAR)<sup>iv</sup>,State Department,,,"4,395","2,910",-,-,-,-,-,-,-,-,\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",HIV/AIDS (PEPFAR)<sup>iv</sup>,USAID,,,330,0,-,-,-,-,-,-,-,-,Eliminated\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Global Fund<sup>v</sup>,,,,"1,650",vi,"1,500",-,-150,-9.10%,-,-,-,-,Reduced\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Tuberculosis<sup>iv</sup>,,,,395,178,395,-,0,0.00%,217,122%,-,-,Maintained\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Malaria (PMI),,,,795,424,800,-,5,0.60%,376,89%,-,-,Increased\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Maternal & Child Health (MCH)<sup>iv</sup>,,,,"1,057",85,915,-,-142,-13.40%,830,976%,-,-,Reduced\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Maternal & Child Health (MCH)<sup>iv</sup>,Global Health Programs (GHP) account,,,915,85,915,-,0,0.00%,830,976%,-,-,Maintained\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Maternal & Child Health (MCH)<sup>iv</sup>,Global Health Programs (GHP) account,Bilateral MCH,,615,85,615,-,0,0.00%,530,624%,-,-,Maintained\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Maternal & Child Health (MCH)<sup>iv</sup>,Global Health Programs (GHP) account,Bilateral MCH, Polio,85,85,85,-,0,0.00%,0,0%,-,-,Maintained\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Maternal & Child Health (MCH)<sup>iv</sup>,Global Health Programs (GHP) account,"Gavi, the Vaccine Alliance",,300,0,300,-,0,0.00%,300,N/A,-,-,Maintained\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Maternal & Child Health (MCH)<sup>iv</sup>,United Nations Children\'s \xa0Fund (UNICEF)\xa0IO&P Account<sup>vii</sup>,,,142,0,vii,-,-,-,-,-,-,-,Eliminated\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Nutrition<sup>iv</sup>,,,,165,0,172.5,-,7.5,4.50%,173,N/A,-,-,Increased\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Family Planning & Reproductive Health (FP/RH)<sup>viii, ix</sup>",,,,608,0,461,-,-146.5,-24.10%,461,N/A,-,-,Reduced\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Family Planning & Reproductive Health (FP/RH)<sup>viii, ix</sup>","Bilateral FP/RH<sup>viii, ix</sup>",,,575,0,461,-,-114,-19.80%,461,N/A,-,-,Reduced\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Family Planning & Reproductive Health (FP/RH)<sup>viii, ix</sup>","Bilateral FP/RH<sup>viii, ix</sup>","Global Health Programs(GHP) account<sup>viii, ix</sup>",,524,0,ix,-,-,-,-,-,-,-,\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Family Planning & Reproductive Health (FP/RH)<sup>viii, ix</sup>","Bilateral FP/RH<sup>viii, ix</sup>","Economic Support Fund\xa0(ESF) account<sup>viii, ix, x</sup>",,51,0,0,-,-51.1,-100.00%,0,0%,-,-,Eliminated\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Family Planning & Reproductive Health (FP/RH)<sup>viii, ix</sup>",United Nations Population Fund (UNFPA) -\xa0\xa0IO&P Account<sup>xi</sup>,,,33,0,0,-,-32.5,-100.00%,0,0%,-,-,Eliminated\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Vulnerable Children,,,,32,0,32.5,-,1,3.20%,32.5,N/A,-,-,Increased\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Neglected Tropical Diseases (NTDs),,,,115,0,114.5,-,0,0.00%,115,N/A,-,-,Maintained\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Global Health Security<sup>iv, ix</sup>",,,,700,200,ix,-,-,-,-,-,-,-,\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Global Health Security<sup>iv, ix</sup>",The Coalition for Epidemic Preparedness Innovations (CEPI),,,100,-,xii,-,-,-,-,-,-,-,\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Global Health Security<sup>iv, ix</sup>",Emergency Reserve Fund,,,xiii,xiv,xv,-,-,-,-,-,-,-,\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Health Reserve Fund<sup>xvi</sup>,,,,6,0,0,-,-6,-100.00%,0,0%,-,-,Eliminated\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",Global Health Worker Initiative<sup>xvii</sup>,,,,10,0,0,-,-10,-100.00%,0,0%,-,-,Eliminated\n"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>",NSRP Total (GHP account only),,,,"10,031","3,797","9,519",-,-511.8,-5.10%,"5,722",151%,-,-,Reduced\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,,,,692.8,293.2,473.2,692.8,-219.6,-31.70%,180,61%,-219.6,-32%,\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,Global HIV/AIDS,,,128.9,0,0,128.9,-128.9,-100.00%,-   ,N/A,-128.9,-100%,Eliminated\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,Global Tuberculosis,,,11.7,0,0,11.7,-11.7,-100.00%,-   ,N/A,-11.7,-100%,Eliminated\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,Global Immunization,,,230,0,180,230,-50,-21.70%,180,N/A,-50,-22%,Reduced\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,Global Immunization,Polio,,180,0,180,180,0,0.00%,180,N/A,0,0%,Maintained\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,Global Immunization,Other Global Vaccines/Measles,,50,0,0,50,-50,-100.00%,-   ,N/A,-50,-100%,Eliminated\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,Parasitic Diseases,,,29,xviii,xviii,29,-,-,-,-,-,-,\n"Labor, Health & Human Services (Labor HHS)",Centers for Disease Control & Prevention (CDC) – Total Global Health,Global Public Health Protection / Global Disease Detection & Emergency Response,,,293,293,293,293,0,0.00%,-   ,0%,0,0%,Maintained\n"Labor, Health & Human Services (Labor HHS)",National Institutes of Health (NIH) – Total Global Health,,,,xix,xix,xix,xix,-,-,-,-,-,-,\n"Labor, Health & Human Services (Labor HHS)",National Institutes of Health (NIH) – Total Global Health,Fogarty International Center (FIC),,,95,0,95.2,95.2,0,0.00%,95,N/A,0,0%,Maintained\n"Labor, Health & Human Services (Labor HHS)",Labor HHS Total,,,,-,-,-,-,-,-,-,-,-,-,',
+    },
+    subcolumns: {
+      type: "text",
+      name: "Subcolumns",
+      value:
+        '"NSRP (formerly known as State, Foreign Operations, and Related Programs (SFOPs)) - Global Health Programs (GHP) Account<sup>iii</sup>","Labor, Health & Human Services (Labor HHS)"',
+    },
+  },
+};
