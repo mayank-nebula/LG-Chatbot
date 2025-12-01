@@ -1,35 +1,26 @@
-import { Pool } from "pg";
+from googleapiclient.discovery import build
 
-// Global cache (for dev hot reload + serverless reuse)
-declare global {
-  // eslint-disable-next-line no-var
-  var _pool: Pool | undefined;
-}
+API_KEY = "YOUR_API_KEY"
+CHANNEL_ID = "UCxxxxxxxxxxxxxxxx"   # Replace with the channel's ID
 
-function createPool() {
-  return new Pool({
-    host: process.env.DB_HOST || "127.0.0.1",  // Auth proxy address
-    port: Number(process.env.DB_PORT) || 5432, // Auth proxy port
-    user: process.env.DB_USER!,
-    password: process.env.DB_PASSWORD!,
-    database: process.env.DB_NAME!,
-    ssl: false,  // proxy already handles TLS
-    max: 10,     // safe pool size
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-  });
-}
+youtube = build("youtube", "v3", developerKey=API_KEY)
 
-export const db: Pool =
-  global._pool ||
-  (global._pool = createPool()); // Singleton — create only once
+playlists = []
+request = youtube.playlists().list(
+    part="snippet",
+    channelId=CHANNEL_ID,
+    maxResults=50
+)
 
-export async function query<T = any>(sql: string, params?: any[]) {
-  const client = await db.connect();
-  try {
-    const result = await client.query<T>(sql, params);
-    return result.rows;
-  } finally {
-    client.release();
-  }
-}
+# Handle pagination
+while request:
+    response = request.execute()
+
+    for item in response.get("items", []):
+        playlist_id = item["id"]
+        playlist_title = item["snippet"]["title"]
+        playlists.append((playlist_id, playlist_title))
+
+        print(f"{playlist_id}  -->  {playlist_title}")
+
+    request = youtube.playlists().list_next(request, response)
