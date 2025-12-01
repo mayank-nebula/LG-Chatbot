@@ -1,117 +1,73 @@
-// lib/session.ts
-import { cookies } from "next/headers";
+import pg8000
+from google.cloud.alloydb.connector import Connector
+import sqlalchemy
 
-const COOKIE_NAME = "anon_session";
-const THIRTY_DAYS = 60 * 60 * 24 * 30;
+# Initialize the AlloyDB Python Connector
+def get_connection():
+    """Creates a connection pool for AlloyDB."""
+    connector = Connector()
+    
+    def getconn():
+        conn = connector.connect(
+            instance_uri="projects/YOUR_PROJECT_ID/locations/YOUR_REGION/clusters/YOUR_CLUSTER/instances/YOUR_INSTANCE",
+            driver="pg8000",
+            user="YOUR_DB_USER",
+            password="YOUR_DB_PASSWORD",
+            db="YOUR_DATABASE_NAME"
+        )
+        return conn
+    
+    return getconn
 
-export async function ensureSession() {
-  const store = await cookies();
-  const existing = store.get(COOKIE_NAME)?.value;
-  if (existing) return existing;
+# Method 1: Using SQLAlchemy connection pool
+def connect_with_sqlalchemy():
+    """Connect using SQLAlchemy engine."""
+    pool = sqlalchemy.create_engine(
+        "postgresql+pg8000://",
+        creator=get_connection(),
+    )
+    
+    with pool.connect() as conn:
+        result = conn.execute(sqlalchemy.text("SELECT version()"))
+        print("Database version:", result.fetchone()[0])
+        
+        # Example query
+        result = conn.execute(sqlalchemy.text("SELECT NOW()"))
+        print("Current timestamp:", result.fetchone()[0])
+    
+    return pool
 
-  // Use Web Crypto in server environment
-  const id =
-    typeof globalThis.crypto?.randomUUID === "function"
-      ? globalThis.crypto.randomUUID()
-      : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-          const r = Math.floor(Math.random() * 16);
-          const v = c === "x" ? r : (r & 0x3) | 0x8;
-          return v.toString(16);
-        });
+# Method 2: Direct connection using pg8000
+def connect_direct():
+    """Direct connection without connection pooling."""
+    connector = Connector()
+    
+    conn = connector.connect(
+        instance_uri="projects/YOUR_PROJECT_ID/locations/YOUR_REGION/clusters/YOUR_CLUSTER/instances/YOUR_INSTANCE",
+        driver="pg8000",
+        user="YOUR_DB_USER",
+        password="YOUR_DB_PASSWORD",
+        db="YOUR_DATABASE_NAME"
+    )
+    
+    cursor = conn.cursor()
+    cursor.execute("SELECT version()")
+    print("Database version:", cursor.fetchone()[0])
+    
+    cursor.execute("SELECT NOW()")
+    print("Current timestamp:", cursor.fetchone()[0])
+    
+    cursor.close()
+    conn.close()
+    connector.close()
 
-  store.set({
-    name: COOKIE_NAME,
-    value: id,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: THIRTY_DAYS,
-  });
-
-  return id;
-}
-
-export async function getSession() {
-  const store = await cookies();
-  return store.get(COOKIE_NAME)?.value ?? null;
-}
-
-
-
-
-
-
-
-
-
-
-
-// proxy.ts (place at project root)
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { PROTECTED_PATHS } from "@/lib/protectedRoutes";
-
-const COOKIE_NAME = "anon_session";
-const THIRTY_DAYS = 60 * 60 * 24 * 30;
-
-function genUuid(): string {
-  // Use Web Crypto API available in Edge runtime
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-  // fallback: simple UUID v4 generator (cryptographically weaker)
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.floor(Math.random() * 16);
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-export function middleware(req: NextRequest) {
-  const url = req.nextUrl.pathname;
-  const sessionId = req.cookies.get(COOKIE_NAME)?.value ?? null;
-
-  const isProtected = PROTECTED_PATHS.some((p) => url.startsWith(p));
-
-  // Protected paths: reject if no session
-  if (isProtected) {
-    if (!sessionId) {
-      return new NextResponse(JSON.stringify({ error: "Session required" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    return NextResponse.next();
-  }
-
-  // Public paths: create session cookie if missing
-  if (!sessionId) {
-    const id = genUuid();
-    const res = NextResponse.next();
-    res.cookies.set({
-      name: COOKIE_NAME,
-      value: id,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: THIRTY_DAYS,
-    });
-    return res;
-  }
-
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: "/:path*", // adjust to exclude static assets if needed
-};
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    # Choose one method:
+    
+    # Option 1: SQLAlchemy (recommended for production)
+    print("Connecting with SQLAlchemy...")
+    pool = connect_with_sqlalchemy()
+    
+    # Option 2: Direct connection
+    # print("Connecting directly...")
+    # connect_direct()
