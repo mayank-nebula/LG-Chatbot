@@ -1,1 +1,35 @@
+import { Pool } from "pg";
 
+// Global cache (for dev hot reload + serverless reuse)
+declare global {
+  // eslint-disable-next-line no-var
+  var _pool: Pool | undefined;
+}
+
+function createPool() {
+  return new Pool({
+    host: process.env.DB_HOST || "127.0.0.1",  // Auth proxy address
+    port: Number(process.env.DB_PORT) || 5432, // Auth proxy port
+    user: process.env.DB_USER!,
+    password: process.env.DB_PASSWORD!,
+    database: process.env.DB_NAME!,
+    ssl: false,  // proxy already handles TLS
+    max: 10,     // safe pool size
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+}
+
+export const db: Pool =
+  global._pool ||
+  (global._pool = createPool()); // Singleton — create only once
+
+export async function query<T = any>(sql: string, params?: any[]) {
+  const client = await db.connect();
+  try {
+    const result = await client.query<T>(sql, params);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}
