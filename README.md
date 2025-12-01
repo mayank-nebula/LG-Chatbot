@@ -1,73 +1,131 @@
-import pg8000
-from google.cloud.alloydb.connector import Connector
-import sqlalchemy
+import { NextResponse } from "next/server";
 
-# Initialize the AlloyDB Python Connector
-def get_connection():
-    """Creates a connection pool for AlloyDB."""
-    connector = Connector()
-    
-    def getconn():
-        conn = connector.connect(
-            instance_uri="projects/YOUR_PROJECT_ID/locations/YOUR_REGION/clusters/YOUR_CLUSTER/instances/YOUR_INSTANCE",
-            driver="pg8000",
-            user="YOUR_DB_USER",
-            password="YOUR_DB_PASSWORD",
-            db="YOUR_DATABASE_NAME"
-        )
-        return conn
-    
-    return getconn
+//
+// ------------------------------
+// Config
+// ------------------------------
+//
 
-# Method 1: Using SQLAlchemy connection pool
-def connect_with_sqlalchemy():
-    """Connect using SQLAlchemy engine."""
-    pool = sqlalchemy.create_engine(
-        "postgresql+pg8000://",
-        creator=get_connection(),
-    )
-    
-    with pool.connect() as conn:
-        result = conn.execute(sqlalchemy.text("SELECT version()"))
-        print("Database version:", result.fetchone()[0])
-        
-        # Example query
-        result = conn.execute(sqlalchemy.text("SELECT NOW()"))
-        print("Current timestamp:", result.fetchone()[0])
-    
-    return pool
+// WordPress API base
+const WP_BASE = "https://letstalksupplychain.com/wp-json/wp/v2";
 
-# Method 2: Direct connection using pg8000
-def connect_direct():
-    """Direct connection without connection pooling."""
-    connector = Connector()
-    
-    conn = connector.connect(
-        instance_uri="projects/YOUR_PROJECT_ID/locations/YOUR_REGION/clusters/YOUR_CLUSTER/instances/YOUR_INSTANCE",
-        driver="pg8000",
-        user="YOUR_DB_USER",
-        password="YOUR_DB_PASSWORD",
-        db="YOUR_DATABASE_NAME"
-    )
-    
-    cursor = conn.cursor()
-    cursor.execute("SELECT version()")
-    print("Database version:", cursor.fetchone()[0])
-    
-    cursor.execute("SELECT NOW()")
-    print("Current timestamp:", cursor.fetchone()[0])
-    
-    cursor.close()
-    conn.close()
-    connector.close()
+// Static mock search strings (replace with DB later)
+const SEARCH_STRINGS = [
+  "504: Discover the Recipe for Best-in-Class Transformation, with EyeOn",
+];
 
-if __name__ == "__main__":
-    # Choose one method:
-    
-    # Option 1: SQLAlchemy (recommended for production)
-    print("Connecting with SQLAlchemy...")
-    pool = connect_with_sqlalchemy()
-    
-    # Option 2: Direct connection
-    # print("Connecting directly...")
-    # connect_direct()
+// Timeout wrapper for fetch
+function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 15000) {
+  return new Promise<Response>((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error("Request timeout")), timeout);
+    fetch(url, options)
+      .then((res) => {
+        clearTimeout(id);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(id);
+        reject(err);
+      });
+  });
+}
+
+//
+// ------------------------------
+// Helpers
+// ------------------------------
+//
+
+function extractLibsynUrl(html: string): string | null {
+  const match = html.match(/<iframe[^>]+src="([^"]+)"/);
+  return match ? match[1] : null;
+}
+
+// Fetch JSON with error safety
+async function safeFetchJSON(url: string) {
+  const res = await fetchWithTimeout(url, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Fetch failed (${res.status}): ${url}`);
+  }
+
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Non-JSON response from:", url);
+    console.error("Response preview:", text.slice(0, 300));
+    throw new Error("Invalid JSON response");
+  }
+}
+
+// Fetch a post by text
+async function fetchPostBySearch(searchText: string) {
+  const url = `${WP_BASE}/posts?search=${encodeURIComponent(searchText)}&per_page=1`;
+  const posts = await safeFetchJSON(url);
+  return posts?.[0] ?? null;
+}
+
+async function processSinglePost(searchText: string) {
+  try {
+    // 1. Search
+    const post = await fetchPostBySearch(searchText);
+    if (!post) {
+      return { error: `No post found for search: ${searchText}` };
+    }
+
+    const postId = post.id;
+
+    // 2. Extract Libsyn
+    const libsynUrl = extractLibsynUrl(post.content?.rendered || "");
+
+    // 3. Fetch Media
+    const mediaUrl = `${WP_BASE}/media?parent=${postId}`;
+    const mediaItems = await safeFetchJSON(mediaUrl);
+
+    const mediaGuids = mediaItems?.[0]?.guid?.rendered ?? null;
+
+    return {
+      search_string: searchText,
+      post_id: postId,
+      title: post.title?.rendered ?? "",
+      libsyn_url: libsynUrl,
+      media_guid: mediaGuids,
+    };
+  } catch (err: any) {
+    return { error: err.message || "Unknown error", search_string: searchText };
+  }
+}
+
+//
+// ------------------------------
+// Route Handler
+// ------------------------------
+//
+
+export async function GET() {
+  const start = Date.now();
+
+  try {
+    // Run all searches in parallel
+    const results = await Promise.all(
+      SEARCH_STRINGS.map((s) => processSinglePost(s))
+    );
+
+    const elapsed = ((Date.now() - start) / 1000).toFixed(2);
+
+    return NextResponse.json({
+      ok: true,
+      results,
+      elapsed_seconds: elapsed,
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: err.message || "Server Error" },
+      { status: 500 }
+    );
+  }
+}
