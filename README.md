@@ -7,49 +7,74 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // Read page from query
-    const pageParam = searchParams.get("page");
-    const page = pageParam ? Math.max(1, Number(pageParam)) : 1;
-
-    // Per page fixed as requested
+    const page = Math.max(1, Number(searchParams.get("page") ?? 1));
     const per_page = 10;
 
-    // Build target API URL
     const url = `${BASE_URL}&per_page=${per_page}&page=${page}`;
 
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-      },
-      cache: "no-store", // ensure fresh results
+    // Fetch posts (cached)
+    const postsRes = await fetch(url, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60 }, // edge caching
     });
 
-    if (!response.ok) {
+    if (!postsRes.ok) {
       return NextResponse.json(
         { error: "Failed to fetch posts" },
-        { status: response.status }
+        { status: postsRes.status }
       );
     }
 
-    const posts = await response.json();
+    const posts = await postsRes.json();
 
-    // Try pagination headers (browser sees them, Postman may not)
-    const totalPagesHeader = response.headers.get("X-WP-TotalPages");
+    const totalPagesHeader = postsRes.headers.get("X-WP-TotalPages");
     const totalPages = totalPagesHeader ? Number(totalPagesHeader) : 0;
 
     // Determine next page
-    let hasNext = false;
+    const hasNext =
+      totalPages > 0 ? page < totalPages : posts.length === per_page;
 
-    if (totalPages > 0) {
-      // Header-based detection (most accurate)
-      hasNext = page < totalPages;
-    } else {
-      // Fallback if headers missing: length check
-      hasNext = Array.isArray(posts) && posts.length === per_page;
-    }
+    // ---------------------------------------
+    // 🔥 Fetch featured media in parallel
+    // ---------------------------------------
+    const postsWithMedia = await Promise.all(
+      posts.map(async (post: any) => {
+        const mediaLink =
+          post?._links?.["wp:featuredmedia"]?.[0]?.href ?? null;
+
+        if (!mediaLink) {
+          return { ...post, featured_image: null };
+        }
+
+        try {
+          const mediaRes = await fetch(mediaLink, {
+            headers: { Accept: "application/json" },
+            next: { revalidate: 120 }, // media rarely changes
+          });
+
+          if (!mediaRes.ok) {
+            return { ...post, featured_image: null };
+          }
+
+          const media = await mediaRes.json();
+
+          const mediaUrl =
+            media?.source_url ||
+            media?.media_details?.sizes?.medium?.source_url ||
+            null;
+
+          return {
+            ...post,
+            featured_image: mediaUrl,
+          };
+        } catch {
+          return { ...post, featured_image: null };
+        }
+      })
+    );
 
     return NextResponse.json({
-      posts,
+      posts: postsWithMedia,
       pagination: {
         page,
         per_page,
