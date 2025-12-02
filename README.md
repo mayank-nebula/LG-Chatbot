@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { query } from "@/lib/db";
+import { extractHtmlStructure } from "@/lib/extractHtml";
 
-// function extractLibsynUrl(html: string): string | null {
-//   const match = html.match(/<iframe[^>]+src="([^"]+)"/);
-//   return match ? match[1] : null;
-// }
-
-// WordPress API base
 const WP_BASE = process.env.WP_BASE;
+
+function extractLibsynUrl(html: string): string | null {
+  const match = html.match(/<iframe[^>]+src="([^"]+)"/);
+  return match ? match[1] : null;
+}
 
 // Timeout wrapper for fetch
 function fetchWithTimeout(
@@ -50,22 +50,19 @@ async function safeFetchJSON(url: string) {
     throw new Error("Invalid JSON response");
   }
 }
-
-// Fetch a post by text
-async function fetchPostBySearch(searchText: string) {
-  const url = `${WP_BASE}/posts?search=${encodeURIComponent(
-    searchText
-  )}&per_page=1&_fields=id,slug,title`;
+async function fetchPostBySlug(searchText: string) {
+  const url = `${WP_BASE}/posts?slug=${searchText}&per_page=1&_fields=id,slug,title`;
   const posts = await safeFetchJSON(url);
   return posts?.[0] ?? null;
 }
 
-async function processSinglePost(searchText: string) {
+// Fetch a post by slug
+async function processSinglePost(slug: string) {
   try {
     // 1. Search
-    const post = await fetchPostBySearch(searchText);
+    const post = await fetchPostBySlug(slug);
     if (!post) {
-      return { error: `No post found for search: ${searchText}` };
+      return { error: `No post found for slug: ${slug}` };
     }
 
     const postId = post.id;
@@ -83,45 +80,27 @@ async function processSinglePost(searchText: string) {
       media_guid: mediaGuids,
     };
   } catch (err: any) {
-    return { error: err.message || "Unknown error", search_string: searchText };
+    return { error: err.message || "Unknown error", search_string: slug };
   }
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ slug: string; id: string }> }
+) {
+  const { slug, id } = await context.params;
+  const videoId = id;
 
-  const curosrParam = searchParams.get("curosr") ?? "1";
-  const curosr = Math.max(1, parseInt(curosrParam, 10));
-
-  const pageSize = 10;
-  const offset = (curosr - 1) * pageSize;
   try {
-    // Fix Query
     const queryString = `
-    SELECT title
+    SELECT *
     FROM table
-    ORDER BY id ASC
-    LIMIT $1 OFFSET $2
+    WHERE video_id = ${videoId}
     `;
-
-    const rows = await query<{ title: string }>(queryString, [
-      pageSize,
-      offset,
-    ]);
-    const searchStrings = rows.map((r) => r.title);
-
-    // Run all searches in parallel
-    const results = await Promise.all(
-      searchStrings.map((s) => processSinglePost(s))
-    );
-
-    return NextResponse.json({
-      ok: true,
-      results,
-    });
-  } catch (err: any) {
+  } catch (error) {
+    console.error("Podcast API error:", error);
     return NextResponse.json(
-      { ok: false, error: err.message || "Server Error" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
