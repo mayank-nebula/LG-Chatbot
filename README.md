@@ -1,60 +1,68 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "edge"; // enables proper streaming
+const BASE_URL =
+  "https://letstalksupplychain.com/wp-json/wp/v2/posts?categories=8315&categories_exclude=5388";
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   try {
-    const upstreamUrl = process.env.PRIVATE_STREAM_URL;
-    if (!upstreamUrl) {
-      return new NextResponse("Missing PRIVATE_STREAM_URL", { status: 500 });
+    const { searchParams } = new URL(req.url);
+
+    // Read page from query
+    const pageParam = searchParams.get("page");
+    const page = pageParam ? Math.max(1, Number(pageParam)) : 1;
+
+    // Per page fixed as requested
+    const per_page = 10;
+
+    // Build target API URL
+    const url = `${BASE_URL}&per_page=${per_page}&page=${page}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store", // ensure fresh results
+    });
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch posts" },
+        { status: response.status }
+      );
     }
 
-    // Forward the request body to upstream
-    const upstreamResponse = await fetch(upstreamUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // Add auth headers if needed
-        // Authorization: `Bearer ${process.env.PRIVATE_API_KEY}`
-      },
-      body: req.body, // forward request stream
-    });
+    const posts = await response.json();
 
-    if (!upstreamResponse.ok || !upstreamResponse.body) {
-      return new NextResponse("Upstream error", { status: 502 });
+    // Try pagination headers (browser sees them, Postman may not)
+    const totalPagesHeader = response.headers.get("X-WP-TotalPages");
+    const totalPages = totalPagesHeader ? Number(totalPagesHeader) : 0;
+
+    // Determine next page
+    let hasNext = false;
+
+    if (totalPages > 0) {
+      // Header-based detection (most accurate)
+      hasNext = page < totalPages;
+    } else {
+      // Fallback if headers missing: length check
+      hasNext = Array.isArray(posts) && posts.length === per_page;
     }
 
-    // Stream upstream response directly to the client
-    const stream = new ReadableStream({
-      async start(controller) {
-        const reader = upstreamResponse.body!.getReader();
-
-        try {
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-
-            // Push chunk to client
-            controller.enqueue(value);
-          }
-        } catch (error) {
-          controller.error(error);
-        } finally {
-          controller.close();
-        }
+    return NextResponse.json({
+      posts,
+      pagination: {
+        page,
+        per_page,
+        has_next: hasNext,
+        next_page: hasNext ? page + 1 : null,
+        source: totalPages > 0 ? "headers" : "fallback",
       },
     });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "Transfer-Encoding": "chunked",
-      },
-    });
-
-  } catch (error: any) {
-    return new NextResponse(error.message || "Internal Server Error", {
-      status: 500,
-    });
+  } catch (error) {
+    console.error("LTSS API Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
