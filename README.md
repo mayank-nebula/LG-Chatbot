@@ -1,91 +1,46 @@
-import { NextResponse } from "next/server";
-import { extractHtmlStructure } from "@/lib/extractHtml";
+const { JSDOM } = require("jsdom");
 
-export async function GET(
-  req: Request,
-  { params }: { params: { slug: string } }
-) {
-  try {
-    const slug = params.slug;
-    const postUrl = `https://letstalksupplychain.com/wp-json/wp/v2/posts?slug=${slug}`;
+function extractHtmlStructure(htmlString) {
+    const dom = new JSDOM(htmlString);
+    const document = dom.window.document;
 
-    // Fetch post by slug
-    const postRes = await fetch(postUrl, {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 60 }
-    });
+    function processNode(node) {
+        // Text node
+        if (node.nodeType === 3) {
+            const text = node.textContent.trim();
+            if (!text) return null;
+            return { tag: null, properties: {}, content: text, children: [] };
+        }
 
-    if (!postRes.ok) {
-      return NextResponse.json(
-        { error: "Failed to fetch post" },
-        { status: postRes.status }
-      );
+        // Skip non-element nodes
+        if (node.nodeType !== 1) return null;
+
+        let obj = {
+            tag: node.tagName.toLowerCase(),
+            properties: {},
+            content: node.textContent.trim(),
+            children: []
+        };
+
+        // Extract attributes
+        for (let attr of node.attributes) {
+            obj.properties[attr.name] = attr.value;
+        }
+
+        // Recursively handle children
+        node.childNodes.forEach(child => {
+            const c = processNode(child);
+            if (c) obj.children.push(c);
+        });
+
+        return obj;
     }
 
-    const posts = await postRes.json();
-    if (!posts.length) {
-      return NextResponse.json(
-        { error: "Post not found" },
-        { status: 404 }
-      );
-    }
-
-    const post = posts[0];
-
-    //-----------------------------------------------------
-    // Extract structured HTML content
-    //-----------------------------------------------------
-    const html = post?.content?.rendered ?? "";
-    const structuredContent = extractHtmlStructure(html);
-
-    //-----------------------------------------------------
-    // Extract comments URL (from replies link)
-    //-----------------------------------------------------
-    const commentsUrl = post?._links?.replies?.[0]?.href ?? null;
-
-    //-----------------------------------------------------
-    // 🔥 Fetch comments in parallel (only external call needed)
-    //-----------------------------------------------------
-    const comments = await fetchComments(commentsUrl);
-
-    //-----------------------------------------------------
-    // Remove `_links` & default WP content
-    //-----------------------------------------------------
-    const { _links, content, ...rest } = post;
-
-    //-----------------------------------------------------
-    // Final response
-    //-----------------------------------------------------
-    return NextResponse.json({
-      ...rest,
-      content: structuredContent,
-      comments
-    });
-  } catch (error) {
-    console.error("News slug API error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-}
-
-// -------------------------------------------------------
-// 🔧 Helper: Fetch comments safely
-// -------------------------------------------------------
-async function fetchComments(url: string | null) {
-  if (!url) return [];
-
-  try {
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 30 }
+    const result = [];
+    document.body.childNodes.forEach(n => {
+        const processed = processNode(n);
+        if (processed) result.push(processed);
     });
 
-    if (!res.ok) return [];
-
-    return await res.json();
-  } catch {
-    return [];
-  }
+    return result;
 }
