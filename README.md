@@ -1,34 +1,70 @@
-const { JSDOM } = require("jsdom");
+import { JSDOM } from "jsdom";
 
-function extractHtmlStructure(htmlString) {
+// All invisible characters you want to remove
+const INVISIBLE_CHARS =
+    "\u200b" + // zero-width space
+    "\u200c" + // zero-width non-joiner
+    "\u200d" + // zero-width joiner
+    "\u2060" + // word joiner
+    "\u2061" + // function application
+    "\u2062" + // invisible times
+    "\u2063" + // invisible separator
+    "\u2064";  // invisible plus
+
+const INVISIBLE_REGEX = new RegExp("[" + INVISIBLE_CHARS + "]", "g");
+
+function cleanInvisible(text: string): string {
+    return text.replace(INVISIBLE_REGEX, "").trim();
+}
+
+// ---------------------------------------------------
+
+export interface HtmlNode {
+    tag: string | null;
+    properties: Record<string, string>;
+    content: string;
+    children: HtmlNode[];
+}
+
+export function extractHtmlStructure(htmlString: string): HtmlNode[] {
     const dom = new JSDOM(htmlString);
     const document = dom.window.document;
 
-    function processNode(node) {
-        // Text node
-        if (node.nodeType === 3) {
-            const text = node.textContent.trim();
+    function processNode(node: Node): HtmlNode | null {
+        // TEXT NODE
+        if (node.nodeType === dom.window.Node.TEXT_NODE) {
+            const text = cleanInvisible(node.textContent || "");
             if (!text) return null;
-            return { tag: null, properties: {}, content: text, children: [] };
+
+            return {
+                tag: null,
+                properties: {},
+                content: text,
+                children: []
+            };
         }
 
-        // Skip non-element nodes
-        if (node.nodeType !== 1) return null;
+        // ELEMENT NODE
+        if (node.nodeType !== dom.window.Node.ELEMENT_NODE) {
+            return null;
+        }
 
-        let obj = {
-            tag: node.tagName.toLowerCase(),
+        const el = node as Element;
+
+        const obj: HtmlNode = {
+            tag: el.tagName.toLowerCase(),
             properties: {},
-            content: node.textContent.trim(),
+            content: cleanInvisible(el.textContent || ""),
             children: []
         };
 
         // Extract attributes
-        for (let attr of node.attributes) {
+        for (const attr of Array.from(el.attributes)) {
             obj.properties[attr.name] = attr.value;
         }
 
-        // Recursively handle children
-        node.childNodes.forEach(child => {
+        // Process children
+        el.childNodes.forEach(child => {
             const c = processNode(child);
             if (c) obj.children.push(c);
         });
@@ -36,9 +72,9 @@ function extractHtmlStructure(htmlString) {
         return obj;
     }
 
-    const result = [];
-    document.body.childNodes.forEach(n => {
-        const processed = processNode(n);
+    const result: HtmlNode[] = [];
+    document.body.childNodes.forEach(node => {
+        const processed = processNode(node);
         if (processed) result.push(processed);
     });
 
