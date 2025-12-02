@@ -1,19 +1,29 @@
-import { NextResponse } from "next/server";
+export async function fetchPlaylistVideos(
+  playlistId: string,
+  pageToken?: string,
+  limit: number = 10
+) {
+  const key = process.env.YOUTUBE_API_KEY!;
 
-import { getLiveEvents, getUpcomingEvents } from "@/lib/youtube";
+  let url =
+    "https://www.googleapis.com/youtube/v3/playlistItems" +
+    `?part=snippet&maxResults=${limit}&playlistId=${playlistId}&key=${key}&order=viewCount`;
 
-export async function GET(req: Request) {
-  try {
-    const [upcoming, live] = await Promise.all([
-      getUpcomingEvents(),
-      getLiveEvents(),
-    ]);
-
-    return NextResponse.json({
-      upcoming: upcoming.items ?? [],
-      live: live.items ?? [],
-    });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  if (pageToken) {
+    url += `&pageToken=${pageToken}`;
   }
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("YouTube API error");
+
+  const data = await res.json();
+
+  return {
+    items: data.items.map((item: any) => ({
+      videoId: item.snippet.resourceId.videoId,
+      title: item.snippet.title,
+      thumbnail: item.snippet.thumbnails?.medium?.url ?? null,
+    })),
+    nextPageToken: data.nextPageToken ?? null,
+  };
 }
