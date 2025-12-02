@@ -1,82 +1,128 @@
-import { JSDOM } from "jsdom";
+import { NextResponse } from "next/server";
 
-// All invisible characters you want to remove
-const INVISIBLE_CHARS =
-    "\u200b" + // zero-width space
-    "\u200c" + // zero-width non-joiner
-    "\u200d" + // zero-width joiner
-    "\u2060" + // word joiner
-    "\u2061" + // function application
-    "\u2062" + // invisible times
-    "\u2063" + // invisible separator
-    "\u2064";  // invisible plus
+import { query } from "@/lib/db";
 
-const INVISIBLE_REGEX = new RegExp("[" + INVISIBLE_CHARS + "]", "g");
+// function extractLibsynUrl(html: string): string | null {
+//   const match = html.match(/<iframe[^>]+src="([^"]+)"/);
+//   return match ? match[1] : null;
+// }
 
-function cleanInvisible(text: string): string {
-    return text.replace(INVISIBLE_REGEX, "").trim();
+// WordPress API base
+const WP_BASE = process.env.WP_BASE;
+
+// Timeout wrapper for fetch
+function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout = 15000
+) {
+  return new Promise<Response>((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error("Request timeout")), timeout);
+    fetch(url, options)
+      .then((res) => {
+        clearTimeout(id);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(id);
+        reject(err);
+      });
+  });
 }
 
-// ---------------------------------------------------
+// Fetch JSON with error safety
+async function safeFetchJSON(url: string) {
+  const res = await fetchWithTimeout(url, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+  });
 
-export interface HtmlNode {
-    tag: string | null;
-    properties: Record<string, string>;
-    content: string;
-    children: HtmlNode[];
+  if (!res.ok) {
+    throw new Error(`Fetch failed (${res.status}): ${url}`);
+  }
+
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Non-JSON response from:", url);
+    console.error("Response preview:", text.slice(0, 300));
+    throw new Error("Invalid JSON response");
+  }
 }
 
-export function extractHtmlStructure(htmlString: string): HtmlNode[] {
-    const dom = new JSDOM(htmlString);
-    const document = dom.window.document;
+// Fetch a post by text
+async function fetchPostBySearch(searchText: string) {
+  const url = `${WP_BASE}/posts?search=${encodeURIComponent(
+    searchText
+  )}&per_page=1&_fields=id,slug,title`;
+  const posts = await safeFetchJSON(url);
+  return posts?.[0] ?? null;
+}
 
-    function processNode(node: Node): HtmlNode | null {
-        // TEXT NODE
-        if (node.nodeType === dom.window.Node.TEXT_NODE) {
-            const text = cleanInvisible(node.textContent || "");
-            if (!text) return null;
-
-            return {
-                tag: null,
-                properties: {},
-                content: text,
-                children: []
-            };
-        }
-
-        // ELEMENT NODE
-        if (node.nodeType !== dom.window.Node.ELEMENT_NODE) {
-            return null;
-        }
-
-        const el = node as Element;
-
-        const obj: HtmlNode = {
-            tag: el.tagName.toLowerCase(),
-            properties: {},
-            content: cleanInvisible(el.textContent || ""),
-            children: []
-        };
-
-        // Extract attributes
-        for (const attr of Array.from(el.attributes)) {
-            obj.properties[attr.name] = attr.value;
-        }
-
-        // Process children
-        el.childNodes.forEach(child => {
-            const c = processNode(child);
-            if (c) obj.children.push(c);
-        });
-
-        return obj;
+async function processSinglePost(searchText: string) {
+  try {
+    // 1. Search
+    const post = await fetchPostBySearch(searchText);
+    if (!post) {
+      return { error: `No post found for search: ${searchText}` };
     }
 
-    const result: HtmlNode[] = [];
-    document.body.childNodes.forEach(node => {
-        const processed = processNode(node);
-        if (processed) result.push(processed);
-    });
+    const postId = post.id;
 
-    return result;
+    // 2. Fetch Media
+    const mediaUrl = `${WP_BASE}/media?parent=${postId}`;
+    const mediaItems = await safeFetchJSON(mediaUrl);
+
+    const mediaGuids = mediaItems?.[0]?.guid?.rendered ?? null;
+
+    return {
+      post_id: postId,
+      title: post.title?.rendered ?? "",
+      slug: post.slug,
+      media_guid: mediaGuids,
+    };
+  } catch (err: any) {
+    return { error: err.message || "Unknown error", search_string: searchText };
+  }
+}
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+
+  const curosrParam = searchParams.get("curosr") ?? "1";
+  const curosr = Math.max(1, parseInt(curosrParam, 10));
+
+  const pageSize = 10;
+  const offset = (curosr - 1) * pageSize;
+  try {
+    // Fix Query
+    const queryString = `
+    SELECT title
+    FROM table
+    ORDER BY id ASC
+    LIMIT $1 OFFSET $2
+    `;
+
+    const rows = await query<{ title: string }>(queryString, [
+      pageSize,
+      offset,
+    ]);
+    const searchStrings = rows.map((r) => r.title);
+
+    // Run all searches in parallel
+    const results = await Promise.all(
+      searchStrings.map((s) => processSinglePost(s))
+    );
+
+    return NextResponse.json({
+      ok: true,
+      results,
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: err.message || "Server Error" },
+      { status: 500 }
+    );
+  }
 }
