@@ -44,13 +44,10 @@ export async function GET(request: NextRequest) {
     // Fetch one batch of streams (10 videos)
     const result = await fetchStreamBatch(pageToken);
 
-    // Sort: live first, then upcoming (closest first), then past broadcasts (newest first)
-    const sortedStreams = sortStreamsByPriority(result.items);
-
-    // Format response
+    // Format response (return in YouTube's order - newest first)
     const response: ApiResponse = {
       success: true,
-      data: sortedStreams.map(formatVideoResponse),
+      data: result.items.map(formatVideoResponse),
       pagination: {
         hasMore: !!result.nextPageToken,
         nextPageToken: result.nextPageToken
@@ -128,54 +125,17 @@ async function fetchStreamBatch(pageToken: string | null) {
   const videosData = await videosResponse.json();
 
   // Filter only videos that were/are/will be live streams
-  // Check if video has liveStreamingDetails or liveBroadcastContent is not 'none'
   const liveVideos = videosData.items.filter((video: any) => {
     const liveBroadcastContent = video.snippet.liveBroadcastContent;
     return liveBroadcastContent === 'live' || 
            liveBroadcastContent === 'upcoming' || 
-           video.liveStreamingDetails; // Has live streaming details (past broadcasts)
+           video.liveStreamingDetails;
   });
 
   return {
     items: liveVideos,
     nextPageToken: searchData.nextPageToken || null
   };
-}
-
-function sortStreamsByPriority(videos: any[]): any[] {
-  const liveVideos: any[] = [];
-  const upcomingVideos: any[] = [];
-  const completedVideos: any[] = [];
-
-  videos.forEach(video => {
-    const liveStatus = video.snippet.liveBroadcastContent;
-    
-    if (liveStatus === 'live') {
-      liveVideos.push(video);
-    } else if (liveStatus === 'upcoming') {
-      upcomingVideos.push(video);
-    } else {
-      // Past broadcasts (completed streams)
-      completedVideos.push(video);
-    }
-  });
-
-  // Sort upcoming videos by scheduled start time (closest first)
-  upcomingVideos.sort((a, b) => {
-    const timeA = a.liveStreamingDetails?.scheduledStartTime || a.snippet.publishedAt;
-    const timeB = b.liveStreamingDetails?.scheduledStartTime || b.snippet.publishedAt;
-    return new Date(timeA).getTime() - new Date(timeB).getTime();
-  });
-
-  // Sort completed videos by actual start time or published date (newest first)
-  completedVideos.sort((a, b) => {
-    const timeA = a.liveStreamingDetails?.actualStartTime || a.snippet.publishedAt;
-    const timeB = b.liveStreamingDetails?.actualStartTime || b.snippet.publishedAt;
-    return new Date(timeB).getTime() - new Date(timeA).getTime();
-  });
-
-  // Combine: live first, then upcoming, then completed
-  return [...liveVideos, ...upcomingVideos, ...completedVideos];
 }
 
 function formatVideoResponse(video: any): Video {
