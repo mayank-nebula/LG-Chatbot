@@ -1,200 +1,68 @@
-// app/api/youtube/videos/route.ts
+// app/api/youtube/streams/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-// Types
-interface YouTubeVideo {
+interface Video {
   video_id: string;
   title: string;
-  published_at: string;
-  live_status: 'live' | 'upcoming' | 'none';
-  duration: string;
+  upload_date: string;
+  views: number;
 }
 
-interface PaginationMeta {
+interface PaginationData {
   hasMore: boolean;
   nextPageToken: string | null;
-  totalResults: number;
 }
 
-interface APIResponse {
+interface ApiResponse {
   success: boolean;
-  data: YouTubeVideo[];
-  pagination: PaginationMeta;
+  data: Video[];
+  pagination: PaginationData;
   error?: string;
 }
 
-// Helper function to parse ISO 8601 duration
-function parseISO8601Duration(duration: string): number {
-  if (!duration || duration === 'PT0S') return 0;
-  
-  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return 0;
-  
-  const hours = parseInt(match[1] || '0');
-  const minutes = parseInt(match[2] || '0');
-  const seconds = parseInt(match[3] || '0');
-  
-  return hours * 3600 + minutes * 60 + seconds;
-}
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const YOUTUBE_CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 
-// Helper function to check if video is a Short
-function isShort(duration: string): boolean {
-  const totalSeconds = parseISO8601Duration(duration);
-  return totalSeconds > 0 && totalSeconds <= 60;
-}
-
-// Main API Route Handler
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const channelId = searchParams.get('channelId');
-    const pageToken = searchParams.get('pageToken');
-    const limit = parseInt(searchParams.get('limit') || '10');
-
-    // Validation
-    if (!channelId) {
+    // Validate environment variables
+    if (!YOUTUBE_API_KEY || !YOUTUBE_CHANNEL_ID) {
       return NextResponse.json(
         {
           success: false,
-          error: 'channelId is required',
-        } as APIResponse,
-        { status: 400 }
-      );
-    }
-
-    if (limit < 1 || limit > 50) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'limit must be between 1 and 50',
-        } as APIResponse,
-        { status: 400 }
-      );
-    }
-
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'YouTube API key not configured',
-        } as APIResponse,
+          error: 'Missing YouTube API credentials',
+          data: [],
+          pagination: { hasMore: false, nextPageToken: null }
+        } as ApiResponse,
         { status: 500 }
       );
     }
 
-    // Step 1: Get uploads playlist ID
-    const channelResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/channels?` +
-        new URLSearchParams({
-          part: 'contentDetails',
-          id: channelId,
-          key: apiKey,
-        })
-    );
+    const searchParams = request.nextUrl.searchParams;
+    const pageToken = searchParams.get('pageToken');
 
-    if (!channelResponse.ok) {
-      throw new Error(`YouTube API error: ${channelResponse.statusText}`);
-    }
+    // Fetch one batch of streams (10 videos)
+    const result = await fetchStreamBatch(pageToken);
 
-    const channelData = await channelResponse.json();
+    // Sort: live first, then upcoming (closest first), then past broadcasts (newest first)
+    const sortedStreams = sortStreamsByPriority(result.items);
 
-    if (!channelData.items || channelData.items.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Channel not found',
-        } as APIResponse,
-        { status: 404 }
-      );
-    }
-
-    const uploadsPlaylistId =
-      channelData.items[0].contentDetails.relatedPlaylists.uploads;
-
-    // Step 2: Get playlist items (we'll fetch more to filter out shorts)
-    const playlistResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/playlistItems?` +
-        new URLSearchParams({
-          part: 'snippet,contentDetails',
-          playlistId: uploadsPlaylistId,
-          maxResults: '50', // Fetch more to account for shorts filtering
-          ...(pageToken && { pageToken }),
-          key: apiKey,
-        })
-    );
-
-    if (!playlistResponse.ok) {
-      throw new Error(`YouTube API error: ${playlistResponse.statusText}`);
-    }
-
-    const playlistData = await playlistResponse.json();
-
-    if (!playlistData.items || playlistData.items.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: [],
-        pagination: {
-          hasMore: false,
-          nextPageToken: null,
-          totalResults: 0,
-        },
-      } as APIResponse);
-    }
-
-    // Step 3: Get detailed video information
-    const videoIds = playlistData.items.map(
-      (item: any) => item.contentDetails.videoId
-    );
-
-    const videosResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?` +
-        new URLSearchParams({
-          part: 'snippet,contentDetails,liveStreamingDetails',
-          id: videoIds.join(','),
-          key: apiKey,
-        })
-    );
-
-    if (!videosResponse.ok) {
-      throw new Error(`YouTube API error: ${videosResponse.statusText}`);
-    }
-
-    const videosData = await videosResponse.json();
-
-    // Step 4: Process and filter videos
-    const videos: YouTubeVideo[] = videosData.items
-      .filter((item: any) => {
-        // Filter out shorts
-        const duration = item.contentDetails.duration;
-        return !isShort(duration);
-      })
-      .map((item: any) => ({
-        video_id: item.id,
-        title: item.snippet.title,
-        published_at: item.snippet.publishedAt,
-        live_status: item.snippet.liveBroadcastContent,
-        duration: item.contentDetails.duration,
-      }));
-
-    // Step 5: Sort by latest date (published_at)
-    videos.sort((a, b) => {
-      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-    });
-
-    // Step 6: Apply limit and prepare pagination
-    const paginatedVideos = videos.slice(0, limit);
-    const hasMore = videos.length > limit || !!playlistData.nextPageToken;
-
-    return NextResponse.json({
+    // Format response
+    const response: ApiResponse = {
       success: true,
-      data: paginatedVideos,
+      data: sortedStreams.map(formatVideoResponse),
       pagination: {
-        hasMore,
-        nextPageToken: playlistData.nextPageToken || null,
-        totalResults: paginatedVideos.length,
-      },
-    } as APIResponse);
+        hasMore: !!result.nextPageToken,
+        nextPageToken: result.nextPageToken
+      }
+    };
+
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=360'
+      }
+    });
 
   } catch (error) {
     console.error('YouTube API Error:', error);
@@ -203,12 +71,122 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: error instanceof Error ? error.message : 'Internal server error',
-      } as APIResponse,
+        data: [],
+        pagination: { hasMore: false, nextPageToken: null }
+      } as ApiResponse,
       { status: 500 }
     );
   }
 }
 
-// Optional: Add rate limiting and caching
-export const runtime = 'edge'; // Optional: Use edge runtime for better performance
-export const dynamic = 'force-dynamic'; // Disable caching for fresh data
+async function fetchStreamBatch(pageToken: string | null) {
+  // Use search API to get videos from the channel
+  const searchUrl = new URL('https://www.googleapis.com/youtube/v3/search');
+  searchUrl.searchParams.append('part', 'snippet');
+  searchUrl.searchParams.append('channelId', YOUTUBE_CHANNEL_ID!);
+  searchUrl.searchParams.append('type', 'video');
+  searchUrl.searchParams.append('order', 'date');
+  searchUrl.searchParams.append('maxResults', '10');
+  searchUrl.searchParams.append('key', YOUTUBE_API_KEY!);
+  
+  if (pageToken) {
+    searchUrl.searchParams.append('pageToken', pageToken);
+  }
+
+  const searchResponse = await fetch(searchUrl.toString());
+  
+  if (!searchResponse.ok) {
+    const errorData = await searchResponse.json().catch(() => ({}));
+    throw new Error(`YouTube API error: ${searchResponse.statusText} - ${JSON.stringify(errorData)}`);
+  }
+
+  const searchData = await searchResponse.json();
+
+  // Get video IDs
+  const videoIds = searchData.items.map((item: any) => item.id.videoId);
+
+  if (videoIds.length === 0) {
+    return {
+      items: [],
+      nextPageToken: null
+    };
+  }
+
+  // Fetch detailed video information to get live status and statistics
+  const videosUrl = new URL('https://www.googleapis.com/youtube/v3/videos');
+  videosUrl.searchParams.append('part', 'snippet,statistics,liveStreamingDetails');
+  videosUrl.searchParams.append('id', videoIds.join(','));
+  videosUrl.searchParams.append('key', YOUTUBE_API_KEY!);
+
+  const videosResponse = await fetch(videosUrl.toString());
+  
+  if (!videosResponse.ok) {
+    const errorData = await videosResponse.json().catch(() => ({}));
+    throw new Error(`YouTube API error: ${videosResponse.statusText} - ${JSON.stringify(errorData)}`);
+  }
+
+  const videosData = await videosResponse.json();
+
+  // Filter only videos that were/are/will be live streams
+  // Check if video has liveStreamingDetails or liveBroadcastContent is not 'none'
+  const liveVideos = videosData.items.filter((video: any) => {
+    const liveBroadcastContent = video.snippet.liveBroadcastContent;
+    return liveBroadcastContent === 'live' || 
+           liveBroadcastContent === 'upcoming' || 
+           video.liveStreamingDetails; // Has live streaming details (past broadcasts)
+  });
+
+  return {
+    items: liveVideos,
+    nextPageToken: searchData.nextPageToken || null
+  };
+}
+
+function sortStreamsByPriority(videos: any[]): any[] {
+  const liveVideos: any[] = [];
+  const upcomingVideos: any[] = [];
+  const completedVideos: any[] = [];
+
+  videos.forEach(video => {
+    const liveStatus = video.snippet.liveBroadcastContent;
+    
+    if (liveStatus === 'live') {
+      liveVideos.push(video);
+    } else if (liveStatus === 'upcoming') {
+      upcomingVideos.push(video);
+    } else {
+      // Past broadcasts (completed streams)
+      completedVideos.push(video);
+    }
+  });
+
+  // Sort upcoming videos by scheduled start time (closest first)
+  upcomingVideos.sort((a, b) => {
+    const timeA = a.liveStreamingDetails?.scheduledStartTime || a.snippet.publishedAt;
+    const timeB = b.liveStreamingDetails?.scheduledStartTime || b.snippet.publishedAt;
+    return new Date(timeA).getTime() - new Date(timeB).getTime();
+  });
+
+  // Sort completed videos by actual start time or published date (newest first)
+  completedVideos.sort((a, b) => {
+    const timeA = a.liveStreamingDetails?.actualStartTime || a.snippet.publishedAt;
+    const timeB = b.liveStreamingDetails?.actualStartTime || b.snippet.publishedAt;
+    return new Date(timeB).getTime() - new Date(timeA).getTime();
+  });
+
+  // Combine: live first, then upcoming, then completed
+  return [...liveVideos, ...upcomingVideos, ...completedVideos];
+}
+
+function formatVideoResponse(video: any): Video {
+  return {
+    video_id: video.id,
+    title: video.snippet.title,
+    upload_date: video.snippet.publishedAt,
+    views: parseInt(video.statistics?.viewCount || '0')
+  };
+}
+
+export const config = {
+  runtime: 'nodejs',
+};
