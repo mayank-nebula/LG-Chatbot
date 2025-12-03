@@ -138,38 +138,34 @@ class YouTubeChannelFetcher:
 # Usage Example
 if __name__ == "__main__":
     API_KEY = "YOUR_API_KEY_HERE"
-    CHANNEL_ID = "YOUR_CHANNEL_ID_HERE"  # e.g., "UC_x5XG1OV2P6uZZ5FSM9Ttw"
     
     fetcher = YouTubeChannelFetcher(API_KEY)
     
-    print(f"Fetching videos for channel: {CHANNEL_ID}")
-    videos = fetcher.get_all_videos(CHANNEL_ID, exclude_shorts=True)
+    # Option 1: Using channel handle
+    channel_handle = "@channelname"
+    channel_id = fetcher.get_channel_id(channel_handle)
     
-    # Separate by status
-    live_videos = [v for v in videos if v['live_status'] == 'live']
-    upcoming_videos = [v for v in videos if v['live_status'] == 'upcoming']
-    uploaded_videos = [v for v in videos if v['live_status'] == 'none']
+    # Option 2: Using channel ID directly
+    # channel_id = "UC_x5XG1OV2P6uZZ5FSM9Ttw"
     
-    print(f"\nTotal videos: {len(videos)}")
-    print(f"Live: {len(live_videos)}")
-    print(f"Upcoming: {len(upcoming_videos)}")
-    print(f"Uploaded: {len(uploaded_videos)}")
-    
-    # Display sample videos from each category
-    if live_videos:
-        print("\n=== LIVE VIDEOS ===")
-        for video in live_videos[:3]:
-            print(f"{video['title']}")
-            print(f"  URL: {video['url']}\n")
-    
-    if upcoming_videos:
-        print("\n=== UPCOMING VIDEOS ===")
-        for video in upcoming_videos[:3]:
-            print(f"{video['title']}")
-            print(f"  URL: {video['url']}\n")
-    
-    if uploaded_videos:
-        print("\n=== UPLOADED VIDEOS (Sample) ===")
-        for video in uploaded_videos[:5]:
-            print(f"{video['title']}")
-            print(f"  URL: {video['url']}\n")
+    if channel_id:
+        print(f"Fetching videos for channel: {channel_id}")
+        videos = fetcher.get_all_videos(channel_id, exclude_shorts=True)
+        
+        # Separate by status
+        live_videos = [v for v in videos if v['live_status'] == 'live']
+        upcoming_videos = [v for v in videos if v['live_status'] == 'upcoming']
+        uploaded_videos = [v for v in videos if v['live_status'] == 'none']
+        
+        print(f"\nTotal videos: {len(videos)}")
+        print(f"Live: {len(live_videos)}")
+        print(f"Upcoming: {len(upcoming_videos)}")
+        print(f"Uploaded: {len(uploaded_videos)}")
+        
+        # Display sample videos
+        for video in videos[:5]:
+            print(f"\n{video['title']}")
+            print(f"  Status: {video['live_status']}")
+            print(f"  URL: {video['url']}")
+    else:
+        print("Channel not found")
