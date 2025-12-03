@@ -1,171 +1,214 @@
-import requests
-from datetime import datetime
+// app/api/youtube/videos/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 
-class YouTubeChannelFetcher:
-    def __init__(self, api_key):
-        self.api_key = api_key
-        self.base_url = "https://www.googleapis.com/youtube/v3"
-    
-    def get_channel_id(self, channel_handle):
-        """Get channel ID from handle or username"""
-        url = f"{self.base_url}/channels"
-        params = {
-            'part': 'id',
-            'forHandle': channel_handle.replace('@', ''),
-            'key': self.api_key
-        }
-        response = requests.get(url, params=params)
-        data = response.json()
-        
-        if 'items' in data and len(data['items']) > 0:
-            return data['items'][0]['id']
-        return None
-    
-    def get_uploads_playlist_id(self, channel_id):
-        """Get the uploads playlist ID for a channel"""
-        url = f"{self.base_url}/channels"
-        params = {
-            'part': 'contentDetails',
-            'id': channel_id,
-            'key': self.api_key
-        }
-        response = requests.get(url, params=params)
-        data = response.json()
-        
-        if 'items' in data and len(data['items']) > 0:
-            return data['items'][0]['contentDetails']['relatedPlaylists']['uploads']
-        return None
-    
-    def get_all_videos(self, channel_id, exclude_shorts=True):
-        """Fetch all videos from a channel (live, upcoming, and uploaded)"""
-        all_videos = []
-        
-        # Get uploads playlist
-        uploads_playlist_id = self.get_uploads_playlist_id(channel_id)
-        if not uploads_playlist_id:
-            print("Could not find uploads playlist")
-            return all_videos
-        
-        # Fetch all videos from uploads playlist
-        next_page_token = None
-        while True:
-            url = f"{self.base_url}/playlistItems"
-            params = {
-                'part': 'snippet,contentDetails',
-                'playlistId': uploads_playlist_id,
-                'maxResults': 50,
-                'key': self.api_key
-            }
-            if next_page_token:
-                params['pageToken'] = next_page_token
-            
-            response = requests.get(url, params=params)
-            data = response.json()
-            
-            if 'items' not in data:
-                break
-            
-            video_ids = [item['contentDetails']['videoId'] for item in data['items']]
-            
-            # Get detailed video info to filter shorts and check live status
-            video_details = self.get_video_details(video_ids)
-            
-            for video in video_details:
-                # Filter out Shorts (videos with duration < 61 seconds and vertical aspect ratio)
-                if exclude_shorts:
-                    duration = video.get('duration', '')
-                    # Parse ISO 8601 duration
-                    if self.is_short_video(duration):
-                        continue
-                
-                all_videos.append({
-                    'video_id': video['id'],
-                    'title': video['title'],
-                    'published_at': video['published_at'],
-                    'live_status': video['live_status'],
-                    'duration': video['duration'],
-                    'url': f"https://www.youtube.com/watch?v={video['id']}"
-                })
-            
-            next_page_token = data.get('nextPageToken')
-            if not next_page_token:
-                break
-        
-        return all_videos
-    
-    def get_video_details(self, video_ids):
-        """Get detailed information for multiple videos"""
-        url = f"{self.base_url}/videos"
-        params = {
-            'part': 'snippet,contentDetails,liveStreamingDetails',
-            'id': ','.join(video_ids),
-            'key': self.api_key
-        }
-        response = requests.get(url, params=params)
-        data = response.json()
-        
-        videos = []
-        if 'items' in data:
-            for item in data['items']:
-                videos.append({
-                    'id': item['id'],
-                    'title': item['snippet']['title'],
-                    'published_at': item['snippet']['publishedAt'],
-                    'duration': item['contentDetails']['duration'],
-                    'live_status': item['snippet'].get('liveBroadcastContent', 'none')
-                })
-        
-        return videos
-    
-    def is_short_video(self, duration):
-        """Check if video is a Short based on duration (< 61 seconds)"""
-        # Parse ISO 8601 duration format (e.g., PT1M30S, PT45S)
-        if not duration or duration == 'PT0S':
-            return False
-        
-        import re
-        match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
-        if not match:
-            return False
-        
-        hours = int(match.group(1) or 0)
-        minutes = int(match.group(2) or 0)
-        seconds = int(match.group(3) or 0)
-        
-        total_seconds = hours * 3600 + minutes * 60 + seconds
-        return total_seconds <= 60
+// Types
+interface YouTubeVideo {
+  video_id: string;
+  title: string;
+  published_at: string;
+  live_status: 'live' | 'upcoming' | 'none';
+  duration: string;
+}
 
-# Usage Example
-if __name__ == "__main__":
-    API_KEY = "YOUR_API_KEY_HERE"
+interface PaginationMeta {
+  hasMore: boolean;
+  nextPageToken: string | null;
+  totalResults: number;
+}
+
+interface APIResponse {
+  success: boolean;
+  data: YouTubeVideo[];
+  pagination: PaginationMeta;
+  error?: string;
+}
+
+// Helper function to parse ISO 8601 duration
+function parseISO8601Duration(duration: string): number {
+  if (!duration || duration === 'PT0S') return 0;
+  
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  
+  const hours = parseInt(match[1] || '0');
+  const minutes = parseInt(match[2] || '0');
+  const seconds = parseInt(match[3] || '0');
+  
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+// Helper function to check if video is a Short
+function isShort(duration: string): boolean {
+  const totalSeconds = parseISO8601Duration(duration);
+  return totalSeconds > 0 && totalSeconds <= 60;
+}
+
+// Main API Route Handler
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const channelId = searchParams.get('channelId');
+    const pageToken = searchParams.get('pageToken');
+    const limit = parseInt(searchParams.get('limit') || '10');
+
+    // Validation
+    if (!channelId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'channelId is required',
+        } as APIResponse,
+        { status: 400 }
+      );
+    }
+
+    if (limit < 1 || limit > 50) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'limit must be between 1 and 50',
+        } as APIResponse,
+        { status: 400 }
+      );
+    }
+
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'YouTube API key not configured',
+        } as APIResponse,
+        { status: 500 }
+      );
+    }
+
+    // Step 1: Get uploads playlist ID
+    const channelResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/channels?` +
+        new URLSearchParams({
+          part: 'contentDetails',
+          id: channelId,
+          key: apiKey,
+        })
+    );
+
+    if (!channelResponse.ok) {
+      throw new Error(`YouTube API error: ${channelResponse.statusText}`);
+    }
+
+    const channelData = await channelResponse.json();
+
+    if (!channelData.items || channelData.items.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Channel not found',
+        } as APIResponse,
+        { status: 404 }
+      );
+    }
+
+    const uploadsPlaylistId =
+      channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+    // Step 2: Get playlist items (we'll fetch more to filter out shorts)
+    const playlistResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?` +
+        new URLSearchParams({
+          part: 'snippet,contentDetails',
+          playlistId: uploadsPlaylistId,
+          maxResults: '50', // Fetch more to account for shorts filtering
+          ...(pageToken && { pageToken }),
+          key: apiKey,
+        })
+    );
+
+    if (!playlistResponse.ok) {
+      throw new Error(`YouTube API error: ${playlistResponse.statusText}`);
+    }
+
+    const playlistData = await playlistResponse.json();
+
+    if (!playlistData.items || playlistData.items.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: {
+          hasMore: false,
+          nextPageToken: null,
+          totalResults: 0,
+        },
+      } as APIResponse);
+    }
+
+    // Step 3: Get detailed video information
+    const videoIds = playlistData.items.map(
+      (item: any) => item.contentDetails.videoId
+    );
+
+    const videosResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?` +
+        new URLSearchParams({
+          part: 'snippet,contentDetails,liveStreamingDetails',
+          id: videoIds.join(','),
+          key: apiKey,
+        })
+    );
+
+    if (!videosResponse.ok) {
+      throw new Error(`YouTube API error: ${videosResponse.statusText}`);
+    }
+
+    const videosData = await videosResponse.json();
+
+    // Step 4: Process and filter videos
+    const videos: YouTubeVideo[] = videosData.items
+      .filter((item: any) => {
+        // Filter out shorts
+        const duration = item.contentDetails.duration;
+        return !isShort(duration);
+      })
+      .map((item: any) => ({
+        video_id: item.id,
+        title: item.snippet.title,
+        published_at: item.snippet.publishedAt,
+        live_status: item.snippet.liveBroadcastContent,
+        duration: item.contentDetails.duration,
+      }));
+
+    // Step 5: Sort by latest date (published_at)
+    videos.sort((a, b) => {
+      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+    });
+
+    // Step 6: Apply limit and prepare pagination
+    const paginatedVideos = videos.slice(0, limit);
+    const hasMore = videos.length > limit || !!playlistData.nextPageToken;
+
+    return NextResponse.json({
+      success: true,
+      data: paginatedVideos,
+      pagination: {
+        hasMore,
+        nextPageToken: playlistData.nextPageToken || null,
+        totalResults: paginatedVideos.length,
+      },
+    } as APIResponse);
+
+  } catch (error) {
+    console.error('YouTube API Error:', error);
     
-    fetcher = YouTubeChannelFetcher(API_KEY)
-    
-    # Option 1: Using channel handle
-    channel_handle = "@channelname"
-    channel_id = fetcher.get_channel_id(channel_handle)
-    
-    # Option 2: Using channel ID directly
-    # channel_id = "UC_x5XG1OV2P6uZZ5FSM9Ttw"
-    
-    if channel_id:
-        print(f"Fetching videos for channel: {channel_id}")
-        videos = fetcher.get_all_videos(channel_id, exclude_shorts=True)
-        
-        # Separate by status
-        live_videos = [v for v in videos if v['live_status'] == 'live']
-        upcoming_videos = [v for v in videos if v['live_status'] == 'upcoming']
-        uploaded_videos = [v for v in videos if v['live_status'] == 'none']
-        
-        print(f"\nTotal videos: {len(videos)}")
-        print(f"Live: {len(live_videos)}")
-        print(f"Upcoming: {len(upcoming_videos)}")
-        print(f"Uploaded: {len(uploaded_videos)}")
-        
-        # Display sample videos
-        for video in videos[:5]:
-            print(f"\n{video['title']}")
-            print(f"  Status: {video['live_status']}")
-            print(f"  URL: {video['url']}")
-    else:
-        print("Channel not found")
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error',
+      } as APIResponse,
+      { status: 500 }
+    );
+  }
+}
+
+// Optional: Add rate limiting and caching
+export const runtime = 'edge'; // Optional: Use edge runtime for better performance
+export const dynamic = 'force-dynamic'; // Disable caching for fresh data
