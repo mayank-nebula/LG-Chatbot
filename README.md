@@ -1,5 +1,5 @@
 // /lib/db.ts
-import { Pool, QueryResultRow } from 'pg';
+import { Pool, QueryResultRow } from "pg";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -8,14 +8,14 @@ declare global {
 
 async function createPool(): Promise<Pool> {
   // When running locally with the Auth Proxy, the host is localhost
-  const dbHost = process.env.DB_HOST || '127.0.0.1';
+  const dbHost = process.env.DB_HOST || "127.0.0.1";
   const dbPort = Number(process.env.DB_PORT) || 5432;
   const dbUser = process.env.DB_USER;
   const dbPassword = process.env.DB_PASSWORD;
   const dbName = process.env.DB_NAME;
 
   if (!dbUser || !dbPassword || !dbName) {
-    throw new Error('DB_USER, DB_PASSWORD, and DB_NAME env vars are required.');
+    throw new Error("DB_USER, DB_PASSWORD, and DB_NAME env vars are required.");
   }
 
   // Create standard PG Pool
@@ -30,12 +30,12 @@ async function createPool(): Promise<Pool> {
     connectionTimeoutMillis: Number(process.env.DB_CONN_TIMEOUT_MS || 5000),
   });
 
-  pool.on('connect', () => {
-    console.log('[pg] new client connected');
+  pool.on("connect", () => {
+    console.log("[pg] new client connected");
   });
-  
-  pool.on('error', (err) => {
-    console.error('[pg] pool error', err);
+
+  pool.on("error", (err) => {
+    console.error("[pg] pool error", err);
   });
 
   return pool;
@@ -49,16 +49,16 @@ function getPoolPromise(): Promise<Pool> {
 }
 
 // Warm up the pool
-export const dbReady = (async () => {
-  try {
-    const pool = await getPoolPromise();
-    const client = await pool.connect();
-    client.release();
-    console.log('🔥 DB pool warmed and ready.');
-  } catch (err) {
-    console.error('❌ Failed to warm DB pool:', err);
-  }
-})();
+// export const dbReady = (async () => {
+//   try {
+//     const pool = await getPoolPromise();
+//     const client = await pool.connect();
+//     client.release();
+//     console.log("DB pool warmed and ready.");
+//   } catch (err) {
+//     console.error("Failed to warm DB pool:", err);
+//   }
+// })();
 
 export async function query<T extends QueryResultRow = any>(
   sql: string,
@@ -75,25 +75,27 @@ export async function query<T extends QueryResultRow = any>(
 }
 
 export async function transaction<T>(
-  fn: (client: { query: <R = any>(sql: string, params?: any[]) => Promise<{ rows: R[]; }> }) => Promise<T>
+  fn: (client: {
+    query: <R = any>(sql: string, params?: any[]) => Promise<{ rows: R[] }>;
+  }) => Promise<T>
 ): Promise<T> {
   const pool = await getPoolPromise();
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
     const result = await fn({
       query: async (sql: string, params?: any[]) => {
         const r = await client.query(sql, params);
         return { rows: r.rows };
       },
     });
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     return result;
   } catch (err) {
     try {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
     } catch (rbErr) {
-      console.error('rollback failed', rbErr);
+      console.error("rollback failed", rbErr);
     }
     throw err;
   } finally {
