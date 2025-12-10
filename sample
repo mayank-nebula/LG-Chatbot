@@ -1,42 +1,129 @@
-# Role and Primary Task
-You are an advanced AI assistant with exceptional analytical and decision-making capabilities. Your primary task is to accurately interpret user queries, determine the most appropriate action, and generate informative and relevant responses. Your default source of information is the internal knowledge base.
+Got it — you want the email to focus on two main points only:
 
-# Detailed Decision Protocol
-## 1. normal_rag (DEFAULT CATEGORY)
-- **Purpose**: Answering specific questions using the internal knowledge base.
-- **Use when**: The query can be answered using internal information, which covers a wide range of topics including company data, reports, policies, product information, etc.
-- **Always prioritize this category** for most queries unless the query explicitly falls into another category.
-- This category includes content-dependent follow-up questions like "Tell me more about it" or "Can you elaborate on that?"
-- **Response format**: Provide concise, direct answers with relevant context from the knowledge base.
+1️⃣ Redis caching recommendation (vs API quota increase)
+2️⃣ Missing/unknown-category pages (example.com/slug) that exist in backend but are not found in frontend categories, and you're unsure where they belong
 
-## 2. summary_rag
-- **Purpose**: Addressing questions about overall content, main ideas, or summaries of entire documents from the internal knowledge base.
-- **Use when**: The query explicitly requires a broad understanding or overview of a document's content as a whole.
-- **Example queries**:
-  * "What is the main theme of the strategic planning document?"
-  * "Summarize the key points of the entire document."
-  * "Give me an overview of this document's content."
-  * "What are the main topics covered throughout this document?"
-- **Response format**: Provide structured summaries with hierarchical organization of main points and supporting details.
+Here is a clean, professional combined email with only those two points:
 
-## 3. direct_response
-- **Purpose**: Handling greetings, casual conversation, or very simple queries.
-- **Use when**: The user input is a greeting, expression of gratitude, or a very simple question that doesn't require accessing any knowledge base.
-- **Example queries**:
-  * "Hello!"
-  * "How are you?"
-  * "Thank you for your help."
-- **Response format**: Brief, conversational responses without technical detail unless requested.
+📧 Email Draft (Final Version — Two Main Points Only)
 
-## 4. structured_rag
-- **Purpose**: Answering questions related to metadata of the documents.
-- **Use when**: The metadata only contains - filename, topic, Region, Country, KeywordValue. If you think that the user query is related to any of this information only and can be answered, the query will fall under this category.
-- **Response format**: Provide organized, systematic responses that clearly present the structural information requested.
+Subject: Recommendation on Caching Strategy and Clarification on Unmapped Pages
 
-# Response Protocol
-1. Always default to using the normal_rag category unless the query clearly falls into another category.
-2. Use the summary_rag category only when explicitly asked for document-wide summaries or overviews.
-3. Use direct_response for greetings, salutations, and casual conversation.
+Hi [Name],
 
-# Response Structure
-1. Begin with a direct answer to the main question.
+While working on the current website resampling, I encountered two important issues that need your guidance:
+
+1. Recommendation: Implement Redis Caching Instead of Increasing API Quota
+
+We recently exceeded the daily YouTube Data API v3 quota (10,000 units/day), which caused related features to stop functioning. To avoid this recurring issue, I evaluated the option of requesting a higher API quota versus implementing Redis caching.
+
+After analysis, Redis caching is the more cost-efficient and scalable solution.
+
+It drastically reduces YouTube API calls (from thousands/day to fewer than ~100/day)
+
+Keeps us safely within the free quota limits
+
+Improves page load speed under high footfall
+
+Redis can also be reused as a shared caching layer for multiple other pages across the website, not only for YouTube data
+
+Increasing the API quota would not only be uncertain (Google approval required) but could also lead to higher backend costs as traffic continues to grow.
+
+Therefore, I recommend moving forward with Redis caching.
+
+2. Unmapped Pages That Do Not Appear in Frontend Categories
+
+During the ingestion process (e.g., /blogs/slug), we identified many pages that exist in the backend but do not appear under any frontend categories. They are accessible directly through URLs like:
+
+https://example.com/slug
+
+
+However, we cannot determine where they belong within the site's structure, and they are not being detected automatically by the pipeline.
+
+To proceed correctly, I need clarification on these pages:
+
+Should these pages be included in the new structure?
+
+Are they legacy pages that should be excluded?
+
+Should they be assigned to a category, or handled separately?
+
+Knowing how to treat these unmapped pages will allow us to finalize the ingestion pipeline and ensure complete, accurate content coverage.
+
+Please let me know your preferred direction on Redis caching and how you would like to handle the unmapped pages.
+
+Thanks,
+[Your Name]
+
+If you'd like, I can also prepare:
+
+✔ A shorter version
+✔ A more formal corporate version
+✔ A more technical explanation for engineering leads
+
+Just tell me!
+
+You said:
+and do we need to show these articles or not
+ChatGPT said:
+
+Here is the updated email with the added question:
+“Do we need to show these articles or not?”
+This is included clearly in the second main point.
+
+📧 Email Draft (Final – Includes question about showing the articles)
+
+Subject: Recommendation on Caching Strategy and Clarification Needed on Unmapped Articles
+
+Hi [Name],
+
+While working on the website resampling, I encountered two important points that require your guidance:
+
+1. Recommendation: Implement Redis Caching Instead of Increasing YouTube API Quota
+
+We recently exceeded the daily YouTube Data API v3 quota (10,000 units/day), which caused related features to stop working. After evaluating options, Redis caching is the more scalable and cost-efficient solution compared to requesting higher API quota.
+
+Benefits of Redis caching:
+
+Reduces API calls drastically (from thousands/day to <100/day)
+
+Keeps us comfortably within the free quota
+
+Improves performance under high footfall
+
+Redis can also be reused to cache many other pages across the site, not just YouTube data
+
+Increasing quota is not guaranteed and could lead to higher backend processing costs as traffic grows.
+
+Therefore, I recommend proceeding with Redis caching.
+
+2. Unmapped Articles That Do Not Appear in Any Frontend Category
+
+During the ingestion pipeline (e.g., /blogs/slug), we discovered many articles/pages that:
+
+Exist in the backend
+
+Are accessible via URLs like https://example.com/slug
+
+But do not appear under any frontend categories, and we cannot determine where they belong
+
+To continue correctly, I need your direction on the following:
+
+Questions:
+
+Do these articles need to be shown on the new platform?
+
+Should they be included in the resampling and caching workflow?
+
+Are they legacy/unwanted pages that should be excluded?
+
+If they should be shown, which category or section should they belong to?
+
+Clarifying this will allow us to finalize the ingestion pipeline and ensure we only display relevant content.
+
+Please let me know your thoughts on both the caching recommendation and how we should handle these unmapped articles.
+
+Thanks,
+[Your Name]
+
+If you'd like, I can polish the tone (more formal/shorter), or format it for a Slack/Teams message.
