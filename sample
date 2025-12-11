@@ -2,16 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createParser,
-  ParsedEvent,
-  ReconnectInterval,
+  type EventSourceMessage, // UPDATED: Changed from ParsedEvent
 } from "eventsource-parser";
 
-// 1. Set runtime to Edge
 export const runtime = "edge";
-
-// Optional: Set region if your backend is in a specific location (e.g., AWS us-east-1)
-// to reduce latency between the Edge function and your backend.
-// export const preferredRegion = 'iad1'; 
 
 const BACKEND_URL = process.env.BACKEND_SSE_URL || "http://localhost:8000/sse";
 
@@ -41,11 +35,8 @@ export async function POST(req: NextRequest) {
   try {
     const response = await fetch(BACKEND_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      // Forward the client disconnect signal to the backend
       signal: req.signal,
     });
 
@@ -59,31 +50,28 @@ export async function POST(req: NextRequest) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        // Create the SSE parser
-        const parser = createParser((event: ParsedEvent | ReconnectInterval) => {
-          if (event.type === "event") {
-            const { event: eventName, data } = event;
-
-            // Filter for your specific event type
-            if (eventName === "brain/text") {
+        // UPDATED: v3 Callback Structure
+        const parser = createParser({
+          onEvent: (event: EventSourceMessage) => {
+            // "event.event" is the event name (e.g. "brain/text")
+            if (event.event === "brain/text") {
               try {
-                const parsed: UpstreamPayload = JSON.parse(data);
+                const parsed: UpstreamPayload = JSON.parse(event.data);
                 const text = parsed?.content?.parts?.[0]?.text;
-                
+
                 if (text) {
                   controller.enqueue(encoder.encode(`data: ${text}\n\n`));
                 }
               } catch (e) {
-                // Silently ignore parse errors for individual chunks
+                // Ignore parse errors
               }
             }
-          }
+          },
         });
 
-        // 2. Iterate over the stream using standard Web API
         if (!response.body) {
-            controller.close();
-            return;
+          controller.close();
+          return;
         }
 
         const reader = response.body.getReader();
@@ -92,7 +80,6 @@ export async function POST(req: NextRequest) {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            // Feed the raw chunk to the parser
             parser.feed(decoder.decode(value));
           }
         } finally {
@@ -109,11 +96,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err: any) {
-    // Ignore client disconnects
-    if (err.name === 'AbortError') {
-       return new Response(null, { status: 499 }); 
-    }
-    
+    if (err.name === "AbortError") return new Response(null, { status: 499 });
     console.error("Edge Proxy Error:", err);
     return NextResponse.json(
       { error: "Internal Server Error" },
