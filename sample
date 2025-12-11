@@ -1,43 +1,68 @@
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-import time
-import json
+// app/api/proxy/route.ts
+import { NextResponse } from 'next/server';
 
-app = FastAPI()
+// Define the expected shape of your environment variables for type safety
+const EXTERNAL_API_URL = process.env.EXTERNAL_API_URL;
+const EXTERNAL_API_KEY = process.env.EXTERNAL_API_KEY;
 
-def sse_event(event: str, data: dict):
-    """Formats an SSE event."""
-    return f"event: {event}\n" f"data: {json.dumps(data)}\n\n"
+export async function POST(request: Request) {
+  // 1. Validation: Ensure server config is present
+  if (!EXTERNAL_API_URL) {
+    console.error('Missing EXTERNAL_API_URL environment variable');
+    return NextResponse.json(
+      { error: 'Internal Server Configuration Error' },
+      { status: 500 }
+    );
+  }
 
-def stream_brain_text():
-    """Generator that yields SSE events chunk-by-chunk."""
-    messages = [
-        {"content": {'parts':[{'text':"Hello"}]}},
-        {"content": {'parts':[{'text':"this"}]}},
-        {"content": {'parts':[{'text':"is"}]}},
-        {"content": {'parts':[{'text':"a"}]}},
-        {"content": {'parts':[{'text':"test"}]}},
-        {"content": {'parts':[{'text':"stream"}]}},
-    ]
+  try {
+    // 2. Parse the incoming request body
+    // Using strict error handling if body is malformed
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
 
-    for msg in messages:
-        # Simulate real-time streaming
-        time.sleep(0.5)
+    // 3. Forward the request to the external server
+    const response = await fetch(EXTERNAL_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Security: Add API keys server-side (never expose these to the client)
+        ...(EXTERNAL_API_KEY && { 'Authorization': `Bearer ${EXTERNAL_API_KEY}` }),
+      },
+      body: JSON.stringify(body),
+    });
 
-        # Yield SSE event
-        yield sse_event("brain/text", msg)
+    // 4. Handle the response from the external server
+    
+    // Check content type to ensure we don't crash trying to parse HTML/Text as JSON
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // Fallback for non-JSON responses (e.g., text/plain)
+      data = await response.text();
+    }
 
-    # Also test some other events
-    yield sse_event("other/event", {"content": "should not be used"})
+    // 5. Return the response to the frontend
+    // Pass along the status code from the external server
+    return NextResponse.json(data, { status: response.status });
 
-
-@app.post("/sse")
-async def send_sse():
-    """
-    POST endpoint that returns a Server-Sent Event stream
-    with event: brain/text chunks.
-    """
-    return StreamingResponse(
-        stream_brain_text(),
-        media_type="text/event-stream"
-    )
+  } catch (error) {
+    // 6. Global Error Handler
+    console.error('Proxy Route Error:', error);
+    
+    return NextResponse.json(
+      { error: 'Failed to communicate with external server' },
+      { status: 500 }
+    );
+  }
+}
