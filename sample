@@ -1,106 +1,43 @@
-// app/api/stream/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import {
-  createParser,
-  type EventSourceMessage, // UPDATED: Changed from ParsedEvent
-} from "eventsource-parser";
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import time
+import json
 
-export const runtime = "edge";
+app = FastAPI()
 
-const BACKEND_URL = process.env.BACKEND_SSE_URL || "http://localhost:8000/sse";
+def sse_event(event: str, data: dict):
+    """Formats an SSE event."""
+    return f"event: {event}\n" f"data: {json.dumps(data)}\n\n"
 
-interface BrainTextPart {
-  text: string;
-}
+def stream_brain_text():
+    """Generator that yields SSE events chunk-by-chunk."""
+    messages = [
+        {"content": {'parts':[{'text':"Hello"}]}},
+        {"content": {'parts':[{'text':"this"}]}},
+        {"content": {'parts':[{'text':"is"}]}},
+        {"content": {'parts':[{'text':"a"}]}},
+        {"content": {'parts':[{'text':"test"}]}},
+        {"content": {'parts':[{'text':"stream"}]}},
+    ]
 
-interface BrainContent {
-  parts: BrainTextPart[];
-}
+    for msg in messages:
+        # Simulate real-time streaming
+        time.sleep(0.5)
 
-interface UpstreamPayload {
-  content?: BrainContent;
-}
+        # Yield SSE event
+        yield sse_event("brain/text", msg)
 
-export async function POST(req: NextRequest) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch (e) {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+    # Also test some other events
+    yield sse_event("other/event", {"content": "should not be used"})
 
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
 
-  try {
-    const response = await fetch(BACKEND_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: req.signal,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json(
-        { error: "Upstream service error", details: errorText },
-        { status: response.status }
-      );
-    }
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        // UPDATED: v3 Callback Structure
-        const parser = createParser({
-          onEvent: (event: EventSourceMessage) => {
-            // "event.event" is the event name (e.g. "brain/text")
-            if (event.event === "brain/text") {
-              try {
-                const parsed: UpstreamPayload = JSON.parse(event.data);
-                const text = parsed?.content?.parts?.[0]?.text;
-
-                if (text) {
-                  controller.enqueue(encoder.encode(`data: ${text}\n\n`));
-                }
-              } catch (e) {
-                // Ignore parse errors
-              }
-            }
-          },
-        });
-
-        if (!response.body) {
-          controller.close();
-          return;
-        }
-
-        const reader = response.body.getReader();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            parser.feed(decoder.decode(value));
-          }
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
-      },
-    });
-  } catch (err: any) {
-    if (err.name === "AbortError") return new Response(null, { status: 499 });
-    console.error("Edge Proxy Error:", err);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-}
+@app.post("/sse")
+async def send_sse():
+    """
+    POST endpoint that returns a Server-Sent Event stream
+    with event: brain/text chunks.
+    """
+    return StreamingResponse(
+        stream_brain_text(),
+        media_type="text/event-stream"
+    )
