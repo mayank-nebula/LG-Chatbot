@@ -1,129 +1,123 @@
-Got it — you want the email to focus on two main points only:
+// app/api/stream/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import {
+  createParser,
+  ParsedEvent,
+  ReconnectInterval,
+} from "eventsource-parser";
 
-1️⃣ Redis caching recommendation (vs API quota increase)
-2️⃣ Missing/unknown-category pages (example.com/slug) that exist in backend but are not found in frontend categories, and you're unsure where they belong
+// 1. Set runtime to Edge
+export const runtime = "edge";
 
-Here is a clean, professional combined email with only those two points:
+// Optional: Set region if your backend is in a specific location (e.g., AWS us-east-1)
+// to reduce latency between the Edge function and your backend.
+// export const preferredRegion = 'iad1'; 
 
-📧 Email Draft (Final Version — Two Main Points Only)
+const BACKEND_URL = process.env.BACKEND_SSE_URL || "http://localhost:8000/sse";
 
-Subject: Recommendation on Caching Strategy and Clarification on Unmapped Pages
+interface BrainTextPart {
+  text: string;
+}
 
-Hi [Name],
+interface BrainContent {
+  parts: BrainTextPart[];
+}
 
-While working on the current website resampling, I encountered two important issues that need your guidance:
+interface UpstreamPayload {
+  content?: BrainContent;
+}
 
-1. Recommendation: Implement Redis Caching Instead of Increasing API Quota
+export async function POST(req: NextRequest) {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch (e) {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-We recently exceeded the daily YouTube Data API v3 quota (10,000 units/day), which caused related features to stop functioning. To avoid this recurring issue, I evaluated the option of requesting a higher API quota versus implementing Redis caching.
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
 
-After analysis, Redis caching is the more cost-efficient and scalable solution.
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      // Forward the client disconnect signal to the backend
+      signal: req.signal,
+    });
 
-It drastically reduces YouTube API calls (from thousands/day to fewer than ~100/day)
+    if (!response.ok) {
+      const errorText = await response.text();
+      return NextResponse.json(
+        { error: "Upstream service error", details: errorText },
+        { status: response.status }
+      );
+    }
 
-Keeps us safely within the free quota limits
+    const stream = new ReadableStream({
+      async start(controller) {
+        // Create the SSE parser
+        const parser = createParser((event: ParsedEvent | ReconnectInterval) => {
+          if (event.type === "event") {
+            const { event: eventName, data } = event;
 
-Improves page load speed under high footfall
+            // Filter for your specific event type
+            if (eventName === "brain/text") {
+              try {
+                const parsed: UpstreamPayload = JSON.parse(data);
+                const text = parsed?.content?.parts?.[0]?.text;
+                
+                if (text) {
+                  controller.enqueue(encoder.encode(`data: ${text}\n\n`));
+                }
+              } catch (e) {
+                // Silently ignore parse errors for individual chunks
+              }
+            }
+          }
+        });
 
-Redis can also be reused as a shared caching layer for multiple other pages across the website, not only for YouTube data
+        // 2. Iterate over the stream using standard Web API
+        if (!response.body) {
+            controller.close();
+            return;
+        }
 
-Increasing the API quota would not only be uncertain (Google approval required) but could also lead to higher backend costs as traffic continues to grow.
+        const reader = response.body.getReader();
 
-Therefore, I recommend moving forward with Redis caching.
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            // Feed the raw chunk to the parser
+            parser.feed(decoder.decode(value));
+          }
+        } finally {
+          controller.close();
+        }
+      },
+    });
 
-2. Unmapped Pages That Do Not Appear in Frontend Categories
-
-During the ingestion process (e.g., /blogs/slug), we identified many pages that exist in the backend but do not appear under any frontend categories. They are accessible directly through URLs like:
-
-https://example.com/slug
-
-
-However, we cannot determine where they belong within the site's structure, and they are not being detected automatically by the pipeline.
-
-To proceed correctly, I need clarification on these pages:
-
-Should these pages be included in the new structure?
-
-Are they legacy pages that should be excluded?
-
-Should they be assigned to a category, or handled separately?
-
-Knowing how to treat these unmapped pages will allow us to finalize the ingestion pipeline and ensure complete, accurate content coverage.
-
-Please let me know your preferred direction on Redis caching and how you would like to handle the unmapped pages.
-
-Thanks,
-[Your Name]
-
-If you'd like, I can also prepare:
-
-✔ A shorter version
-✔ A more formal corporate version
-✔ A more technical explanation for engineering leads
-
-Just tell me!
-
-You said:
-and do we need to show these articles or not
-ChatGPT said:
-
-Here is the updated email with the added question:
-“Do we need to show these articles or not?”
-This is included clearly in the second main point.
-
-📧 Email Draft (Final – Includes question about showing the articles)
-
-Subject: Recommendation on Caching Strategy and Clarification Needed on Unmapped Articles
-
-Hi [Name],
-
-While working on the website resampling, I encountered two important points that require your guidance:
-
-1. Recommendation: Implement Redis Caching Instead of Increasing YouTube API Quota
-
-We recently exceeded the daily YouTube Data API v3 quota (10,000 units/day), which caused related features to stop working. After evaluating options, Redis caching is the more scalable and cost-efficient solution compared to requesting higher API quota.
-
-Benefits of Redis caching:
-
-Reduces API calls drastically (from thousands/day to <100/day)
-
-Keeps us comfortably within the free quota
-
-Improves performance under high footfall
-
-Redis can also be reused to cache many other pages across the site, not just YouTube data
-
-Increasing quota is not guaranteed and could lead to higher backend processing costs as traffic grows.
-
-Therefore, I recommend proceeding with Redis caching.
-
-2. Unmapped Articles That Do Not Appear in Any Frontend Category
-
-During the ingestion pipeline (e.g., /blogs/slug), we discovered many articles/pages that:
-
-Exist in the backend
-
-Are accessible via URLs like https://example.com/slug
-
-But do not appear under any frontend categories, and we cannot determine where they belong
-
-To continue correctly, I need your direction on the following:
-
-Questions:
-
-Do these articles need to be shown on the new platform?
-
-Should they be included in the resampling and caching workflow?
-
-Are they legacy/unwanted pages that should be excluded?
-
-If they should be shown, which category or section should they belong to?
-
-Clarifying this will allow us to finalize the ingestion pipeline and ensure we only display relevant content.
-
-Please let me know your thoughts on both the caching recommendation and how we should handle these unmapped articles.
-
-Thanks,
-[Your Name]
-
-If you'd like, I can polish the tone (more formal/shorter), or format it for a Slack/Teams message.
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+      },
+    });
+  } catch (err: any) {
+    // Ignore client disconnects
+    if (err.name === 'AbortError') {
+       return new Response(null, { status: 499 }); 
+    }
+    
+    console.error("Edge Proxy Error:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
