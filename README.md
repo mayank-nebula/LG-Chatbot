@@ -1,29 +1,19 @@
-Hi Chris,
+Thanks — yes, OAuth is the correct approach. My backend integration uses OAuth too, but I still need a few specific items from your LinkedIn developer app so I can authenticate and pull/embed the Company content.
 
-Following up on your request, here is a brief and universally understandable overview of the Redis caching decision and why we recommend it for the new platform.
+Could you please provide the following:
 
-Why Redis?
-Redis gives us an in-memory caching layer that significantly improves performance and reliability across the site. While the database stores long-term content, Redis is optimized for fast retrieval of frequently accessed data. This helps us in two key areas:
+Client ID (LinkedIn Developers → your app → Auth)
 
-Staying within YouTube API quota
-We’ve already hit the daily quota multiple times, which causes features to break. Redis will allow us to store (cache) the API responses, reducing YouTube calls from thousands per day to under ~100. This avoids outages and keeps us comfortably within the free quota.
+Client Secret (same place)
 
-Faster response times and reduced load on the database
-Redis is much faster than a traditional database for repeated reads. By serving common requests from Redis, the platform becomes more responsive and we avoid unnecessary load on the backend database. This improves scalability and long-term maintainability of the system.
+Organization (Company) ID (the numeric ID for the LinkedIn Page we’ll pull from)
 
-How we will use it
+Refresh token (this is generated once after someone completes the OAuth consent flow)
 
-When a YouTube video list or metadata is requested, the API will first check Redis.
+Quick notes and next steps:
 
-If the data is already cached, Redis returns it instantly (no external API call, no quota usage).
+Client ID / Client Secret: Found in the app’s Auth settings on the LinkedIn Developers site.
 
-If not cached, we call YouTube once, store the result in Redis, and reuse it for future requests.
+Organization ID: You can find this in the Company Page admin URL or Page settings — I can tell you exactly how if you want.
 
-This same caching layer can also support other high-traffic parts of the site—article metadata, category pages, and search results—improving overall performance.
-
-Overall, Redis provides a scalable architecture that improves speed, reduces cost, and prevents failures related to YouTube limits. It becomes a general-purpose performance layer for the entire platform.
-
-Please let me know if you’d like us to prepare a small diagram or an Architecture Decision Record summarizing this for documentation.
-
-Best,
-Soniya
+Refresh token: If one hasn’t been generated yet, I can provide the exact authorization link (and the redirect URI) that an admin can click to approve access. After they authorize, they’ll either share an authorization code with us or we can exchange it directly and return only the refresh token to store securely.
