@@ -1,61 +1,15 @@
-import msal
-import requests
-import json
-import sys
+Hi Mayank,
 
-# ==============================================================================
-# 1. CONFIGURATION (Replace these with your actual IDs)
-# ==============================================================================
-WORKSPACE_B_ID = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # Workspace containing the Report
-REPORT_B_ID    = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # The Report ID in Workspace B
-DATASET_C_ID   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # The New Semantic Model ID in Workspace C
+Apologies for the delay in replying, this thread got buried.
 
-# ==============================================================================
-# 2. AUTHENTICATION (Interactive Login)
-# ==============================================================================
-# This is the standard "Microsoft Power BI Management" Client ID.
-# It allows us to log in without registering a new app in Azure.
-CLIENT_ID = "1950a258-227b-4e31-a9cf-717495945fc2" 
-AUTHORITY = "https://login.microsoftonline.com/common"
-SCOPES    = ["https://analysis.windows.net/powerbi/api/Report.ReadWrite.All"]
+Are you looking for me to create a LinkedIn developer app for you? Or what's the specific ask here? 
 
-app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY)
+I'll need some additional context here regarding what is going on - I've not been briefed regarding this portion of the project.
+•	What exactly are we pulling from LinkedIn? 
+•	How frequently are we pulling this?
+•	What is the end use case? Have we validated that it doesn't violate LinkedIn's Terms of Service? (They are very strict about this)  
+FYI - LinkedIn has very, very strict limits on what you can and cannot do. For example, generally, each LinkedIn developer app can usually only pull one specific scope of data from the platform for one specific type of use case. Depending on the use case, there is also a rather strict approval process. 
 
-# Attempt to get a token interactively (opens browser)
-print("Initiating login... please check your browser.")
-result = app.acquire_token_interactive(scopes=SCOPES)
+If you give me some context on this, I can help advise. 
 
-if "access_token" in result:
-    access_token = result['access_token']
-    print("Authentication successful!")
-else:
-    print(f"Authentication failed: {result.get('error_description')}")
-    sys.exit(1)
-
-# ==============================================================================
-# 3. CALL THE REBIND API
-# ==============================================================================
-url = f"https://api.powerbi.com/v1.0/myorg/groups/{WORKSPACE_B_ID}/reports/{REPORT_B_ID}/Rebind"
-
-headers = {
-    "Authorization": f"Bearer {access_token}",
-    "Content-Type": "application/json"
-}
-
-body = {
-    "datasetId": DATASET_C_ID
-}
-
-print(f"Rebinding Report {REPORT_B_ID} to Dataset {DATASET_C_ID}...")
-
-try:
-    response = requests.post(url, headers=headers, data=json.dumps(body))
-    
-    # Check for success (200 OK)
-    if response.status_code == 200:
-        print("✅ Success! The report has been rebound.")
-    else:
-        print(f"❌ Error {response.status_code}: {response.text}")
-
-except Exception as e:
-    print(f"An error occurred: {e}")
+Chris
