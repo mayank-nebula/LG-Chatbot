@@ -46,15 +46,21 @@ export async function POST(req: NextRequest) {
           onEvent: (event: EventSourceMessage) => {
             if (event.event === "brain/text") {
               try {
-                const parsed: UpstreamPayload = JSON.parse(event.data);
-                const text = parsed?.content?.parts?.[0]?.text;
-                console.log(text);
+                const payload: UpstreamPayload = JSON.parse(event.data);
+                const text = payload?.content?.parts?.[0]?.text;
 
                 if (text) {
-                  controller.enqueue(encoder.encode(`data: ${text}\n\n`));
+                  // SSE Protocol: If text contains newlines, every single line 
+                  // must be prefixed with "data: " to be part of the same message.
+                  const formatted = text
+                    .split("\n")
+                    .map((line) => `data: ${line}`)
+                    .join("\n");
+                  
+                  controller.enqueue(encoder.encode(`${formatted}\n\n`));
                 }
               } catch (e) {
-                console.log(e);
+                console.error("Stream parse error:", e);
               }
             }
           },
@@ -71,8 +77,11 @@ export async function POST(req: NextRequest) {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            parser.feed(decoder.decode(value));
+            // { stream: true } ensures multi-byte characters aren't cut off between chunks
+            parser.feed(decoder.decode(value, { stream: true }));
           }
+        } catch (e) {
+          controller.error(e);
         } finally {
           controller.close();
         }
@@ -83,7 +92,9 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
+        "X-Content-Type-Options": "nosniff",
+        "X-Accel-Buffering": "no", // Disables buffering on Nginx/Proxies
+        "Connection": "keep-alive",
       },
     });
   } catch (err: any) {
