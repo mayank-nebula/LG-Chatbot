@@ -1,24 +1,97 @@
-Hi Chris,
+import { NextRequest, NextResponse } from "next/server";
+import { createParser, type EventSourceMessage } from "eventsource-parser";
 
-Thanks for the additional context.
+import { env } from "@/lib/env";
+import { UpstreamPayload } from "@/types";
+import { ChatRequestSchema } from "@/lib/schemas/chatRequest";
 
-This is in reference to the page on the website that displays the company’s LinkedIn posts. I initially raised the option of using LinkedIn app credentials, as an OAuth/API-based integration is typically the standard approach from an implementation standpoint.
+export const runtime = "edge";
 
-After reviewing LinkedIn’s current API policies and usage guidelines in more detail, and reviewing the existing site setup, it’s clear that LinkedIn places very strict limitations on how their APIs can be used for public-facing content aggregation. Even approaches that authenticate via OAuth and embed post links (e.g., via iframes) can be interpreted as bypassing intended API constraints, depending on the implementation, and therefore carry compliance and longevity risk.
+export async function POST(req: NextRequest) {
+  const raw = await req.json().catch(() => null);
+  const parsed = ChatRequestSchema.safeParse(raw);
 
-The site is currently displaying posts via Elfsight’s LinkedIn Feed widget, which abstracts LinkedIn API access behind a third-party service that is already operating within LinkedIn’s allowed patterns.
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid request body", details: parsed.error.issues },
+      { status: 400 }
+    );
+  }
 
-A few important implications of the current setup:
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
 
-Rate limits, refresh frequency, and usage caps are controlled by Elfsight’s subscription plan, not by us.
+  try {
+    const response = await fetch(
+      `${env.PRIVATE_STREAM_URL}/generative_response`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.data),
+        signal: req.signal,
+      }
+    );
 
-We don’t have direct control over when those limits may be reached.
+    if (!response.ok) {
+      const errorText = await response.text();
+      return NextResponse.json(
+        { error: "Upstream service error", details: errorText },
+        { status: response.status }
+      );
+    }
 
-In return, this avoids the operational and compliance risk of managing LinkedIn API access directly for a public website use case.
+    const stream = new ReadableStream({
+      async start(controller) {
+        const parser = createParser({
+          onEvent: (event: EventSourceMessage) => {
+            if (event.event === "brain/text") {
+              try {
+                const parsed: UpstreamPayload = JSON.parse(event.data);
+                const text = parsed?.content?.parts?.[0]?.text;
+                console.log(text);
 
-Based on this, I’d like to confirm that we should continue with the existing Elfsight setup only for displaying LinkedIn posts on the site.
+                if (text) {
+                  controller.enqueue(encoder.encode(`data: ${text}\n\n`));
+                }
+              } catch (e) {
+                console.log(e);
+              }
+            }
+          },
+        });
 
-Once confirmed, I’ll proceed accordingly.
+        if (!response.body) {
+          controller.close();
+          return;
+        }
 
-Thanks,
-Mayank
+        const reader = response.body.getReader();
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            parser.feed(decoder.decode(value));
+          }
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (err: any) {
+    if (err.name === "AbortError") return new Response(null, { status: 499 });
+    console.error("Chat route error:", err);
+    return NextResponse.json(
+      { error: err?.message ?? "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
