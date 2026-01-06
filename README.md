@@ -1,108 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createParser, type EventSourceMessage } from "eventsource-parser";
+.fillout-field-container {
+  background: linear-gradient(90deg, #FF6B35 0%, #E84A27 100%);
+  padding: 60px 40px;
+  border-radius: 0px;
+  color: white;
+  text-align: center;
+}
 
-import { env } from "@/lib/env";
-import { UpstreamPayload } from "@/types";
-import { ChatRequestSchema } from "@/lib/schemas/chatRequest";
+.fillout-field-container input {
+  background: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding 12px 20px !important;
+  color: #333 !important;
+}
 
-export const runtime = "edge";
+.fillout-field-label {
+  display: none !important;
+}
 
-export async function POST(req: NextRequest) {
-  const raw = await req.json().catch(() => null);
-  const parsed = ChatRequestSchema.safeParse(raw);
+.fillout-field-button button:hover {
+  transform: scale(1.05);
+  background-color: #f9f9f9 !important;
+}
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid request body", details: parsed.error.issues },
-      { status: 400 }
-    );
-  }
+.fillout-field-button button {
+  background-color: white !important;
+  color: #000000 !important;
+  font-weight: bold;
+  border-radius: 8px !important;
+  padding: 12px 30px !important;
+  border: none !important;
+  transition: transform 0.2s ease;
+}
 
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  try {
-    const response = await fetch(
-      `${env.PRIVATE_STREAM_URL}/generative_response`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
-        signal: req.signal,
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json(
-        { error: "Upstream service error", details: errorText },
-        { status: response.status }
-      );
-    }
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const parser = createParser({
-          onEvent: (event: EventSourceMessage) => {
-            if (event.event === "brain/text") {
-              try {
-                const payload: UpstreamPayload = JSON.parse(event.data);
-                const text = payload?.content?.parts?.[0]?.text;
-
-                if (text) {
-                  // SSE Protocol: If text contains newlines, every single line 
-                  // must be prefixed with "data: " to be part of the same message.
-                  const formatted = text
-                    .split("\n")
-                    .map((line) => `data: ${line}`)
-                    .join("\n");
-                  
-                  controller.enqueue(encoder.encode(`${formatted}\n\n`));
-                }
-              } catch (e) {
-                console.error("Stream parse error:", e);
-              }
-            }
-          },
-        });
-
-        if (!response.body) {
-          controller.close();
-          return;
-        }
-
-        const reader = response.body.getReader();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            // { stream: true } ensures multi-byte characters aren't cut off between chunks
-            parser.feed(decoder.decode(value, { stream: true }));
-          }
-        } catch (e) {
-          controller.error(e);
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "X-Content-Type-Options": "nosniff",
-        "X-Accel-Buffering": "no", // Disables buffering on Nginx/Proxies
-        "Connection": "keep-alive",
-      },
-    });
-  } catch (err: any) {
-    if (err.name === "AbortError") return new Response(null, { status: 499 });
-    console.error("Chat route error:", err);
-    return NextResponse.json(
-      { error: err?.message ?? "Internal Server Error" },
-      { status: 500 }
-    );
-  }
+.fillout-field-paragraph h2 {
+  color: #000000 !important;
 }
