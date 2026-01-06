@@ -48,41 +48,46 @@
 
 
 
-/* 1. RESET PAGE MARGINS & PADDING */
-html, body {
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow-x: hidden;
-}
-
-/* 2. REMOVE FILLOUT DEFAULT PAGE WIDTH & PADDING */
-.fillout-form-wrapper, 
+/* 1. FORCE THE PAGE AND WRAPPER TO BE TRANSPARENT AND FULL WIDTH */
 .fillout-page, 
-.fillout-page-container,
+.fillout-page-container, 
+.fillout-form-wrapper,
 .fillout-container {
-  padding: 0 !important;
-  margin: 0 !important;
+  background-color: transparent !important;
+  background: transparent !important;
   max-width: 100% !important;
   width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important; /* Removes the slight shadow around the white box */
+  border: none !important;
 }
 
-/* 3. YOUR CONTAINER STYLES */
+/* 2. REMOVE BODY MARGINS */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: #F7901F; /* Optional: Sets a fallback color so white doesn't flash */
+}
+
+/* 3. YOUR ORIGINAL STYLES (WITH REVISIONS) */
 .fillout-field-container {
   background: linear-gradient(90deg, #F7901F 0%, #EF4444 100%);
   padding: 60px 120px !important;
   border-radius: 0px;
   color: white;
   text-align: center;
-  box-sizing: border-box; /* Prevents padding from breaking width */
-  width: 100% !important;
+  width: 100vw !important; /* Force to full viewport width */
+  min-height: 100vh; /* Optional: makes the orange fill the whole height of the screen */
+  box-sizing: border-box;
 }
 
-/* 4. INPUT STYLES */
+/* 4. INPUTS */
 .fillout-field-container input {
   background: white !important;
   border: none !important;
   border-radius: 8px !important;
-  padding: 12px 20px !important; /* Fixed: Added colon */
+  padding: 12px 20px !important;
   color: #333 !important;
 }
 
@@ -91,7 +96,7 @@ html, body {
   display: none !important;
 }
 
-/* 6. BUTTON STYLES */
+/* 6. BUTTONS */
 .fillout-field-button button {
   background-color: white !important;
   color: #000000 !important;
@@ -107,19 +112,16 @@ html, body {
   background-color: #f9f9f9 !important;
 }
 
-/* 7. TEXT STYLES */
+/* 7. TEXT */
 .fillout-field-text h1, 
 .fillout-field-text h2, 
 .fillout-field-text p {
   color: #ffffff !important;
 }
 
-/* 8. MOBILE RESPONSIVENESS (Important) */
+/* 8. MOBILE FIX */
 @media (max-width: 768px) {
   .fillout-field-container {
-    padding: 40px 20px !important; /* Reduces 120px padding so it fits on phones */
+    padding: 40px 20px !important;
   }
-}
-.fillout-field-text h1, h2, p {
-  color: #ffffff !important;
 }
