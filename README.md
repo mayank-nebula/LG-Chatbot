@@ -1,55 +1,22 @@
-import { NextResponse } from "next/server";
-import { query } from "@/lib/db";
-import { CATEGORY_GROUPS } from "@/lib/categories";
-
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const cursorParam = searchParams.get("page") ?? "1";
-    const groupSlug = searchParams.get("category"); 
-    
-    const cursor = Math.max(1, parseInt(cursorParam, 10));
-    const pageSize = 10;
-    const offset = (cursor - 1) * pageSize;
-
-    let sql = `SELECT title, slug, date, video_id, media_link, categories FROM episodes_data`;
-    const queryValues: any[] = [];
-    let whereConditions: string[] = [];
-
-    // --- LOGIC FOR JSONB FILTERING ---
-    if (groupSlug && CATEGORY_GROUPS[groupSlug]) {
-      const categoryIds = CATEGORY_GROUPS[groupSlug]; // [5340, 5928]
-      
-      // We build: (categories @> '$1' OR categories @> '$2')
-      // Note: For JSONB arrays, we check if it contains the individual ID
-      const orConditions = categoryIds.map((id) => {
-        queryValues.push(JSON.stringify(id)); // Store as JSON string/number
-        return `categories @> $${queryValues.length}::jsonb`;
-      });
-
-      if (orConditions.length > 0) {
-        whereConditions.push(`(${orConditions.join(" OR ")})`);
-      }
-    }
-
-    // Apply WHERE clause if conditions exist
-    if (whereConditions.length > 0) {
-      sql += ` WHERE ` + whereConditions.join(" AND ");
-    }
-
-    // Add Ordering and Pagination
-    const argIdx = queryValues.length;
-    sql += ` ORDER BY date DESC LIMIT $${argIdx + 1} OFFSET $${argIdx + 2}`;
-    queryValues.push(pageSize + 1, offset);
-
-    const rows = await query<any>(sql, queryValues);
-
-    const hasMore = rows.length > pageSize;
-    const paginatedRows = rows.slice(0, pageSize);
-
-    return NextResponse.json({ ok: true, rows: paginatedRows, hasMore });
-  } catch (err: any) {
-    console.error("API Error:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
-  }
-}
+Great! Since you're showcasing big banners, the category names should be catchy, thematic, and broad enough to cover multiple subtopics while still being meaningful. Based on your data and goals, here are 5 prominent categories with refreshed names and what they can include:
+🌟 Voices of Supply Chain
+Focus: All podcast content
+Includes: Featured Podcast, Let's Talk Supply Chain, Women in Supply Chain Podcast, Technology Podcast, Mini Series, Bonus Episodes
+Why: Highlights thought leadership and conversations driving the industry.
+📚 Insights & Ideas
+Focus: Written content and thought leadership
+Includes: Blogs, Guest Posts, Perspective, Business Strategy, Leadership/Culture, Talent, Diversity & Inclusion
+Why: Captures strategic thinking, opinions, and expert advice.
+🚛 The Supply Chain Edge
+Focus: Operational and logistics topics
+Includes: Warehousing, Distribution, Last Mile Delivery, Demand Planning, Procurement, Manufacturing, Intermodal
+Why: Appeals to professionals looking for practical and tactical insights.
+🤖 Tech & Transformation
+Focus: Innovation and digital trends
+Includes: Technology, RPA/AI, Blockchain, Logtech Live, Tracking, Rate Management
+Why: Positions your site as forward-looking and tech-savvy.
+👥 People Power
+Focus: Human stories and culture
+Includes: Women in Supply Chain, Leadership, Talent, Marketing, Networking, Human Trafficking
+Why: Emphasizes diversity, inclusion, and the human side of supply chain.
+Would you like me to generate banner text or visuals for these categories? Or help you map existing content into these buckets?
