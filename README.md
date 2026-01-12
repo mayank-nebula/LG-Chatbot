@@ -1,40 +1,38 @@
 import { NextResponse } from 'next/server';
-// Import JSON directly for best production performance in Next.js
-import postsData from '@/data/posts.json'; 
-
-// 1. Pre-sort the data (Latest to Oldest) once at the module level
-const sortedPosts = [...postsData].sort((a, b) => 
-  new Date(b.date).getTime() - new Date(a.date).getTime()
-);
+// Direct import: The best production way to handle fixed JSON in Next.js
+import postsData from '@/data/posts.json';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     
-    // Params
-    const tag = searchParams.get('tag') || 'all';
-    const page = parseInt(searchParams.get('page') || '1', 10);
+    // 1. Extract Query Params
+    const tagQuery = searchParams.get('tag') || 'all'; 
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = 10;
 
-    // 2. Filter by tag
-    const filtered = sortedPosts.filter((post) => {
-      if (tag === 'all') return true;
-      return post.tag.includes(tag);
-    });
+    // 2. Filter Logic
+    // If the user asks for 'all', we don't check the array, we take everything.
+    // Otherwise, we check if the requested tag exists inside the post's tag array.
+    const filteredRows = tagQuery.toLowerCase() === 'all' 
+      ? postsData 
+      : postsData.filter(post => 
+          post.tag && Array.isArray(post.tag) && post.tag.includes(tagQuery)
+        );
 
-    // 3. Pagination Logic: Fetch "limit + 1" (11 items)
+    // 3. Pagination Logic (The "n + 1" approach)
     const startIndex = (page - 1) * limit;
-    const fetchCount = limit + 1; 
-    const slice = filtered.slice(startIndex, startIndex + fetchCount);
-
-    // 4. Determine if there is a next page
-    const hasMore = slice.length > limit;
     
-    // 5. Final rows: If we found 11, return only the first 10
-    const rows = hasMore ? slice.slice(0, limit) : slice;
-    const nextPage = hasMore ? page + 1 : null;
+    // Fetch 11 items to check if there is a 12th item available for the next page
+    const slice = filteredRows.slice(startIndex, startIndex + limit + 1);
 
-    // Response structure as requested
+    // 4. Determine pagination metadata
+    const hasMore = slice.length > limit;
+    const nextPage = hasMore ? page + 1 : null;
+    
+    // 5. Finalize rows: If we got 11 items, remove the last one before sending
+    const rows = hasMore ? slice.slice(0, limit) : slice;
+
     return NextResponse.json({
       rows,
       hasMore,
@@ -43,6 +41,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
+    console.error("API Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
