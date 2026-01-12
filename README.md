@@ -14,3 +14,29 @@ That should sort out 1 of the 3. Just for information on this, we host the websi
 The only premium plugin that I have under billing for LTSC is YouTube Videos and what is covered in our hosting stack: https://getxmedia.com/web-design/wordpress-web-hosting.
 
 I have been mentioning for a while that someone needs to get this site cleaned up and the bloat removed. Last I heard there is someone working on it?
+
+On Fri, Jan 9, 2026 at 10:51 PM Soniya Deshpande <Soniya.Deshpande1@evalueserve.com> wrote:
+Hi Chris,
+ 
+Thanks for mediating this situation.
+ 
+Termly (Cookie Consent), accessiBe (Accessibility Widget), and LinkedIn Feed are all three tools that are currently returning errors that prevent them from appearing on the website.
+ 
+To resolve this, we need a few configuration steps in service dashboards:
+1. Termly (Cookie Consent)
+The current script is returning a "410 Gone" error. This usually means the script ID is outdated or the configuration was deleted. Please note that because of this, the cookie banner is also currently not showing up on the live production site.
+•	In Termly dashboard, please ensure a "Cookie Consent" banner is active for letstalksupplychain.com.
+•	Please send us the latest "Embed Script" provided in the dashboard.
+ 
+2. accessiBe (Accessibility Widget)
+The widget is currently blocked with a message stating: "This website is not registered, or its license is expired."
+•	Please verify that the subscription/license for letstalksupplychain.com is active.
+•	To allow us to test the widget while we build the site, please try adding http://localhost:3000 to the "Authorized Domains" list in your accessiBe settings. If adding localhost is not possible, please let us know, and we will provide a deployed testing domain in the future for this purpose.
+ 
+3. LinkedIn Feed (Elfsight Widget)
+The LinkedIn feed is returning a technical error stating "WIDGET_DISABLED." This usually happens if the widget has been manually turned off in the dashboard or if the subscription plan has reached its limit. Please check on this and provide the latest script again.
+ 
+Upon having this information, we will be able to finish the implementation.
+ 
+Best,
+Soniya Deshpande | Consultant, Data Analytics | Evalueserve, Raleigh NC
