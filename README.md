@@ -1,17 +1,93 @@
-Hi Chris,
-Thank you for the detailed update and for clearing up the status of these items.
+import { NextResponse } from 'next/server';
 
-Based on your feedback, here is how we suggest proceeding:
-1. accessiBe (Accessibility Widget)
-Thank you for resolving the billing issue; we are glad to hear the license is active again. Regarding the testing environment:
-Testing Constraint: Since you confirmed that accessiBe does not support localhost or non-production environments, we will skip testing this in our local development phase.
-Next Step: We will proceed with testing the implementation once the site is moved to the Staging or Production environment where the domain is authorized.
-2. Termly (Cookie Consent)
-It’s helpful to know that this is a "graveyard" snippet and not currently managed. Since the current script is returning a 410 error, the site is effectively without a functional cookie consent banner, which is a compliance risk.
-Recommendation: Since no one is currently managing this, we suggest we either:
-Set up a fresh instance (we can provide our preferred configuration/tooling if needed).
-if there is another team/account currently handling compliance, or any preference please let us know.
-3. LinkedIn Feed (Elfsight)
-Since this was not implemented by our team and is currently showing a "WIDGET_DISABLED" error, it is likely tied to a standalone Elfsight account (either a free tier that has hit its limit or an expired paid plan).
-Next Step: We need to verify who at LTSC owns the elfsight.com login.
-Action: Once we have access, we can determine if it simply needs a plan upgrade or a toggle reset. If LTSC prefers to start fresh, we can look into the licensing costs as you suggested or use the free plan with the limit.
+// Define the shape of our formatted response
+interface FormattedProduct {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  featuredMedia: {
+    url: string;
+    alt: string;
+  } | null;
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const page = searchParams.get('page') || '1';
+  const perPage = searchParams.get('per_page') || '10';
+  
+  const WP_URL = process.env.WORDPRESS_API_URL;
+
+  try {
+    /**
+     * STEP 1: Fetch Products
+     * We include 'featured_media' in _fields. 
+     * This gives us the ID needed for the batch media call.
+     */
+    const productFields = 'id,title,slug,content,excerpt,featured_media';
+    const productsRes = await fetch(
+      `${WP_URL}/wp/v2/product?page=${page}&per_page=${perPage}&_fields=${productFields}`,
+      { next: { revalidate: 3600 } } // Cache for 1 hour
+    );
+
+    if (!productsRes.ok) {
+      return NextResponse.json({ error: 'WP Fetch Failed' }, { status: productsRes.status });
+    }
+
+    const products = await productsRes.json();
+
+    /**
+     * STEP 2: Batch Media Request
+     * Collect all unique media IDs. We filter out '0' (no image).
+     */
+    const mediaIds = [...new Set(products.map((p: any) => p.featured_media).filter((id: number) => id > 0))];
+    
+    let mediaMap: Record<number, { url: string; alt: string }> = {};
+
+    if (mediaIds.length > 0) {
+      // Fetch all required images in ONE call using 'include'
+      const mediaFields = 'id,source_url,alt_text';
+      const mediaRes = await fetch(
+        `${WP_URL}/wp/v2/media?include=${mediaIds.join(',')}&_fields=${mediaFields}`
+      );
+
+      if (mediaRes.ok) {
+        const mediaData = await mediaRes.json();
+        mediaMap = mediaData.reduce((acc: any, media: any) => {
+          acc[media.id] = {
+            url: media.source_url,
+            alt: media.alt_text,
+          };
+          return acc;
+        }, {});
+      }
+    }
+
+    /**
+     * STEP 3: Combine Data
+     */
+    const data: FormattedProduct[] = products.map((product: any) => ({
+      id: product.id,
+      title: product.title.rendered,
+      slug: product.slug,
+      content: product.content.rendered,
+      excerpt: product.excerpt.rendered,
+      featuredMedia: mediaMap[product.featured_media] || null,
+    }));
+
+    // Pass along pagination headers so the frontend knows if there is a 'Next' page
+    return NextResponse.json({
+      data,
+      meta: {
+        total: parseInt(productsRes.headers.get('X-WP-Total') || '0'),
+        totalPages: parseInt(productsRes.headers.get('X-WP-TotalPages') || '0'),
+        currentPage: parseInt(page),
+      }
+    });
+
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
