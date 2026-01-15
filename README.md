@@ -1,115 +1,147 @@
-import { NextResponse } from "next/server";
-import * as cheerio from "cheerio";
+import json
+import re
+import requests
+from pathlib import Path
 
-const SITE_URL = "https://letstalksupplychain.com";
-const PAGE_ID = 23319;
+# =========================
+# CONFIG
+# =========================
 
-const PAGE_API = `${SITE_URL}/wp-json/wp/v2/pages/${PAGE_ID}`;
-const CSS_URL = `${SITE_URL}/wp-content/uploads/elementor/css/post-${PAGE_ID}.css`;
+HTML_JSON_FILE = "html_structure.json"
+PAGE_ID = 23319  # Elementor page ID
+SITE_URL = "https://letstalksupplychain.com"
 
-type Banner = {
-  repeater_id: string;
-  image: string | null;
-  link: string | null;
-  aria_label: string | null;
-};
+CSS_URL = f"{SITE_URL}/wp-content/uploads/elementor/css/post-{PAGE_ID}.css"
+OUTPUT_FILE = "front_banners.json"
 
-/**
- * Extracts background images from Elementor's generated CSS file
- */
-function extractBackgroundImages(css: string): Record<string, string> {
-  const images: Record<string, string> = {};
-  // Improved Regex to capture the repeater ID and the URL correctly
-  const regex = /\.elementor-repeater-item-([a-zA-Z0-9]+)\s*\{[^}]*background-image:\s*url\((['"]?)(.*?)\2\)/gi;
+# =========================
+# LOAD HTML STRUCTURE
+# =========================
 
-  let match;
-  while ((match = regex.exec(css)) !== null) {
-    const id = match[1];
-    const url = match[3];
-    images[`elementor-repeater-item-${id}`] = url;
-  }
+with open(HTML_JSON_FILE, "r", encoding="utf-8") as f:
+    html_data = json.load(f)
 
-  return images;
-}
+# =========================
+# FIND SLIDES WIDGETS
+# =========================
 
-export async function GET() {
-  try {
-    // 1. Fetch page data from WP API
-    const pageRes = await fetch(PAGE_API, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    });
 
-    if (!pageRes.ok) throw new Error("Failed to fetch page data");
-    
-    const page = await pageRes.json();
-    const html = page?.content?.rendered;
+def find_sliders(nodes):
+    sliders = []
 
-    if (!html) {
-      return NextResponse.json({ banners: [] });
+    for node in nodes:
+        if node.get("properties", {}).get("data-widget_type") == "slides.default":
+            sliders.append(node)
+
+        sliders.extend(find_sliders(node.get("children", [])))
+
+    return sliders
+
+
+# =========================
+# EXTRACT SLIDES (REPEATER IDS + LINKS)
+# =========================
+
+
+def extract_slides(slider_node):
+    slides = []
+
+    def walk(node):
+        classes = node.get("properties", {}).get("class", [])
+
+        if isinstance(classes, list):
+            repeater = next(
+                (c for c in classes if c.startswith("elementor-repeater-item-")), None
+            )
+
+            if repeater:
+                slide = {
+                    "repeater_id": repeater,
+                    "link": None,
+                    "aria_label": None,
+                }
+
+                for child in node.get("children", []):
+                    if child.get("tag") == "div":
+                        slide["aria_label"] = child.get("properties", {}).get(
+                            "aria-label"
+                        )
+
+                    if child.get("tag") == "a":
+                        slide["link"] = child.get("properties", {}).get("href")
+
+                slides.append(slide)
+
+        for child in node.get("children", []):
+            walk(child)
+
+    walk(slider_node)
+    return slides
+
+
+# =========================
+# DOWNLOAD ELEMENTOR CSS
+# =========================
+
+print(f"Fetching Elementor CSS: {CSS_URL}")
+css_response = requests.get(CSS_URL, timeout=15)
+css_response.raise_for_status()
+css_text = css_response.text
+
+# =========================
+# EXTRACT BACKGROUND IMAGES FROM CSS
+# =========================
+
+
+def extract_background_images(css_text):
+    """
+    Returns dict:
+    {
+      'elementor-repeater-item-xxxx': 'https://...jpg'
     }
+    """
+    pattern = re.compile(
+        r"\.(elementor-repeater-item-[a-zA-Z0-9]+)[^{]*\{[^}]*background-image\s*:\s*url\((['\"]?)(.*?)\2\)",
+        re.S,
+    )
 
-    // 2. Load HTML into Cheerio
-    const $ = cheerio.load(html);
-    const slidesData: Omit<Banner, "image">[] = [];
+    images = {}
+    for match in pattern.findall(css_text):
+        repeater_id, _, url = match
+        images[repeater_id] = url
 
-    // 3. Find all Elementor Slides widgets
-    // We look for the specific repeater items inside slide widgets
-    $('[class*="elementor-repeater-item-"]').each((_, el) => {
-      const $el = $(el);
-      
-      // Extract the specific repeater class (e.g., elementor-repeater-item-12345)
-      const className = $el.attr("class") || "";
-      const match = className.match(/elementor-repeater-item-[a-zA-Z0-9]+/);
-      
-      if (match) {
-        const repeater_id = match[0];
-        
-        // Find link: Elementor usually puts it in an <a> tag inside or uses the element itself
-        const link = $el.find("a").attr("href") || $el.attr("href") || null;
-        
-        // Find aria-label: check common locations in Elementor slides
-        const aria_label = 
-            $el.find(".elementor-slide-heading").text().trim() || 
-            $el.attr("aria-label") || 
-            null;
+    return images
 
-        slidesData.push({ repeater_id, link, aria_label });
-      }
-    });
 
-    // 4. Fetch Elementor CSS to get background images
-    const cssRes = await fetch(CSS_URL, {
-      next: { revalidate: 3600 },
-    });
-    
-    let bgImages: Record<string, string> = {};
-    if (cssRes.ok) {
-      const cssText = await cssRes.text();
-      bgImages = extractBackgroundImages(cssText);
-    }
+background_images = extract_background_images(css_text)
 
-    // 5. Combine HTML data with CSS images
-    const banners: Banner[] = slidesData.map((s) => ({
-      ...s,
-      image: bgImages[s.repeater_id] || null,
-    }));
+# =========================
+# BUILD FINAL BANNER DATA
+# =========================
 
-    // Filter out duplicates (Elementor sometimes renders items twice for swiper loops)
-    const uniqueBanners = Array.from(new Map(banners.map(item => [item.repeater_id, item])).values());
+sliders = find_sliders(html_data)
+banners = []
 
-    return NextResponse.json(
-      { banners: uniqueBanners },
-      {
-        headers: {
-          "Cache-Control": "public, max-age=3600",
-        },
-      }
-    );
-  } catch (err: any) {
-    console.error("Banner Fetch Error:", err.message);
-    return NextResponse.json(
-      { error: "Failed to fetch banners", details: err.message },
-      { status: 500 }
-    );
-  }
-}
+for slider in sliders:
+    slides = extract_slides(slider)
+
+    for slide in slides:
+        repeater_id = slide["repeater_id"]
+        banners.append(
+            {
+                "repeater_id": repeater_id,
+                "image": background_images.get(repeater_id),
+                "link": slide["link"],
+                "aria_label": slide["aria_label"],
+            }
+        )
+
+# =========================
+# SAVE OUTPUT
+# =========================
+
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    json.dump(banners, f, indent=2, ensure_ascii=False)
+
+print(f"\n✅ Extracted {len(banners)} banners")
+print(f"📁 Saved to {OUTPUT_FILE}")
