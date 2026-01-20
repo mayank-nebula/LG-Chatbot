@@ -1,7 +1,3 @@
-This final version includes the "handover" option. It politely suggests that if they don't want the professional API solution, they are welcome to take over the manual integration themselves.
-
-Subject: Technical Review: Fillout-Mailchimp Integration for Event Reminders
-
 Hi Chris,
 
 Thanks again for the resource. After performing my own independent testing of the native integration specifically against our daily event schedule, I’ve identified several reasons why the "one-click" approach will unfortunately not meet our operational requirements:
@@ -13,6 +9,8 @@ Targeting vs. Broadcasting: We aren't emailing our entire audience list; we are 
 The "15-Minute" Sync Gap: As I mentioned previously, the marketing platform does not offer the minute-level precision we need. There is a significant risk that the reminder arrives after the event has already started, especially with events changing every day.
 
 Data Overwriting: If a user registers for an event today and another one tomorrow, the native integration often overwrites previous data fields in the Audience list, which can break any automation sequences already in progress.
+
+Fillout Native Workflows: While Fillout does offer internal scheduling templates for reminders, these are part of Fillout’s own mailing system. They do not use your Mailchimp account, branding, or templates, and there would be no record of these communications in your Mailchimp audience logs.
 
 The Scalable Way Forward:
 To handle events that change daily, we need an automated and dynamic system. By using a Next.js API route with Mailchimp Transactional (API), we can automate the entire process so it programmatically calculates the 15-minute window and schedules the mail. While there are alternatives using third-party services like Zapier or Make.com, these would add extra costs and more potential points of failure to our stack.
