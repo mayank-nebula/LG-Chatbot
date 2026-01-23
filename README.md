@@ -1,6 +1,7 @@
 export const getEventsData = cache(
-  async (limit = 4): Promise<WebinarDataResponse> => {
+  async (): Promise<WebinarDataResponse> => { // 1. Removed limit parameter
     try {
+      // 1. Fetch Lists
       const [upcomingRes, liveRes] = await Promise.all([
         getUpcomingEvents(),
         getLiveEvents(),
@@ -9,6 +10,7 @@ export const getEventsData = cache(
       const rawUpcoming = upcomingRes.items ?? [];
       const rawLive = liveRes.items ?? [];
 
+      // 2. Extract IDs for metadata enrichment
       const upcomingIds = rawUpcoming
         .map((it: any) => it.videoId)
         .filter((id): id is string => Boolean(id));
@@ -19,7 +21,7 @@ export const getEventsData = cache(
 
       const detailsMap = await fetchLiveDetails([...upcomingIds, ...liveIds]);
 
-      // 1. Process initial lists
+      // 3. Format initial lists
       const initialLive = rawLive
         .filter((item: any) => item.videoId)
         .map((item: any) => formatEvent(item, detailsMap[item.videoId], true));
@@ -28,8 +30,8 @@ export const getEventsData = cache(
         .filter((item: any) => item.videoId)
         .map((item: any) => formatEvent(item, detailsMap[item.videoId], false));
 
-      // 2. RE-DISTRIBUTION LOGIC
-      // Check if "Upcoming" events should actually be "Live" based on current time
+      // 4. RE-DISTRIBUTION LOGIC (The Cache Fix)
+      // If an 'upcoming' event's start time has passed, move it to 'live'
       const now = new Date();
       const live: any[] = [...initialLive];
       const upcoming: any[] = [];
@@ -38,7 +40,7 @@ export const getEventsData = cache(
         if (event.scheduledStartTime) {
           const startTime = new Date(event.scheduledStartTime);
           if (startTime <= now) {
-            // This event was supposed to start already, move it to live
+            // Move to live because the start time has passed
             live.push({ ...event, isLive: true });
           } else {
             upcoming.push(event);
@@ -48,30 +50,31 @@ export const getEventsData = cache(
         }
       });
 
-      // 3. Sort and Slice
-      // Sort upcoming by start time (soonest first)
-      const sortedUpcoming = upcoming
-        .sort((a, b) => {
-          const t1 = a.scheduledStartTime
-            ? new Date(a.scheduledStartTime).getTime()
-            : Number.POSITIVE_INFINITY;
-          const t2 = b.scheduledStartTime
-            ? new Date(b.scheduledStartTime).getTime()
-            : Number.POSITIVE_INFINITY;
-          return t1 - t2;
-        })
-        .slice(0, limit);
+      // 5. Final Sorting (Removed .slice() from both)
+      const sortedUpcoming = upcoming.sort((a, b) => {
+        const t1 = a.scheduledStartTime
+          ? new Date(a.scheduledStartTime).getTime()
+          : Number.POSITIVE_INFINITY;
+        const t2 = b.scheduledStartTime
+          ? new Date(b.scheduledStartTime).getTime()
+          : Number.POSITIVE_INFINITY;
+        return t1 - t2;
+      });
 
-      // Optional: Sort live by start time (most recent first)
-      const sortedLive = live
-        .sort((a, b) => {
-          const t1 = a.scheduledStartTime ? new Date(a.scheduledStartTime).getTime() : 0;
-          const t2 = b.scheduledStartTime ? new Date(b.scheduledStartTime).getTime() : 0;
-          return t2 - t1; 
-        })
-        .slice(0, limit);
+      const sortedLive = live.sort((a, b) => {
+        const t1 = a.scheduledStartTime 
+          ? new Date(a.scheduledStartTime).getTime() 
+          : 0;
+        const t2 = b.scheduledStartTime 
+          ? new Date(b.scheduledStartTime).getTime() 
+          : 0;
+        return t2 - t1; // Show most recently started live events first
+      });
 
-      return { upcoming: sortedUpcoming, live: sortedLive };
+      return { 
+        upcoming: sortedUpcoming, 
+        live: sortedLive 
+      };
     } catch (err: any) {
       console.error("Webinar service error:", err);
       return { upcoming: [], live: [] };
