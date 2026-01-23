@@ -1,27 +1,44 @@
-steps:
-  # Build the container image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/app-repo/my-next-app:$COMMIT_SHA', '.']
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout = 15_000
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Request timed out after ${timeout} ms: ${url}`));
+    }, timeout);
 
-  # Push to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/app-repo/my-next-app:$COMMIT_SHA']
+    fetch(url, options)
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
 
-  # Deploy to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'my-next-app'
-      - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/app-repo/my-next-app:$COMMIT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--allow-unauthenticated'
-      # Handling your 10 runtime variables
-      - '--set-env-vars'
-      - 'DB_URL=${_DB_URL},API_KEY=${_API_KEY},VAR3=${_VAR3},VAR4=${_VAR4},VAR5=${_VAR5},VAR6=${_VAR6},VAR7=${_VAR7},VAR8=${_VAR8},VAR9=${_VAR9},VAR10=${_VAR10}'
+export async function safeFetchJSON(url: string, options: RequestInit = {}) {
+  const res = await fetchWithTimeout(url, {
+    headers: { "User-Agent": "Mozilla/5.0", ...(options.headers ?? {}) },
+    ...options,
+  });
 
-images:
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/app-repo/my-next-app:$COMMIT_SHA'
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Fetch failed (${res.status}) ${url} - ${body}`);
+  }
+
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    // Provide a short preview to help diagnosis without leaking everything.
+    const preview = text.slice(0, 300);
+    console.error("safeFetchJSON: invalid JSON response preview:", preview);
+    throw new Error("Invalid JSON response");
+  }
+}
