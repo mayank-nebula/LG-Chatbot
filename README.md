@@ -14,15 +14,17 @@ RUN npm run build
 # 3. Production Runner
 FROM node:20-alpine AS runner
 WORKDIR /app
+
 ENV NODE_ENV=production
 
-# Copy standalone build and static files
+# Copy necessary files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 8080
-ENV PORT 8080
-ENV HOSTNAME "0.0.0.0"
+
+ENV PORT=8080
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
