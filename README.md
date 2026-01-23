@@ -1,45 +1,48 @@
-import { unstable_cache } from "next/cache";
-import { QueryResultRow } from "pg";
+# Dependencies
+node_modules
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
+/pnpm-debug.log*
 
-/**
- * The core DB execution logic (Not exported, used internally by the cache)
- */
-async function runQuery<T extends QueryResultRow = any>(
-  sql: string,
-  params: any[] = []
-): Promise<T[]> {
-  const pool = await getPoolPromise();
-  const client = await pool.connect();
-  try {
-    const result = await client.query<T>(sql, params);
-    return result.rows;
-  } finally {
-    client.release();
-  }
-}
+# Next.js build output
+.next
+out
+build
 
-/**
- * The Cached Query function
- * @param sql - The SQL string
- * @param params - Array of parameters
- * @param revalidate - Time in seconds (default 3600 / 1 hour)
- */
-export async function query<T extends QueryResultRow = any>(
-  sql: string,
-  params: any[] = [],
-  revalidate: number = 3600
-): Promise<T[]> {
-  // Create a unique cache key based on the SQL text and the parameters
-  const cacheKey = [sql, JSON.stringify(params)];
+# Environment variables (Crucial for security)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-  const cachedFetcher = unstable_cache(
-    async (sql: string, params: any[]) => runQuery<T>(sql, params),
-    cacheKey,
-    {
-      revalidate: revalidate,
-      tags: ["db-results"], // Allows manual revalidation via revalidateTag("db-results")
-    }
-  );
+# Git
+.git
+.gitignore
+.github
 
-  return cachedFetcher(sql, params);
-}
+# Testing and Coverage
+coverage
+__tests__
+spec
+
+# IDEs and Editors
+.vscode
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+LICENSE
+CONTRIBUTING.md
