@@ -1,8 +1,153 @@
-=> ERROR [builder 5/5] RUN npm run build                                                                                      0.6s 
-------
- > [builder 5/5] RUN npm run build:
-0.506 
-0.506 > ltsc-site@0.1.0 build
-0.506 > next build
-0.506
-0.509 sh: next: not found
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm ci
+
+# Stage 2: Build the application
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy all source files
+COPY . .
+
+# Accept build arguments for NEXT_PUBLIC variables (available in browser)
+ARG NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM
+ARG NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM
+ARG NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID
+
+# Set NEXT_PUBLIC environment variables for build time
+ENV NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM=$NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM
+ENV NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM=$NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM
+ENV NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID=$NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID
+
+# Disable telemetry
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build the application
+RUN npm run build
+
+# Stage 3: Production image
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy necessary files from builder
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Set correct permissions
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port (Cloud Run uses PORT env var, defaults to 8080)
+EXPOSE 8080
+
+ENV PORT=8080
+ENV HOSTNAME="0.0.0.0"
+
+# Start the application
+CMD ["node", "server.js"]
+
+
+
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js build output
+.next
+out
+build
+dist
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+*.log
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Vercel
+.vercel
+
+# Testing
+coverage
+.nyc_output
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# TypeScript
+*.tsbuildinfo
+
+
+
+
+
+
+
+
+
+
