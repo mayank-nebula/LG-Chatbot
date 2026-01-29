@@ -1,3 +1,49 @@
+# 1. Install dependencies
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+# 2. Build the app
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ARG NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM
+ARG NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM
+ARG NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID
+ARG NEXT_TURBOPACK_EXPERIMENTAL_USE_SYSTEM_TLS_CERTS
+ARG NEXT_TURBOPACK_EXPERIMENTAL_USE_SYSTEM_TLS_CERTS
+
+ENV NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM=$NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM
+ENV NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM=$NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM
+ENV NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID=$NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID
+ENV NEXT_TURBOPACK_EXPERIMENTAL_USE_SYSTEM_TLS_CERTS=$NEXT_TURBOPACK_EXPERIMENTAL_USE_SYSTEM_TLS_CERTS
+ENV NODE_TLS_REJECT_UNAUTHORIZED=$NODE_TLS_REJECT_UNAUTHORIZED
+
+RUN npm run build
+
+# 3. Production Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copy necessary files
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+EXPOSE 8080
+
+ENV PORT=8080
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]
+
+
+
 docker build --build-arg NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM="98YrqH6Dscus" --build-arg NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM="5ZTw6ANkhAus" --build-arg NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID="fa255aee-2eac-46bd-b722-e6753bb85595" --build-arg NEXT_TURBOPACK_EXPERIMENTAL_USE_SYSTEM_TLS_CERTS=1 --build-arg NODE_TLS_REJECT_UNAUTHORIZED=0 -t next-app-ltsc . --no-cache
 [+] Building 0.0s (0/0)  docker:default
 [+] Building 44.8s (11/14)                                                                                           docker:default
