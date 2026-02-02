@@ -1,25 +1,250 @@
-Subject: Update: Mailchimp Transactional API Integration & Testing Results
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Starting Soon</title>
+    <!-- Import Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=HK+Grotesk:wght@700&family=Open+Sans:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Reset Styles */
+      body,
+      p,
+      div {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Open Sans", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      table {
+        border-collapse: collapse;
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      a {
+        text-decoration: none;
+      }
 
-Hi Soniya,
+      /* Hover Effect */
+      .button-link:hover {
+        opacity: 0.9 !important;
+        box-shadow: 0 4px 12px rgba(41, 40, 93, 0.3) !important;
+      }
 
-I have successfully integrated the Mailchimp Transactional (Mandrill) API into the system. The connection is working, and the code is correctly formatting and sending the data.
+      /* Responsive */
+      @media screen and (max-width: 600px) {
+        .container {
+          width: 100% !important;
+          padding: 0 !important;
+        }
+        .content-padding {
+          padding: 40px 20px !important;
+        }
+        .mobile-header {
+          font-size: 24px !important;
+          line-height: 32px !important;
+        }
+      }
+    </style>
+  </head>
+  <body style="background-color: #f4f4f4; margin: 0; padding: 0">
+    <table
+      role="presentation"
+      width="100%"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #f4f4f4; width: 100%"
+    >
+      <tr>
+        <td align="center" style="padding: 40px 10px">
+          <!-- Email Card -->
+          <table
+            role="presentation"
+            class="container"
+            width="600"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              width: 600px;
+              background-color: #ffffff;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            "
+          >
+            <!-- Decorative Top Bar (Branding Colors) -->
+            <tr>
+              <td height="8" style="font-size: 0; line-height: 0">
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  height="8"
+                >
+                  <tr>
+                    <td width="33%" style="background-color: #29285d"></td>
+                    <td width="33%" style="background-color: #f09033"></td>
+                    <td width="33%" style="background-color: #ffc924"></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
 
-However, during testing, I’ve encountered a specific behavior from the Mailchimp server that I need your help to clarify. Currently, when I attempt to send or schedule an email to an external address (like Gmail), the system returns a "Recipient domain mismatch" error.
+            <tr>
+              <td
+                class="content-padding"
+                align="center"
+                style="padding: 60px 40px"
+              >
+                <!-- Eyebrow Text: Urgency -->
+                <p
+                  style="
+                    margin: 0 0 15px 0;
+                    font-family:
+                      &quot;HK Grotesk&quot;, Helvetica, Arial, sans-serif;
+                    font-weight: 700;
+                    font-size: 12px;
+                    color: #f09033;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                  "
+                >
+                  Starting in 15 Minutes
+                </p>
 
-Based on this error, it appears the account might currently be in Demo/Trial mode. In this mode, Mailchimp restricts sending to only verified company domains (e.g., @letstalksupplychain.com) and blocks external delivery to prevent spam during the trial.
+                <!-- Event Title -->
+                <h1
+                  class="mobile-header"
+                  style="
+                    margin: 0 0 20px 0;
+                    font-family:
+                      &quot;HK Grotesk&quot;, Helvetica, Arial, sans-serif;
+                    font-weight: 700;
+                    font-size: 30px;
+                    line-height: 38px;
+                    color: #29285d;
+                  "
+                >
+                  {{Event Name}}
+                </h1>
 
-To help me finalize the configuration and ensure everything is ready for production, could you please check a few things on your end?
+                <!-- Body Text -->
+                <p
+                  style="
+                    margin: 0 0 40px 0;
+                    font-family:
+                      &quot;Open Sans&quot;, Helvetica, Arial, sans-serif;
+                    font-weight: 300;
+                    font-size: 18px;
+                    line-height: 28px;
+                    color: #221f20;
+                    max-width: 480px;
+                  "
+                >
+                  Hi {{Full Name}}, we are almost ready. <br />
+                  Grab your beverage of choice and head over to the waiting
+                  room. We will be live shortly!
+                </p>
 
-Account Status: Can you confirm if the Mailchimp Transactional account is currently in Demo Mode or if it is a Paid account with purchased credits? (The "Recipient mismatch" restriction is usually lifted automatically once the first block of credits is purchased).
+                <table
+                  role="presentation"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td
+                      align="center"
+                      style="border-radius: 50px; background-color: #29285d"
+                    >
+                      <a
+                        href="https://www.youtube.com/watch?v={{videoId}}"
+                        class="button-link"
+                        target="_blank"
+                        style="
+                          display: inline-block;
+                          padding: 16px 45px;
+                          font-family:
+                            &quot;HK Grotesk&quot;, Helvetica, Arial, sans-serif;
+                          font-weight: 700;
+                          font-size: 16px;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 50px;
+                          border: 1px solid #29285d;
+                        "
+                      >
+                        Join Event
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
 
-Dashboard Activity: Could you check the Outbound > Activity log in your Mandrill dashboard? I’d like to know if the test emails I sent are showing as "Rejected" or "Bounced" with a specific reason.
+            <!-- Footer -->
+            <tr>
+              <td
+                align="center"
+                style="
+                  background-color: #fafafa;
+                  padding: 20px;
+                  border-top: 1px solid #eeeeee;
+                "
+              >
+                <p
+                  style="
+                    font-family:
+                      &quot;Open Sans&quot;, Helvetica, Arial, sans-serif;
+                    font-weight: 300;
+                    font-size: 12px;
+                    color: #888888;
+                    margin: 0;
+                  "
+                >
+                  <strong>Tip:</strong> The YouTube stream will begin
+                  automatically when we go live.
+                </p>
+              </td>
+            </tr>
+          </table>
 
-Internal Test Email: Could you provide me with an internal email address ending in @letstalksupplychain.com? I would like to send a scheduled test to that address; if it arrives successfully, it will confirm the code is 100% functional and only blocked by the trial's external domain filter.
-
-Dashboard Timezone: Are there any specific timezone offsets configured in the Mandrill account settings? I am sending the schedule in UTC, and I want to ensure it aligns with your expectations.
-
-The technical logic is ready to go, and once these account-level settings are confirmed or the account is upgraded, we should be able to go live with the email automation.
-
-Best regards,
-
-[Your Name]
+          <!-- Bottom Copyright -->
+          <table
+            role="presentation"
+            width="600"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            style="width: 600px; margin-top: 20px"
+          >
+            <tr>
+              <td
+                align="center"
+                style="
+                  font-family:
+                    &quot;Open Sans&quot;, Helvetica, Arial, sans-serif;
+                  font-weight: 300;
+                  font-size: 12px;
+                  color: #999999;
+                "
+              >
+                &copy; 2024 Let’s Talk Supply Chain
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
