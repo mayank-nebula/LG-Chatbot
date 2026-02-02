@@ -1,24 +1,72 @@
+import "server-only";
+
+/**
+ * Lazy environment access.
+ * Nothing is read at import time.
+ */
 export const env = {
-  PRIVATE_STREAM_URL: process.env.NEXT_PUBLIC_PRIVATE_STREAM_URL!,
+  // ─── PUBLIC (safe anywhere) ────────────────────────────────
+  get PRIVATE_STREAM_URL() {
+    return process.env.NEXT_PUBLIC_PRIVATE_STREAM_URL;
+  },
 
-  YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY!,
-  YOUTUBE_CHANNEL_ID:
-    process.env.YOUTUBE_CHANNEL_ID ?? "UCjjcxxsvx5sDR0F33ciy1QQ",
+  get FILLOUT_SUBSCRIBER_FORM() {
+    return process.env.NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM;
+  },
 
-  WP_BASE: process.env.WP_BASE!,
-  SITE_URL: process.env.SITE_URL!,
+  get FILLOUT_WORK_WITH_US_FORM() {
+    return process.env.NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM;
+  },
 
-  DB_HOST: process.env.DB_HOST ?? "127.0.0.1",
-  DB_PORT: Number(process.env.DB_PORT ?? 5432),
-  DB_USER: process.env.DB_USER!,
-  DB_PASSWORD: process.env.DB_PASSWORD!,
-  DB_NAME: process.env.DB_NAME!,
+  get ELFSIGHT_LINKEDIN_ID() {
+    return process.env.NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID;
+  },
 
-  FILLOUT_SUBSCRIBER_FORM: process.env.NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM!,
-  FILLOUT_WORK_WITH_US_FORM: process.env.NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM!,
+  // ─── YOUTUBE ───────────────────────────────────────────────
+  get YOUTUBE_API_KEY() {
+    return process.env.YOUTUBE_API_KEY;
+  },
 
-  ELFSIGHT_LINKEDIN_ID: process.env.NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID!,
+  get YOUTUBE_CHANNEL_ID() {
+    return process.env.YOUTUBE_CHANNEL_ID ?? "UCjjcxxsvx5sDR0F33ciy1QQ";
+  },
 
-  MAILCHIMP_FROM_EMAIL: process.env.MAILCHIMP_FROM_EMAIL!,
-  MAILCHIMP_TRANSACTIONAL_API_KEY: process.env.MAILCHIMP_TRANSACTIONAL_API_KEY!,
+  // ─── WORDPRESS ─────────────────────────────────────────────
+  get WP_BASE() {
+    return process.env.WP_BASE;
+  },
+
+  get SITE_URL() {
+    return process.env.SITE_URL;
+  },
+
+  // ─── DATABASE ──────────────────────────────────────────────
+  get DB_HOST() {
+    return process.env.DB_HOST ?? "127.0.0.1";
+  },
+
+  get DB_PORT() {
+    return Number(process.env.DB_PORT ?? 5432);
+  },
+
+  get DB_USER() {
+    return process.env.DB_USER;
+  },
+
+  get DB_PASSWORD() {
+    return process.env.DB_PASSWORD;
+  },
+
+  get DB_NAME() {
+    return process.env.DB_NAME;
+  },
+
+  // ─── MAILCHIMP ─────────────────────────────────────────────
+  get MAILCHIMP_FROM_EMAIL() {
+    return process.env.MAILCHIMP_FROM_EMAIL;
+  },
+
+  get MAILCHIMP_TRANSACTIONAL_API_KEY() {
+    return process.env.MAILCHIMP_TRANSACTIONAL_API_KEY;
+  },
 };
