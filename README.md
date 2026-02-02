@@ -1,106 +1,66 @@
-steps:
-  # Build the FastAPI (backend) image
-  - name: 'gcr.io/cloud-builders/docker'
-    id: Build backend image
-    args:
-      - build
-      - --cache-from
-      - us-central1-docker.pkg.dev/steam-genius-475213-t6/genaiapi-repo/genai-app:latest
-      - -t
-      - us-central1-docker.pkg.dev/steam-genius-475213-t6/genaiapi-repo/genai-app:latest
-      - .
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
+WORKDIR /app
 
-  # Push the image to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    id: Push backend image
-    args:
-      - push
-      - us-central1-docker.pkg.dev/steam-genius-475213-t6/genaiapi-repo/genai-app:latest
+# Copy package files
+COPY package.json package-lock.json* ./
 
-  # Deploy the FastAPI service to Cloud Run, wiring env vars from Secret Manager
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
-    id: Deploy backend service
-    entrypoint: gcloud
-    args:
-      - run
-      - deploy
-      - genai-app
-      - --image
-      - us-central1-docker.pkg.dev/steam-genius-475213-t6/genaiapi-repo/genai-app:latest
-      - --region
-      - us-central1
-      - --platform
-      - managed
-      - --allow-unauthenticated
-      - --service-account
-      - service-acc-gcp@steam-genius-475213-t6.iam.gserviceaccount.com
-      - --set-secrets
-      - GOOGLE_API_KEY=backend-google-api-key:latest,ALLOYDB_INSTANCE_URI=backend-alloydb-instance-uri:latest,ALLOYDB_USER=backend-alloydb-user:latest,ALLOYDB_PASSWORD=backend-alloydb-password:latest,ALLOYDB_NAME=backend-alloydb-name:latest,VECTOR_SEARCH_INDEX_LOCATION=backend-vector-search-location:latest,VECTOR_SEARCH_INDEX_ENDPOINT_NAME=backend-vector-search-endpoint:latest,GCS_CLIENT_BUCKET_NAME=backend-gcs-client-bucket:latest,GCS_VECTOR_SEARCH_DATA_BUCKET_NAME=backend-gcs-vector-bucket:latest,WORDPRESS_COOKIE=wordpress_cookie:latest
+# Install dependencies
+RUN npm ci
 
-images:
-  - us-central1-docker.pkg.dev/steam-genius-475213-t6/genaiapi-repo/genai-app:latest
+# Stage 2: Build the application
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-options:
-  logging: CLOUD_LOGGING_ONLY
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 
+# Copy all source files
+COPY . .
 
+# Accept build arguments for NEXT_PUBLIC variables (available in browser)
+ARG NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM
+ARG NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM
+ARG NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID
 
+# Set NEXT_PUBLIC environment variables for build time
+ENV NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM=$NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM
+ENV NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM=$NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM
+ENV NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID=$NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID
 
+# Disable telemetry
+ENV NEXT_TELEMETRY_DISABLED=1
 
+# Build the application
+RUN npm run build
 
+# Stage 3: Production image
+FROM node:20-alpine AS runner
+WORKDIR /app
 
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
+# Copy necessary files from builder
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
+# Set correct permissions
+RUN chown -R nextjs:nodejs /app
 
+# Switch to non-root user
+USER nextjs
 
+# Expose port (Cloud Run uses PORT env var, defaults to 8080)
+EXPOSE 8080
 
+ENV PORT=8080
+ENV HOSTNAME="0.0.0.0"
 
-steps:
-  # Build the container image
-  - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "build",
-        "--build-arg",
-        "NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM=${_NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM}",
-        "--build-arg",
-        "NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM=${_NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM}",
-        "--build-arg",
-        "NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID=${_NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID}",
-        "-t",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/next-app-repo/letstalksuppychain:$COMMIT_SHA",
-        ".",
-      ]
-
-  # Push to Artifact Registry
-  - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "push",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/next-app-repo/letstalksuppychain:$COMMIT_SHA",
-      ]
-
-  # Deploy to Cloud Run
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: gcloud
-    args:
-      - "run"
-      - "deploy"
-      - "letstalksuppychain"
-      - "--image"
-      - "us-central1-docker.pkg.dev/$PROJECT_ID/next-app-repo/letstalksuppychain:$COMMIT_SHA"
-      - "--region"
-      - "us-central1"
-      - "--allow-unauthenticated"
-      - "--set-env-vars"
-      - "PRIVATE_STREAM_URL=${_PRIVATE_STREAM_URL},YOUTUBE_API_KEY=${_YOUTUBE_API_KEY},YOUTUBE_CHANNEL_ID=${_YOUTUBE_CHANNEL_ID},SITE_URL=${_SITE_URL},WP_BASE=${_WP_BASE},DB_HOST=${_DB_HOST},DB_PORT=${_DB_PORT},DB_USER=${_DB_USER},DB_PASSWORD=${DB_PASSWORD},DB_NAME=${_DB_NAME}"
-
-images:
-  - "us-central1-docker.pkg.dev/$PROJECT_ID/next-app-repo/letstalksuppychain:$COMMIT_SHA"
-
-
-
-
-
-  
+# Start the application
+CMD ["node", "server.js"]
