@@ -1,107 +1,83 @@
-Error: Missing Mailchimp API Key
-    at module evaluation (.next/server/chunks/[root-of-the-server]__e5c103a2._.js:3:40810)
-    at instantiateModule (.next/server/chunks/[turbopack]_runtime.js:740:9)
-    at instantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:768:12)
-    at getOrInstantiateRuntimeModule (.next/server/chunks/[turbopack]_runtime.js:781:12)
-    at Object.m (.next/server/chunks/[turbopack]_runtime.js:790:18)
-    at Object.<anonymous> (.next/server/app/api/schedule-transactional/route.js:7:3)
-import { NextResponse } from "next/server";
-
-import mailchimpTx from "@mailchimp/mailchimp_transactional";
-
-import { env } from "@/lib/env";
-import { MailchimpResponseItem } from "@/types";
-import { getEventEmailHtml } from "@/lib/email-template";
-import { EmailRequestSchema } from "@/lib/schemas/emailRequest";
-
-const API_KEY = env.MAILCHIMP_TRANSACTIONAL_API_KEY;
-
-if (!API_KEY) throw new Error("Missing Mailchimp API Key");
-const client = mailchimpTx(API_KEY);
-
-const getRandomEventTitle = (eventName: string): string => {
-  const titles = [
-    `Starting in 15 minutes: ${eventName}`,
-    `Grab your coffee, ${eventName} starts soon`,
-    `It's almost time! Join ${eventName} now`,
-    `Don't miss out: ${eventName} goes live shortly`,
-  ];
-
-  // Pick one randomly
-  const randomIndex = Math.floor(Math.random() * titles.length);
-
-  return titles[randomIndex];
-};
-
-function formatToMailchimpDate(isoDateString: string): string {
-  return new Date(isoDateString).toISOString().replace("T", " ").slice(0, 19);
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-
-    // 1. Validate Input
-    const validation = EmailRequestSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: "Validation Error", details: validation.error.flatten() },
-        { status: 400 },
-      );
-    }
-
-    const { email, variables, sendAt } = validation.data;
-
-    // 2. Generate HTML from Template File using variables
-    const htmlContent = getEventEmailHtml({
-      fullName: variables.fullName,
-      email: email,
-      eventName: variables.eventName,
-      videoId: variables.videoId,
-    });
-
-    // 3. Handle Date
-    let formattedSendAt: string | undefined = undefined;
-    if (sendAt) {
-      formattedSendAt = formatToMailchimpDate(sendAt);
-      if (new Date(sendAt).getTime() < Date.now()) {
-        return NextResponse.json(
-          { error: "Time must be in future" },
-          { status: 400 },
-        );
+Webinar service error: Error: Fetch failed (400) https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=upcoming&order=date&key=undefined&channelId=UCjjcxxsvx5sDR0F33ciy1QQ - {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a valid API key.",
+    "errors": [
+      {
+        "message": "API key not valid. Please pass a valid API key.",
+        "domain": "global",
+        "reason": "badRequest"
       }
-    }
-
-    // 4. Send
-    const response = (await client.messages.send({
-      message: {
-        from_email: env.MAILCHIMP_FROM_EMAIL,
-        subject: getRandomEventTitle(variables.eventName),
-        html: htmlContent,
-        to: [{ email: email, type: "to" }],
+    ],
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "API_KEY_INVALID",
+        "domain": "googleapis.com",
+        "metadata": {
+          "service": "youtube.googleapis.com"
+        }
       },
-      send_at: formattedSendAt,
-    })) as MailchimpResponseItem[];
-
-    // 5. Check Result
-    const result = response[0];
-    if (result.status === "rejected" || result.status === "invalid") {
-      return NextResponse.json(
-        { error: result.reject_reason },
-        { status: 422 },
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      id: result._id,
-      status: result.status,
-    });
-  } catch (error: any) {
-    console.error("Email Error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+      {
+        "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+        "locale": "en-US",
+        "message": "API key not valid. Please pass a valid API key."
+      }
+    ]
   }
+}
+    at c (.next/server/chunks/ssr/[root-of-the-server]__0df5d93a._.js:1:1434)
+    at async h (.next/server/chunks/ssr/[root-of-the-server]__0df5d93a._.js:1:3495)
+    at async (.next/server/chunks/ssr/[root-of-the-server]__0df5d93a._.js:1:7024)
+    at async g (.next/server/chunks/ssr/[root-of-the-server]__0df5d93a._.js:1:11038)
+Podcasts service error: Error: DB_USER, DB_PASSWORD, and DB_NAME env vars are required.
+    at h (.next/server/chunks/ssr/_85631940._.js:19:46050)
+    at i (.next/server/chunks/ssr/_85631940._.js:19:46379)
+    at revalidate (.next/server/chunks/ssr/_85631940._.js:19:46583)
+    at <unknown> (.next/server/chunks/ssr/_85631940._.js:19:31758)
+    at async (.next/server/chunks/ssr/[root-of-the-server]__f708ee91._.js:12:9)
+Error in getBlogs service: Error: DB_USER, DB_PASSWORD, and DB_NAME env vars are required.
+    at h (.next/server/chunks/ssr/_85631940._.js:19:46050)
+    at i (.next/server/chunks/ssr/_85631940._.js:19:46379)
+    at revalidate (.next/server/chunks/ssr/_85631940._.js:19:46583)
+    at <unknown> (.next/server/chunks/ssr/_85631940._.js:19:31758)
+    at async (.next/server/chunks/ssr/[root-of-the-server]__f708ee91._.js:12:9)
+Webinar service error: Error: Fetch failed (400) https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=upcoming&order=date&key=undefined&channelId=UCjjcxxsvx5sDR0F33ciy1QQ - {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a valid API key.",
+    "errors": [
+      {
+        "message": "API key not valid. Please pass a valid API key.",
+        "domain": "global",
+        "reason": "badRequest"
+      }
+    ],
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "API_KEY_INVALID",
+        "domain": "googleapis.com",
+        "metadata": {
+          "service": "youtube.googleapis.com"
+        }
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+        "locale": "en-US",
+        "message": "API key not valid. Please pass a valid API key."
+      }
+    ]
+  }
+}
+    at c (.next/server/chunks/ssr/[root-of-the-server]__0df5d93a._.js:1:1434)
+    at async h (.next/server/chunks/ssr/[root-of-the-server]__0df5d93a._.js:1:3495)
+    at async (.next/server/chunks/ssr/[root-of-the-server]__0df5d93a._.js:1:7024)
+    at async f (.next/server/chunks/ssr/_54c0ef65._.js:1:4549)
+Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
+Error: DB_USER, DB_PASSWORD, and DB_NAME env vars are required.
+    at <unknown> (.next/server/chunks/ssr/[root-of-the-server]__f708ee91._.js:12:153) {
+  digest: '3043232276'
 }
