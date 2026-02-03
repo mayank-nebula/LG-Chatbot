@@ -1,1 +1,37 @@
-ERROR: (gcloud.run.deploy) Revision 'letstalksuppychain-00001-spd' is not ready and cannot serve traffic. spec.template.spec.containers[0].env[8].value_from.secret_key_ref.name: Permission denied on secret: projects/99604812629/secrets/frontend-db-password/versions/latest for Revision service account 99604812629-compute@developer.gserviceaccount.com. The service account used must be granted the 'Secret Manager Secret Accessor' role (roles/secretmanager.secretAccessor) at the secret, project or higher level.
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "placehold.co",
+      },
+      {
+        protocol: "https",
+        hostname: "letstalksupplychain.com",
+      },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+      },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "i.pravatar.cc",
+      },
+    ],
+  },
+
+  output: "standalone",
+};
+
+export default nextConfig;
