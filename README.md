@@ -1,34 +1,162 @@
-// app/linkedin-updates/page.tsx
-import Script from "next/script";
-import Image from "next/image";
-
-import { env } from "@/lib/env";
-
-export default function LinkedInUpdatesPage() {
-  return (
-    <main className="min-h-screen bg-white">
-      <section className=" w-full aspect-16/6 md:aspect-16/5 lg:aspect-1920/600 max-h-[650px] relative text-white">
-        <Image
-          fill
-          className="object-cover"
-          src={`/images/supply-chain-hub/linkedin-banner.png`}
-          alt={""}
-        />
-      </section>
-      <section className="max-w-[1216px] mx-auto px-4 py-16">
-        <h2 className="text-3xl md:text-4xl font-semibold text-[#4d4d4d] mb-16 text-center">
-          Let's Talk Supply Chain™ LinkedIn Updates
-        </h2>
-
-        <div
-          className={`elfsight-app-${env.ELFSIGHT_LINKEDIN_ID}`}
-          data-elfsight-app-lazy
-        />
-        <Script
-          src="https://elfsightcdn.com/platform.js"
-          strategy="afterInteractive"
-        />
-      </section>
-    </main>
-  );
-}
+platform.js:16 eapps.Platform throws: "Widget "fa255aee-2eac-46bd-b722-e6753bb85595
+" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> <div class=​"elfsight-app-fa255aee-2eac-46bd-b722-e6753bb85595
+" data-elfsight-app-lazy=​"true">​</div>​
+n @ platform.js:16
+(anonymous) @ platform.js:16
+(anonymous) @ platform.js:8
+(anonymous) @ platform.js:8
+XMLHttpRequest.send
+(anonymous) @ platform.js:8
+(anonymous) @ platform.js:8
+(anonymous) @ platform.js:8
+h @ platform.js:8
+i @ platform.js:8
+(anonymous) @ platform.js:8
+t @ platform.js:8
+(anonymous) @ platform.js:8
+(anonymous) @ platform.js:8
+PendingScript
+y @ aefa481fbcf35fc3.js:5
+(anonymous) @ aefa481fbcf35fc3.js:5
+ih @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+uc @ 69be39811437728d.js:1
+uf @ 69be39811437728d.js:1
+sE @ 69be39811437728d.js:1
+(anonymous) @ 69be39811437728d.js:1
+O @ 69be39811437728d.js:1
