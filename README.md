@@ -1,200 +1,119 @@
 import json
+import copy
 import time
-import os
 import google.generativeai as genai
 
-# Setup your API Key
-# os.environ["GOOGLE_API_KEY"] = "YOUR_KEY_HERE"
-# genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+genai.configure(api_key=GOOGLE_API_KEY)
 
-def process_via_batch(input_path: str, output_path: str):
-    """
-    Processes items using Gemini Batch API.
-    1. Creates a JSONL file for the batch.
-    2. Uploads and starts the job.
-    3. Polls for completion.
-    4. Merges results back into original data.
-    """
-    
-    # 1. Load Data
-    print(f"Loading {input_path}...")
+TITLE_CHAR_LIMIT = 50
+BLURB_CHAR_LIMIT = 165
+MODEL_NAME = "gemini-2.0-flash"  # update to your valid model
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+def build_title_prompt(title: str) -> str:
+    return (
+        f"Rewrite the following title to be less than {TITLE_CHAR_LIMIT} characters "
+        f"while maintaining its original meaning. Return ONLY the new title text.\n"
+        f"Title: {title}"
+    )
+
+def build_blurb_prompt(content: str) -> str:
+    return (
+        f"Summarize the following content to be less than {BLURB_CHAR_LIMIT} characters "
+        f"while maintaining the core meaning. Return ONLY the summarized text.\n"
+        f"Content: {content}"
+    )
+
+def call_gemini(prompt: str, model) -> str:
+    response = model.generate_content(prompt)
+    return response.text.strip()
+
+# ── batch processor ───────────────────────────────────────────────────────────
+
+def process_json_file(input_path: str, output_path: str):
     with open(input_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # 2. Prepare Batch File (JSONL)
-    # We combine title shortening and content summarization into ONE call per item.
-    batch_file_name = "batch_requests.jsonl"
-    
-    with open(batch_file_name, "w", encoding="utf-8") as f:
-        for index, item in enumerate(data):
-            original_title = item.get("title", "")
-            content = item.get("content", "")
-            
-            # Construct a prompt that handles both requirements
-            prompt_text = f"""
-            You are an editor. 
-            1. If the Title below is > 50 characters, rewrite it to be < 50 chars. If it is already < 50, keep it exactly as is.
-            2. Summarize the Content below to be < 165 characters.
-            
-            Return the result in valid JSON format with keys: "short_title" and "blurb".
+    model = genai.GenerativeModel(MODEL_NAME)
 
-            Title: {original_title}
-            Content: {content}
-            """
+    # ── Phase 1: collect all prompts and track what each item needs ──
+    # Each entry in `tasks` maps to one item in `data`:
+    # {
+    #   "item_index": int,
+    #   "needs_title": bool,   # True  → title prompt is queued
+    #   "needs_blurb": bool,   # always True
+    #   "title_prompt_index": int | None,
+    #   "blurb_prompt_index": int,
+    # }
+    prompts: list[str] = []
+    tasks: list[dict] = []
 
-            # Structure required for Gemini Batch
-            request_entry = {
-                "custom_id": str(index), # We use the list index to map results back later
-                "request": {
-                    "contents": [{"parts": [{"text": prompt_text}]}],
-                    "generation_config": {
-                        "response_mime_type": "application/json", # Force JSON output
-                        "temperature": 0.2
-                    }
-                }
-            }
-            f.write(json.dumps(request_entry) + "\n")
+    for idx, item in enumerate(data):
+        original_title = item.get("title", "")
+        original_content = item.get("content", "")
 
-    print(f"Prepared batch file with {len(data)} items.")
+        task = {"item_index": idx, "original_title": original_title}
 
-    # 3. Upload File to Gemini
-    print("Uploading file to Gemini...")
-    batch_input_file = genai.upload_file(batch_file_name)
-    
-    # 4. Create Batch Job
-    # Note: 'gemini-3-flash-preview' is not standard yet. 
-    # Using 'gemini-1.5-flash' which is the current fast standard. Change if you have specific access.
-    model_id = "gemini-1.5-flash" 
-    
-    print(f"Starting Batch Job with model {model_id}...")
-    job = genai.BatchJob.create(
-        source=batch_input_file.name,
-        destination=f"description: batch_processing_{int(time.time())}",
-        model=model_id,
-    )
-
-    print(f"Job created: {job.name}")
-    print("Waiting for job to complete (this may take a few minutes)...")
-
-    # 5. Polling Loop
-    while True:
-        job.refresh() # Update status
-        print(f"Status: {job.state.name}")
-        
-        if job.state.name == "SUCCEEDED":
-            break
-        elif job.state.name in ["FAILED", "CANCELLED"]:
-            raise RuntimeError(f"Batch job failed with status: {job.state.name}")
-        
-        time.sleep(10) # Poll every 10 seconds
-
-    # 6. Retrieve Results
-    print("Job completed. Downloading results...")
-    output_file_name = "batch_output.jsonl"
-    
-    # The output file uri is not directly downloadable via URL, 
-    # the SDK usually handles this via `job.output_file` if using Vertex, 
-    # but for AI Studio key users, we look at the destination or output file resource.
-    output_content = genai.GenerativeModel(model_id).count_tokens("test") # Dummy call to ensure client valid
-    
-    # For Google AI Studio (API Key), we read the output file resource
-    import requests
-    # Note: As of current SDK, we manually fetch the output file contents
-    # based on the output file name provided in job.output_file
-    
-    # Iterate through results
-    # The job object contains a reference to the output file
-    output_file_remote = job.output_file
-    
-    # Download the content (Standard SDK way might vary slightly by version, 
-    # currently we can read the content if we iterate the file resource or download it)
-    # Since specific download syntax varies rapidly in the beta SDK, we use the name to get content.
-    # (Assuming standard Google AI Studio behavior)
-    
-    # Create a map to store results: index -> {short_title, blurb}
-    results_map = {}
-
-    # Read the output file content directly using the SDK file API
-    # (We actually have to download it. The SDK simplifies this by just letting us read it)
-    # If using Vertex SDK it's different. Assuming AI Studio here:
-    content = genai.get_file(output_file_remote.name)
-    
-    # NOTE: The Python SDK doesn't always support direct download_content() for Batch output yet.
-    # In production, you typically download from GCS. 
-    # However, we can iterate the logic. 
-    # FOR THIS SCRIPT: We will assume we can get the content. 
-    # *If this fails due to SDK limitations, you manually download from the URL provided in the console.*
-    
-    # Let's try to request the URL if the SDK exposes it, otherwise standard processing:
-    # (Mocking the download part effectively for this snippet context)
-    # In a real run, `content.uri` gives a URL you can GET with your API key header.
-    
-    url = content.uri
-    # Perform GET request (simplified)
-    # This part depends highly on whether you use Vertex or AI Studio.
-    # Assuming standard python request logic for the example:
-    
-    # --- SIMPLIFIED PROCESSING BLOCK ---
-    # Since I cannot actually execute the download in this text block, 
-    # here is how you process the logical mapping:
-    
-    # We will assume we saved the results to 'batch_results.jsonl'
-    # Use: `curl -H "x-goog-api-key: $GOOGLE_API_KEY" $URL > batch_results.jsonl`
-    print(f"Please download the file from: {url}") 
-    print("Checking if we can auto-download...")
-    
-    # Attempt simple request
-    try:
-        resp = requests.get(url)
-        if resp.status_code == 200:
-            batch_results = resp.text.splitlines()
+        if len(original_title) > TITLE_CHAR_LIMIT:
+            task["needs_title"] = True
+            task["title_prompt_index"] = len(prompts)
+            prompts.append(build_title_prompt(original_title))
         else:
-            print("Could not auto-download. Please check console.")
-            batch_results = []
-    except Exception as e:
-        print(f"Download error: {e}")
-        batch_results = []
+            task["needs_title"] = False
+            task["title_prompt_index"] = None
 
-    # 7. Process Results and Merge
-    for line in batch_results:
+        task["blurb_prompt_index"] = len(prompts)
+        prompts.append(build_blurb_prompt(original_content))
+
+        tasks.append(task)
+
+    print(f"Sending {len(prompts)} prompts to Gemini for {len(data)} items...")
+
+    # ── Phase 2: fire all prompts concurrently using send_message_batch ──
+    # GenerativeModel.generate_content_async batch via ThreadPoolExecutor
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    responses: list[str | None] = [None] * len(prompts)
+
+    def fetch(index_prompt):
+        index, prompt = index_prompt
         try:
-            res = json.loads(line)
-            idx = int(res['custom_id'])
-            
-            # The result from Gemini is in response -> body
-            # Check for successful generation
-            if 'response' in res and 'candidates' in res['response']:
-                generated_text = res['response']['candidates'][0]['content']['parts'][0]['text']
-                # Parse the JSON string returned by the LLM
-                parsed_llm_json = json.loads(generated_text)
-                
-                results_map[idx] = {
-                    "short_title": parsed_llm_json.get("short_title", ""),
-                    "blurb": parsed_llm_json.get("blurb", "")
-                }
+            return index, call_gemini(prompt, model)
         except Exception as e:
-            print(f"Error parsing line: {e}")
+            print(f"  ✗ Prompt {index} failed: {e}")
+            return index, ""
 
-    # Merge into original data
-    final_output = []
-    for i, item in enumerate(data):
-        updated_item = item.copy()
-        if i in results_map:
-            updated_item["short_title"] = results_map[i]["short_title"]
-            updated_item["blurb"] = results_map[i]["blurb"]
+    # 10 workers — tune based on your quota (QPM / 60 * latency)
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(fetch, (i, p)): i for i, p in enumerate(prompts)}
+        completed = 0
+        for future in as_completed(futures):
+            idx_result, text = future.result()
+            responses[idx_result] = text
+            completed += 1
+            if completed % 10 == 0 or completed == len(prompts):
+                print(f"  ✓ {completed}/{len(prompts)} prompts done")
+
+    # ── Phase 3: assemble output ──────────────────────────────────────────────
+    results = []
+    for task in tasks:
+        item = data[task["item_index"]]
+        updated_item = copy.deepcopy(item)
+
+        if task["needs_title"]:
+            updated_item["short_title"] = responses[task["title_prompt_index"]] or item.get("title", "")
         else:
-            # Fallback if batch failed for specific item
-            updated_item["short_title"] = item.get("title")
-            updated_item["blurb"] = "Error processing"
-            
-        final_output.append(updated_item)
+            updated_item["short_title"] = task["original_title"]
 
-    # 8. Save
+        updated_item["blurb"] = responses[task["blurb_prompt_index"]] or ""
+        results.append(updated_item)
+
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(final_output, f, indent=2, ensure_ascii=False)
-    
-    print(f"Done! Saved to {output_path}")
+        json.dump(results, f, indent=2, ensure_ascii=False)
+
+    print(f"\nDone. Output written to {output_path}")
+
 
 if __name__ == "__main__":
-    # Ensure you have 'data.json' in the folder
-    process_via_batch("data.json", "output.json")
+    process_json_file("data.json", "output.json")
