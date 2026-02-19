@@ -1,58 +1,63 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import json
+import copy
 
-const COOKIE_NAME = "anon_session";
-const THIRTY_DAYS = 60 * 60 * 24 * 30;
 
-function genUuid(): string {
-  // Use Web Crypto API available in Edge runtime
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-  // fallback: simple UUID v4 generator (cryptographically weaker)
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.floor(Math.random() * 16);
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+def mock_gemini_call(title: str | None, content: str | None) -> dict:
+    """
+    Mock Gemini call.
+    - If title is provided → return optimized <= 50 char title
+    - If content is provided → return <= 165 char summary
+    """
 
-export function proxy(req: NextRequest) {
-  const url = req.nextUrl.pathname;
-  const sessionId = req.cookies.get(COOKIE_NAME)?.value ?? null;
+    result = {}
 
-  const isApiRoute = url.startsWith("/api");
+    if title is not None:
+        # Pretend LLM rewrote it intelligently
+        result["short_title"] = title[:50]
 
-  // Protected path: reject if no session
-  if (isApiRoute) {
-    if (!sessionId) {
-      return new NextResponse(JSON.stringify({ error: "Session required" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    return NextResponse.next();
-  }
+    if content is not None:
+        # Pretend LLM summarized it intelligently
+        result["blurb"] = content[:165]
 
-  // Public paths: create session cookie if missing
-  if (!sessionId) {
-    const id = genUuid();
-    const res = NextResponse.next();
-    res.cookies.set({
-      name: COOKIE_NAME,
-      value: id,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: THIRTY_DAYS,
-    });
-    return res;
-  }
+    return result
 
-  return NextResponse.next();
-}
 
-export const config = {
-  matcher: "/:path*",
-};
+def process_json_file(input_path: str, output_path: str):
+    with open(input_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    results = []
+
+    for item in data:
+        # Copy full original object
+        updated_item = copy.deepcopy(item)
+
+        original_title = item.get("title", "")
+        original_content = item.get("content", "")
+
+        # --- TITLE LOGIC ---
+        if len(original_title) > 50:
+            response = mock_gemini_call(
+                title=original_title,
+                content=original_content
+            )
+            updated_item["short_title"] = response["short_title"]
+            updated_item["blurb"] = response["blurb"]
+        else:
+            # Title is fine → keep original as short_title
+            updated_item["short_title"] = original_title
+
+            response = mock_gemini_call(
+                title=None,
+                content=original_content
+            )
+            updated_item["blurb"] = response["blurb"]
+
+        results.append(updated_item)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+
+
+if __name__ == "__main__":
+    process_json_file("data.json", "output.json")
