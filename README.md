@@ -1,71 +1,26 @@
-ajv  <8.18.0
-Severity: moderate
-ajv has ReDoS when using `$data` option - https://github.com/advisories/GHSA-2g4f-4pwh-qvx6
-fix available via `npm audit fix --force`
-Will install eslint@10.0.0, which is a breaking change
-node_modules/ajv
-  @eslint/eslintrc  *
-  Depends on vulnerable versions of ajv
-  Depends on vulnerable versions of minimatch
-  node_modules/@eslint/eslintrc
-    eslint  0.7.1 - 2.0.0-rc.1 || >=4.1.0
-    Depends on vulnerable versions of @eslint/config-array
-    Depends on vulnerable versions of @eslint/eslintrc
-    Depends on vulnerable versions of ajv
-    Depends on vulnerable versions of minimatch
-    node_modules/eslint
-      @typescript-eslint/eslint-plugin  <=8.55.1-alpha.3
-      Depends on vulnerable versions of @typescript-eslint/type-utils
-      Depends on vulnerable versions of @typescript-eslint/utils
-      Depends on vulnerable versions of eslint
-      node_modules/@typescript-eslint/eslint-plugin
-        typescript-eslint  *
-        Depends on vulnerable versions of @typescript-eslint/eslint-plugin
-        Depends on vulnerable versions of @typescript-eslint/parser
-        Depends on vulnerable versions of @typescript-eslint/typescript-estree
-        Depends on vulnerable versions of @typescript-eslint/utils
-        Depends on vulnerable versions of eslint
-        node_modules/typescript-eslint
-      @typescript-eslint/parser  >=1.1.1-alpha.0
-      Depends on vulnerable versions of @typescript-eslint/typescript-estree
-      Depends on vulnerable versions of eslint
-      node_modules/@typescript-eslint/parser
-      @typescript-eslint/type-utils  >=5.9.2-alpha.0
-      Depends on vulnerable versions of @typescript-eslint/typescript-estree
-      Depends on vulnerable versions of @typescript-eslint/utils
-      Depends on vulnerable versions of eslint
-      node_modules/@typescript-eslint/type-utils
-      @typescript-eslint/utils  *
-      Depends on vulnerable versions of @typescript-eslint/typescript-estree
-      Depends on vulnerable versions of eslint
-      node_modules/@typescript-eslint/utils
-
-minimatch  <10.2.1
-Severity: high
-minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern - https://github.com/advisories/GHSA-3ppc-4f35-3m26
-fix available via `npm audit fix --force`
-Will install eslint@10.0.0, which is a breaking change
-node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch
-node_modules/minimatch
-  @eslint/config-array  <=0.22.0
-  Depends on vulnerable versions of minimatch
-  node_modules/@eslint/config-array
-  @typescript-eslint/typescript-estree  >=6.16.0
-  Depends on vulnerable versions of minimatch
-  node_modules/@typescript-eslint/typescript-estree
-  eslint-plugin-import  >=1.15.0
-  Depends on vulnerable versions of minimatch
-  node_modules/eslint-plugin-import
-  eslint-plugin-jsx-a11y  >=6.5.0
-  Depends on vulnerable versions of minimatch
-  node_modules/eslint-plugin-jsx-a11y
-    eslint-config-next  >=10.2.1-canary.2
-    Depends on vulnerable versions of eslint-plugin-import
-    Depends on vulnerable versions of eslint-plugin-jsx-a11y
-    Depends on vulnerable versions of eslint-plugin-react
-    node_modules/eslint-config-next
-  eslint-plugin-react  >=7.23.0
-  Depends on vulnerable versions of minimatch
-  node_modules/eslint-plugin-react
-
-15 vulnerabilities (1 moderate, 14 high)
+npm install --save-dev eslint@^9 @typescript-eslint/eslint-plugin@latest @typescript-eslint/parser@latest
+npm error code ERESOLVE
+npm error ERESOLVE could not resolve
+npm error
+npm error While resolving: ltsc-site@0.1.0
+npm error Found: @typescript-eslint/eslint-plugin@8.54.0
+npm error node_modules/@typescript-eslint/eslint-plugin
+npm error   @typescript-eslint/eslint-plugin@"8.54.0" from typescript-eslint@8.54.0
+npm error   node_modules/typescript-eslint
+npm error     typescript-eslint@"^8.46.0" from eslint-config-next@16.0.8
+npm error     node_modules/eslint-config-next
+npm error       dev eslint-config-next@"16.0.8" from the root project
+npm error   dev @typescript-eslint/eslint-plugin@"8.56.0" from the root project
+npm error
+npm error Could not resolve dependency:
+npm error dev @typescript-eslint/eslint-plugin@"8.56.0" from the root project
+npm error
+npm error Conflicting peer dependency: @typescript-eslint/parser@8.56.0
+npm error node_modules/@typescript-eslint/parser
+npm error   peer @typescript-eslint/parser@"^8.56.0" from @typescript-eslint/eslint-plugin@8.56.0
+npm error   node_modules/@typescript-eslint/eslint-plugin
+npm error     dev @typescript-eslint/eslint-plugin@"8.56.0" from the root project
+npm error
+npm error Fix the upstream dependency conflict, or retry
+npm error this command with --force or --legacy-peer-deps
+npm error to accept an incorrect (and potentially broken) dependency resolution.
