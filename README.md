@@ -1,101 +1,45 @@
-import { MetadataRoute } from "next";
-import { env } from "@/lib/env";
-import postsData from "@/data/wisc_blog.json";
+import Link from "next/link";
+import { MoveLeft, Search, Radio, Newspaper, Calendar } from "lucide-react";
 
-const BASE_URL = env.PUBLIC_SITE_URL;
-const NOW = new Date();
+export default function NotFound() {
+  return (
+    <main className="min-h-[75vh] flex items-center justify-center bg-linear-to-b from-white to-gray-200 px-4 border-t border-gray-50">
+      <div className="max-w-3xl w-full text-center -mt-10">
+        {/* Error Code */}
+        <span className="text-[#F09033] font-bold tracking-[0.3em] uppercase text-sm mb-4 block">
+          404 Error
+        </span>
 
-function toUrl(path: string): string {
-  return `${BASE_URL}${path}`;
-}
+        {/* Heading */}
+        <h1 className="text-4xl md:text-5xl font-extrabold text-[#221f20] mb-6 tracking-tight">
+          Page Not Found
+        </h1>
 
-function toDate(date?: string | null): Date {
-  if (!date) return NOW;
-  const parsed = new Date(date);
-  return isNaN(parsed.getTime()) ? NOW : parsed;
-}
+        {/* Description - Using the site's value proposition */}
+        <p className="text-gray-600 text-lg md:text-xl mb-12 leading-relaxed max-w-2xl mx-auto">
+          We couldn&apos;t find the page you were looking for. You may have
+          typed the address incorrectly, or the page may have moved. Explore our
+          latest industry insights, expert interviews, and trend analysis below.
+        </p>
 
-async function getPodcastsSlugs(): Promise<{ slug: string; date: string }[]> {
-  try {
-    // TODO: replace with real data source
-    // const res = await fetch(`${BASE_URL}/api/podcasts`, { next: { revalidate: 3600 } });
-    // return res.json();
-    return [];
-  } catch (err) {
-    console.error("[sitemap] Failed to fetch podcast slugs:", err);
-    return [];
-  }
-}
-
-async function getNewsSlugs(): Promise<{ slug: string; date: string }[]> {
-  try {
-    // TODO: replace with real data source
-    // const res = await fetch(`${BASE_URL}/api/news`, { next: { revalidate: 3600 } });
-    // return res.json();
-    return [];
-  } catch (err) {
-    console.error("[sitemap] Failed to fetch news slugs:", err);
-    return [];
-  }
-}
-
-const STATIC_ROUTES: {
-  path: string;
-  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
-  priority: number;
-}[] = [
-  { path: "/",                                          changeFrequency: "weekly",  priority: 1.0 },
-  { path: "/supply-chain-hub",                          changeFrequency: "weekly",  priority: 0.9 },
-  { path: "/supply-chain-hub/pr-news",                  changeFrequency: "monthly", priority: 0.8 },
-  { path: "/supply-chain-hub/linkedin-updates",         changeFrequency: "weekly",  priority: 0.8 },
-  { path: "/supply-chain-hub/women-in-supply-chain",    changeFrequency: "never",   priority: 0.8 },
-  { path: "/community",                                 changeFrequency: "never",   priority: 0.8 },
-  { path: "/podcasts",                                  changeFrequency: "weekly",  priority: 0.9 },
-  { path: "/events",                                    changeFrequency: "weekly",  priority: 0.9 },
-  { path: "/about-us",                                  changeFrequency: "never",   priority: 0.7 },
-  { path: "/watch",                                     changeFrequency: "weekly",  priority: 0.9 },
-  { path: "/watch/tpm-today",                           changeFrequency: "weekly",  priority: 0.8 },
-  { path: "/watch/thoughts-and-coffee",                 changeFrequency: "weekly",  priority: 0.8 },
-  { path: "/watch/performance-paradox",                 changeFrequency: "weekly",  priority: 0.8 },
-];
-
-export const revalidate = 3600;
-
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [podcasts, news] = await Promise.all([
-    getPodcastsSlugs(),
-    getNewsSlugs(),
-  ]);
-
-  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map(
-    ({ path, changeFrequency, priority }) => ({
-      url: toUrl(path),
-      lastModified: NOW,
-      changeFrequency,
-      priority,
-    })
+        {/* Primary Actions */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <Link
+            href="/"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#F09033] text-white px-8 py-4 rounded-full font-bold hover:bg-[#221f20] transition-all duration-300"
+          >
+            <MoveLeft size={18} />
+            Back to Home
+          </Link>
+          <Link
+            href="/podcasts"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 border-2 border-[#221f20] text-[#221f20] px-8 py-4 rounded-full font-bold hover:bg-[#221f20] hover:text-white transition-all duration-300"
+          >
+            <Radio size={18} />
+            View Podcasts
+          </Link>
+        </div>
+      </div>
+    </main>
   );
-
-  const wiscEntries: MetadataRoute.Sitemap = postsData.map((item) => ({
-    url: toUrl(`/supply-chain-hub/women-in-supply-chain${item.slug}`),
-    lastModified: toDate(item.date),
-    changeFrequency: "never",
-    priority: 0.7,
-  }));
-
-  const podcastEntries: MetadataRoute.Sitemap = podcasts.map((item) => ({
-    url: toUrl(`/podcasts/${item.slug}`),
-    lastModified: toDate(item.date),
-    changeFrequency: "monthly",
-    priority: 0.7,
-  }));
-
-  const newsEntries: MetadataRoute.Sitemap = news.map((item) => ({
-    url: toUrl(`/supply-chain-hub/pr-news/${item.slug}`),
-    lastModified: toDate(item.date),
-    changeFrequency: "monthly",
-    priority: 0.7,
-  }));
-
-  return [...staticEntries, ...wiscEntries, ...podcastEntries, ...newsEntries];
 }
