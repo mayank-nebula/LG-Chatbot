@@ -1,16 +1,16 @@
-https://letstalksupplychain.com/season2-episode20
-https://letstalksupplychain.com/season2-episode70
-https://letstalksupplychain.com/season2-episode73
-https://letstalksupplychain.com/season2-episode81
-https://letstalksupplychain.com/season2-episode84
-https://letstalksupplychain.com/season2-episode85
-https://letstalksupplychain.com/season2-episode86
-https://letstalksupplychain.com/season2-episode92
-https://letstalksupplychain.com/sea-2-ep-63-tariffs-whats-the-secret-2
-https://letstalksupplychain.com/sea-2-ep-70-women-in-supply-chain-pt-20-kathy-fulton
-https://letstalksupplychain.com/sea-2-ep-85-why-vcs-are-excited-about-rpa
-https://letstalksupplychain.com/episode200
-https://letstalksupplychain.com/ep-100-procurement-its-a-group-thing
-https://letstalksupplychain.com/ep-117-inventory-optimization-in-minutes
-https://letstalksupplychain.com/episode-350-blended-climbing-the-career-ladder-the-truth-about-workplace-seniority
-https://letstalksupplychain.com/episode-400-raise-the-bar-for-your-supply-chain-with-polaris-transportation-group
+https://letstalksupplychain.com/season2-episode20,1359,"SEA 2, EP 20 &#8211; ICO and Smart Technology in Supply Chain",True,https://html5-player.libsyn.com/embed/episode/id/6812677/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/season2-episode70,1495,"SEA 2, EP 70 &#8211; Women In Supply Chain™ Pt 20 &#8211; Kathy Fulton",True,https://html5-player.libsyn.com/embed/episode/id/10343804/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/season2-episode73,1697,"SEA 2, EP 73 &#8211; Why I&#8217;m obsessed with Coconuts&#8230;",True,https://html5-player.libsyn.com/embed/episode/id/10603307/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/season2-episode81,1894,"SEA 2, EP 81 &#8211; Get your workforce engaged!",True,https://html5-player.libsyn.com/embed/episode/id/11262074/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/season2-episode84,1939,"SEA 2, EP 84 &#8211; Women In Supply Chain™, Lori Harner",True,https://html5-player.libsyn.com/embed/episode/id/11544038/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/season2-episode85,1954,"SEA 2, EP 85 &#8211; Why VC&#8217;s are excited about RPA",True,https://html5-player.libsyn.com/embed/episode/id/11620118/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/season2-episode86,2136,"SEA 2, EP 86 &#8211; What sets OOCL Logistics Apart?",True,https://html5-player.libsyn.com/embed/episode/id/11707241/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/season2-episode92,2526,"SEA 2, EP 92 &#8211; Women In Supply Chain™, Lisa Fenton",True,https://html5-player.libsyn.com/embed/episode/id/12234791/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/sea-2-ep-63-tariffs-whats-the-secret-2,12030,"SEA 2, EP 63 – Tariffs, what’s the secret?",True,https://html5-player.libsyn.com/embed/episode/id/9751709/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/sea-2-ep-70-women-in-supply-chain-pt-20-kathy-fulton,12008,"SEA 2, EP 70 – Women In Supply Chain™ Pt 20 – Kathy Fulton",True,https://html5-player.libsyn.com/embed/episode/id/10343804/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/sea-2-ep-85-why-vcs-are-excited-about-rpa,11952,"SEA 2, EP 85 – Why VC’s are excited about RPA",True,https://html5-player.libsyn.com/embed/episode/id/11620118/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/episode200,5022,200: Sarah and Friends,True,https://html5-player.libsyn.com/embed/episode/id/19177799/height/360/theme/standard/thumbnail/no/direction/forward/,False,,
+https://letstalksupplychain.com/ep-100-procurement-its-a-group-thing,11915,"EP 100 – Procurement, It’s a Group Thing",True,https://html5-player.libsyn.com/embed/episode/id/12896405/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/ep-117-inventory-optimization-in-minutes,11714,EP 117 – Inventory optimization in minutes!,True,https://html5-player.libsyn.com/embed/episode/id/14546948/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/,False,,
+https://letstalksupplychain.com/episode-350-blended-climbing-the-career-ladder-the-truth-about-workplace-seniority,18369,350: Blended &#8211; Climbing the Career Ladder: The Truth About Workplace Seniority,True,https://play.libsyn.com/embed/episode/id/27507777/height/128/theme/modern/size/standard/thumbnail/yes/custom-color/0083b6/time-start/00:00:00/playlist-height/200/direction/backward/download/yes,False,,
+https://letstalksupplychain.com/episode-400-raise-the-bar-for-your-supply-chain-with-polaris-transportation-group,21637,"400: Raise The Bar For Your Supply Chain, with Polaris Transportation Group",True,https://play.libsyn.com/embed/episode/id/30727203/height/128/theme/modern/size/standard/thumbnail/yes/custom-color/0083b6/time-start/00:00:00/playlist-height/200/direction/backward/download/yes/font-color/FFFFFF,True,https://www.youtube.com/embed/YJc9BJYoipo?si=Gtk9ElaRCcUZnDO5,YJc9BJYoipo
