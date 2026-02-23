@@ -96,17 +96,59 @@ invalid_records  # Optional: inspect validation errors
 
 from sqlalchemy import text
 
+# Convert Pydantic models to dictionaries
+records = [ep.model_dump() for ep in validated]
+
 insert_query = text("""
-INSERT INTO users (id, name, email, age, created_at)
-VALUES (:id, :name, :email, :age, :created_at);
+INSERT INTO episode_data (
+    uuid,
+    episode_number,
+    post_id,
+    title,
+    short_title,
+    slug,
+    date,
+    video_id,
+    blurb,
+    summary,
+    main_points,
+    recent_news,
+    related_episodes,
+    guest_highlights,
+    web_content,
+    categories,
+    tags,
+    media_link,
+    media_description
+)
+VALUES (
+    :uuid,
+    :episode_number,
+    :post_id,
+    :title,
+    :short_title,
+    :slug,
+    :date,
+    :video_id,
+    :blurb,
+    :summary,
+    :main_points,
+    :recent_news,
+    :related_episodes,
+    :guest_highlights,
+    :web_content,
+    :categories,
+    :tags,
+    :media_link,
+    :media_description
+);
 """)
 
 with engine.connect() as conn:
-    conn.execute(insert_query, valid_records)  # bulk insert
+    conn.execute(insert_query, records)  # bulk insert
     conn.commit()
 
-print("Bulk insert complete!")
-
+print("Insert complete.")
 
 
 
