@@ -1,278 +1,144 @@
-[
-  {
-    "id": 36366,
-    "slug": "terms-and-conditions"
-  },
-  {
-    "id": 36331,
-    "slug": "media-kit"
-  },
-  {
-    "id": 36192,
-    "slug": "media-kit-full"
-  },
-  {
-    "id": 34193,
-    "slug": "mediakit"
-  },
-  {
-    "id": 34362,
-    "slug": "performance-paradox"
-  },
-  {
-    "id": 33679,
-    "slug": "case-study-nulogy-ltsc"
-  },
-  {
-    "id": 33682,
-    "slug": "case-study-reveel-ltsc"
-  },
-  {
-    "id": 31627,
-    "slug": "client-intake"
-  },
-  {
-    "id": 30684,
-    "slug": "case-studies-lets-talk-supply"
-  },
-  {
-    "id": 30179,
-    "slug": "letstalk-supply-case-studies"
-  },
-  {
-    "id": 28883,
-    "slug": "thank-you"
-  },
-  {
-    "id": 28342,
-    "slug": "diversity-and-inclusion-blended"
-  },
-  {
-    "id": 27708,
-    "slug": "join-our-expert-network"
-  },
-  {
-    "id": 27688,
-    "slug": "transforming-freight-operations-a-case-study-on-blackberry-radar"
-  },
-  {
-    "id": 27658,
-    "slug": "the-argents-express-group-case-study"
-  },
-  {
-    "id": 479,
-    "slug": "women-in-supply-chain-award-winners"
-  },
-  {
-    "id": 26691,
-    "slug": "supply-chain-news"
-  },
-  {
-    "id": 26519,
-    "slug": "live-shows-questionnaire"
-  },
-  {
-    "id": 25849,
-    "slug": "linkedin"
-  },
-  {
-    "id": 24653,
-    "slug": "work-with-us-3"
-  },
-  {
-    "id": 25231,
-    "slug": "slider-demo"
-  },
-  {
-    "id": 25195,
-    "slug": "frostbytes"
-  },
-  {
-    "id": 25166,
-    "slug": "tpm-today-2"
-  },
-  {
-    "id": 24059,
-    "slug": "work-with-us-2"
-  },
-  {
-    "id": 23810,
-    "slug": "supply-chain-media-hub"
-  },
-  {
-    "id": 23432,
-    "slug": "practice-page"
-  },
-  {
-    "id": 23386,
-    "slug": "about-us"
-  },
-  {
-    "id": 23319,
-    "slug": "home-v2"
-  },
-  {
-    "id": 23120,
-    "slug": "landing-page-v1"
-  },
-  {
-    "id": 22469,
-    "slug": "video-gallery"
-  },
-  {
-    "id": 22248,
-    "slug": "on-the-margins"
-  },
-  {
-    "id": 22175,
-    "slug": "events"
-  },
-  {
-    "id": 22116,
-    "slug": "join-lets-talk-supply-contest"
-  },
-  {
-    "id": 22092,
-    "slug": "join-lets-talk-supply-creative-room-opt-in"
-  },
-  {
-    "id": 22037,
-    "slug": "secret-society-of-supply-chain-membership"
-  },
-  {
-    "id": 21984,
-    "slug": "join-lets-talk-supply-chain-newsletter-notifications-and-its-community"
-  },
-  {
-    "id": 19886,
-    "slug": "relex-talks"
-  },
-  {
-    "id": 19833,
-    "slug": "supply-chain-unfiltered"
-  },
-  {
-    "id": 19598,
-    "slug": "test"
-  },
-  {
-    "id": 19375,
-    "slug": "privacy-policy-2"
-  },
-  {
-    "id": 19255,
-    "slug": "web-accessibility-compliance-statement"
-  },
-  {
-    "id": 16902,
-    "slug": "top-5-ways-to-reduce-your-costs-of-delivery-returns"
-  },
-  {
-    "id": 16308,
-    "slug": "linkedin-live-event"
-  },
-  {
-    "id": 15162,
-    "slug": "the-intelligence-perspective-with-overhaul"
-  },
-  {
-    "id": 14777,
-    "slug": "podcast-mini-series"
-  },
-  {
-    "id": 13993,
-    "slug": "special-delivery"
-  },
-  {
-    "id": 12659,
-    "slug": "impact"
-  },
-  {
-    "id": 11427,
-    "slug": "no-bullshipping"
-  },
-  {
-    "id": 11353,
-    "slug": "all-categories"
-  },
-  {
-    "id": 11226,
-    "slug": "action-items"
-  },
-  {
-    "id": 9963,
-    "slug": "coming-in-hot"
-  },
-  {
-    "id": 9961,
-    "slug": "thoughts-and-coffee"
-  },
-  {
-    "id": 9468,
-    "slug": "my-account"
-  },
-  {
-    "id": 9467,
-    "slug": "checkout"
-  },
-  {
-    "id": 9466,
-    "slug": "cart"
-  },
-  {
-    "id": 9465,
-    "slug": "shop"
-  },
-  {
-    "id": 8995,
-    "slug": "women-in-supply-chain-podcast"
-  },
-  {
-    "id": 8985,
-    "slug": "women-in-supply-chain-blog"
-  },
-  {
-    "id": 8969,
-    "slug": "blog"
-  },
-  {
-    "id": 8959,
-    "slug": "podcast"
-  },
-  {
-    "id": 8950,
-    "slug": "work-with-us"
-  },
-  {
-    "id": 8948,
-    "slug": "subscribe"
-  },
-  {
-    "id": 8946,
-    "slug": "about"
-  },
-  {
-    "id": 8920,
-    "slug": "ltsc-youtube"
-  },
-  {
-    "id": 8907,
-    "slug": "women-in-supply-chain"
-  },
-  {
-    "id": 8895,
-    "slug": "diversity-and-inclusion-blended"
-  },
-  {
-    "id": 8880,
-    "slug": "tpm-today"
-  },
-  {
-    "id": 8874,
-    "slug": "lets-talk-supply-chain"
-  },
-  {
-    "id": 8867,
-    "slug": "home"
-  }
-]
+https://letstalksupplychain.com/leigh-barnard-wants-more-women-in-supply-chain
+https://letstalksupplychain.com/the-great-reshuffling-of-shipping-alliances-in-2025-what-it-means-for-global-trade
+https://letstalksupplychain.com/supply-chain-issues-delay-a350f-eis-to-2027-report-ch-aviation
+https://letstalksupplychain.com/tackling-supply-chain-challenges-in-creative-ways-%f0%9f%98%9c
+https://letstalksupplychain.com/what-is-the-secret-society-of-supply-chain-with-sarah-barnes-humphrey
+https://letstalksupplychain.com/breaking-the-xlsx-chains-corporate-venture-supply-chain-software-as-the-potential-game-changer
+https://letstalksupplychain.com/the-top-5-challenges-for-trucking-companies-providing-container-drayage
+https://letstalksupplychain.com/how-to-choose-the-right-last-mile-delivery-technology-for-your-business
+https://letstalksupplychain.com/10-steps-trade-show-event-managers-can-take-to-save-money-and-improve-the-logistics-of-their-next-event
+https://letstalksupplychain.com/supply-chain-automation-optimizing-cashflow-in-the-age-of-uncertainty
+https://letstalksupplychain.com/logistics-complexity-and-the-strategic-moves-companies-are-making-to-reduce-it
+https://letstalksupplychain.com/have-you-heard-something-big-is-coming-to-supply-chain
+https://letstalksupplychain.com/fulfillment-plus-value-added-services-a-magic-formula
+https://letstalksupplychain.com/diversifying-delivery-networks-for-superior-customer-experiences
+https://letstalksupplychain.com/broadening-your-companys-reach-with-staff-augmentation-experts
+https://letstalksupplychain.com/logistics-optimization-software-a-deep-dive-into-data-first-technology-leader-enveyo
+https://letstalksupplychain.com/the-future-of-edi-for-supply-chains
+https://letstalksupplychain.com/seven-benefits-of-using-gps-equipment-tracking
+https://letstalksupplychain.com/from-doing-digital-to-being-digital-how-decision-intelligence-is-transforming-supply-chains
+https://letstalksupplychain.com/if-you-want-an-efficient-supply-chain-dont-mess-with-your-suppliers
+https://letstalksupplychain.com/the-three-biggest-challenges-for-procurement-and-what-to-do-about-them
+https://letstalksupplychain.com/tendai-masamba-on-breaking-ceilings-and-empowering-women-leaders-in-supply-chain
+https://letstalksupplychain.com/4-changes-freight-brokers-must-make-to-remain-competitive
+https://letstalksupplychain.com/unlock-retail-growth-this-quarter-with-multi-carrier-tech-from-shipium
+https://letstalksupplychain.com/parcel-shipping-is-ridiculously-unoptimized
+https://letstalksupplychain.com/shannon-hamilton-women-in-supply-chain
+https://letstalksupplychain.com/no-boots-on-the-ground
+https://letstalksupplychain.com/working-capital-solutions-with-modifi
+https://letstalksupplychain.com/autonomous-robots
+https://letstalksupplychain.com/escaping-a-black-hole-a-microsoft-dynamics
+https://letstalksupplychain.com/cloud-edi
+https://letstalksupplychain.com/leveraging-right-sized-inventorys-patented-technology-in-new-and-different-ways-to-solve-complex-supply-chain-problems
+https://letstalksupplychain.com/sense-respond-supply-chain-plannings
+https://letstalksupplychain.com/3-reasons-shippers-struggle-to-manage-their-allocation
+https://letstalksupplychain.com/automation-in-middle-mile-is-key
+https://letstalksupplychain.com/digital-adoption-with-klaus-imping
+https://letstalksupplychain.com/what-importers-need-to-know-and-do-in-2022
+https://letstalksupplychain.com/identifying-solutions-to-automate-the-back-office
+https://letstalksupplychain.com/carine-toure-yemitia-on-women-building-confidence-and-visibility-across-the-global-supply-chain-community
+https://letstalksupplychain.com/intermodal-freight-transport-and-logistics
+https://letstalksupplychain.com/the-warehouse-of-the-future
+https://letstalksupplychain.com/supply-chain-retention-taking-back-control
+https://letstalksupplychain.com/how-collaboration-and-technology-creates-efficiency-for-smbs
+https://letstalksupplychain.com/rsis-new-replenishment-planning-module-is-benefiting-mid-sized-clients-and-gaining-traction-in-the-market
+https://letstalksupplychain.com/to-visibility-and-beyond-overcoming-3pl-lsp-challenges-in-2022
+https://letstalksupplychain.com/mastering-crisis-lessons-from-covid-19
+https://letstalksupplychain.com/why-data-focus-and-follow-through-are-shaping-the-future-of-supply-chain
+https://letstalksupplychain.com/its-now-2022-are-consumers-growing-tired-of-supply-chain-shortages-and-rising-costs
+https://letstalksupplychain.com/achieving-sustainability-goals-in-supply-chain-delivery
+https://letstalksupplychain.com/is-outsourcing-a-new-strategy-for-retaining-talent-3-reasons-we-think-it-is
+https://letstalksupplychain.com/combating-climate-change-with-supply-chain-solutions
+https://letstalksupplychain.com/attract-top-talent-and-retain-it-with-a-high-involvement-culture
+https://letstalksupplychain.com/why-a-low-code-application-platform-lcap-that-leverages-excel-makes-sense-for-supply-chain-applications
+https://letstalksupplychain.com/the-inventory-optimization-tool-every-company-can-afford-right-sized-inventory
+https://letstalksupplychain.com/how-freight-forwarding-technology-improves-efficiency-and-transparency-in-supply-chain-operations
+https://letstalksupplychain.com/going-beyond-fourkites-expands-ocean-capabilities-to-drive-end-to-end-supply-chain-visibility
+https://letstalksupplychain.com/preparing-for-2022-looking-beyond-recovery
+https://letstalksupplychain.com/how-sifted-is-shaking-up-the-shipping-industry-goodbye-excel-hell
+https://letstalksupplychain.com/looking-at-dock-yard-management-technology-to-stem-supply-chain-chaos
+https://letstalksupplychain.com/tackle-supply-chain-uncertainty-with-these-five-planning-strategies
+https://letstalksupplychain.com/how-to-eliminate-disconnected-teams-and-increase-supply-chain-visibility
+https://letstalksupplychain.com/the-use-cases-and-roi-of-container-tracking-for-freight-forwarders
+https://letstalksupplychain.com/entrepreneur
+https://letstalksupplychain.com/purpose-planet-and-profit-with-topl-pilot-episode
+https://letstalksupplychain.com/fourkites-combines-innovation-and-collaboration
+https://letstalksupplychain.com/2021-year-of-resiliency
+https://letstalksupplychain.com/logtech-live-ep-2-eric-johnson-on-logtech-live-the-future-of-technology
+https://letstalksupplychain.com/logistics-technology-and-media-on-logtech-live
+https://letstalksupplychain.com/1-stop-connections
+https://letstalksupplychain.com/right-sized-inventory
+https://letstalksupplychain.com/newyork
+https://letstalksupplychain.com/freightwaves
+https://letstalksupplychain.com/airbnb
+https://letstalksupplychain.com/joc
+https://letstalksupplychain.com/cp24
+https://letstalksupplychain.com/huffpost
+https://letstalksupplychain.com/brand-power
+https://letstalksupplychain.com/womentech-network
+https://letstalksupplychain.com/robert-garrison
+https://letstalksupplychain.com/holly-qualman
+https://letstalksupplychain.com/john-buglino
+https://letstalksupplychain.com/angie-reno
+https://letstalksupplychain.com/tara-cahill
+https://letstalksupplychain.com/how-to-leverage-your-logistics-data-to-drive-demand
+https://letstalksupplychain.com/how-women-entrepreneurs-overcome-challenges-to-grow-global-sales
+https://letstalksupplychain.com/fourkites-continues-to-push-the-envelope-as-its-named-a-leader-in-gartners-magic-quadrant-for-real-time-transportation-visibility-platforms
+https://letstalksupplychain.com/the-future-of-retailing-and-why-e-commerces-rise-isnt-unstoppable
+https://letstalksupplychain.com/developing-a-smashing-influencer-marketing-strategy
+https://letstalksupplychain.com/collaboration-meets-visibility-why-fourkites-recent-funding-success-brings-supply-chain-one-step-closer-to-the-future
+https://letstalksupplychain.com/innovating-with-lean-staffing
+https://letstalksupplychain.com/we-improve-through-learnings
+https://letstalksupplychain.com/wbsp005-grow-your-business-through-international-trading-and-linkedin-influence-w-sarah-barnes-humphrey
+https://letstalksupplychain.com/transparency-and-data-in-supply-chains-with-sarah-barnes-humphrey
+https://letstalksupplychain.com/putting-the-smart-in-smarter-logistics
+https://letstalksupplychain.com/what-your-freight-broker-isnt-telling-you-about-quality-and-compliance
+https://letstalksupplychain.com/conquering-covid-19
+https://letstalksupplychain.com/its-hard-to-understate-the-importance-of-tco
+https://letstalksupplychain.com/supply-chain-talent-the-treasure-to-find-keep
+https://letstalksupplychain.com/racing-with-the-machine-is-your-supply-chain-job-in-peril
+https://letstalksupplychain.com/tackling-the-top-three-supply-chain-topics-with-sarah-barnes-humphrey-scnr-episode-140
+https://letstalksupplychain.com/100-women-b2b-thought-leaders-to-follow
+https://letstalksupplychain.com/top-thought-leaders-in-diversity-and-inclusion
+https://letstalksupplychain.com/top-thought-leaders-in-supply
+https://letstalksupplychain.com/supply-chain-digital
+https://letstalksupplychain.com/supply-chain-now-super-trend-1
+https://letstalksupplychain.com/supply-chain-now-super-trend-3
+https://letstalksupplychain.com/personal-branding-webinar-with-procurement-leaders
+https://letstalksupplychain.com/the-best-practices-for-ensuring-smooth-supply-chains
+https://letstalksupplychain.com/make-sure-your-data-has-its-coat
+https://letstalksupplychain.com/adaptability-is-the-key-to-creating-resilient-supply-chains
+https://letstalksupplychain.com/choosing-the-right-technology-is-not-the-key-to-successful-digital-transformation
+https://letstalksupplychain.com/procurement-never-heard-of-us-we-can-probably-save-your-business
+https://letstalksupplychain.com/how-to-successfully-implement-and-plan-for-industry-4-0
+https://letstalksupplychain.com/how-print-e-sourcing-helps-solve-the-tail-spend-catch-22
+https://letstalksupplychain.com/covid-19-what-can-supply-chains-learn-from-europe
+https://letstalksupplychain.com/procurement-time-to-protect-your-supply-chain
+https://letstalksupplychain.com/no-toilet-paper-supply-chain-to-the-rescue
+https://letstalksupplychain.com/smart-steps-toward-managing-supply-chain-surprises
+https://letstalksupplychain.com/the-regionalization-of-manufacturing-why-is-panama-in-the-eyes-of-the-hi-tech-industry
+https://letstalksupplychain.com/supply-chain-buzz-transportation-talent-gap-my-warehouse-is-bigger-than-yours-plenty-more
+https://letstalksupplychain.com/perseverance-progress-and-sometimes-perfection
+https://letstalksupplychain.com/the-time-is-now-for-retailers-to-future-proof-their-supply-chains-with-a-cohesive-approach-for-end-to-end-replenishment-planning
+https://letstalksupplychain.com/jessica-vania-on-the-next-generation-of-supply-chain-and-making-an-impact-wisc-july
+https://letstalksupplychain.com/key-takeaways-from-collision-2019-the-future-of-procurement
+https://letstalksupplychain.com/lights-out-people-in-the-supply-chain-of-tomorrow
+https://letstalksupplychain.com/panama-one-size-fits-all
+https://letstalksupplychain.com/exclusive-interiew-with-marie-chantal-savoy-vp-logistec
+https://letstalksupplychain.com/exclusive-with-grace-liang-president-of-oocl-canada
+https://letstalksupplychain.com/4-reasons-to-invest-in-customer-service-training
+https://letstalksupplychain.com/what-is-the-importance-of-chemistry-among-people-in-the-workplace
+https://letstalksupplychain.com/supply-chain-brain
+https://letstalksupplychain.com/wednesdays-for-women-part-2
+https://letstalksupplychain.com/wednesdays-for-women-part-1
+https://letstalksupplychain.com/shoe-in
+https://letstalksupplychain.com/consulting-logistics
+https://letstalksupplychain.com/industry-star-article
+https://letstalksupplychain.com/the-shipping-pod-podcast
+https://letstalksupplychain.com/12-minute-convos
+https://letstalksupplychain.com/transforming-supply-chains-and-the-talent-gap
+https://letstalksupplychain.com/exclusive-content-for-subscribers-only
+https://letstalksupplychain.com/3-amazon-moves-you-need-to-know-about-now-and-how-you-can-compete
+https://letstalksupplychain.com/top-10-ways-to-manage-through-stress
+https://letstalksupplychain.com/have-an-interview-presentation-matters
+ 
