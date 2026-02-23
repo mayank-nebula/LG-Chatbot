@@ -130,29 +130,37 @@ rows
 
 
 
-class EpisodeData(Base):
-    """Stores podcast episode data and metadata"""
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
+from datetime import datetime
 
-    uuid = Column(VARCHAR(50), unique=True)
-    episode_number = Column(Integer, primary_key=True, unique=True)
-    post_id = Column(Integer)
-    title = Column(Text)
-    short_title = Column(Text)
-    slug = Column(Text)
-    date = Column(TIMESTAMP)
-    video_id = Column(VARCHAR(20), unique=True)
-    blurb = Column(Text)
-    summary = Column(Text)
-    main_points = Column(Text)
-    recent_news = Column(Text)
-    related_episodes = Column(JSONB)
-    guest_highlights = Column(Text)
-    web_content = Column(Text)
-    categories = Column(JSONB)
-    tags = Column(JSONB)
-    media_link = Column(Text)
-    media_description = Column(Text)
 
+class EpisodeDataSchema(BaseModel):
+    """Podcast episode data and metadata"""
+
+    uuid: Optional[str] = Field(None, max_length=50)
+    episode_number: int
+    post_id: Optional[int] = None
+    title: Optional[str] = None
+    short_title: Optional[str] = None
+    slug: Optional[str] = None
+    date: Optional[datetime] = None
+    video_id: Optional[str] = Field(None, max_length=20)
+    blurb: Optional[str] = None
+    summary: Optional[str] = None
+    main_points: Optional[str] = None
+    recent_news: Optional[str] = None
+    related_episodes: Optional[List[Dict[str, Any]]] = None
+    guest_highlights: Optional[str] = None
+    web_content: Optional[str] = None
+    categories: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    media_link: Optional[str] = None
+    media_description: Optional[str] = None
+
+    model_config = {
+        "from_attributes": True  # allows ORM mode
+    }
 
 
 connector.close()
