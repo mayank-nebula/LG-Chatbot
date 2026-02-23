@@ -1,208 +1,278 @@
-from sqlalchemy import create_engine
-from google.cloud.alloydb.connector import Connector
-import sqlalchemy
-
-PROJECT_ID = "your-project-id"
-REGION = "your-region"
-CLUSTER_NAME = "your-cluster"
-INSTANCE_NAME = "your-instance"
-DB_USER = "your-user"
-DB_PASS = "your-password"
-DB_NAME = "your-db"
-projects/steam-genius-475213-t6/locations/us-central1/clusters/ltsc-genai-cluster/instances/ltsc-genai-cluster-primary
-INSTANCE_URI = f"projects/{PROJECT_ID}/locations/{REGION}/clusters/{CLUSTER_NAME}/instances/{INSTANCE_NAME}"
-
-connector = Connector()
-
-def getconn():
-    return connector.connect(
-        INSTANCE_URI,
-        "pg8000",
-        user=DB_USER,
-        password=DB_PASS,
-        db=DB_NAME,
-    )
-
-engine = create_engine("postgresql+pg8000://", creator=getconn)
-
-print("Connected to AlloyDB!")
-
-
-
-
-
-
-
-
-import json
-
-with open("users.json", "r") as f:
-    raw_data = json.load(f)
-
-print(f"Loaded {len(raw_data)} records.")
-
-
-
-
-
-
-
-
-
-
-
-from pydantic import BaseModel, EmailStr, ValidationError
-from typing import Optional
-from datetime import datetime
-
-class UserSchema(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
-    age: Optional[int] = None
-    created_at: datetime = datetime.utcnow()
-
-
-
-
-
-
-
-    
-
-
-valid_records = []
-invalid_records = []
-
-for record in raw_data:
-    try:
-        validated = UserSchema(**record)
-        valid_records.append(validated.dict())
-    except ValidationError as e:
-        invalid_records.append({
-            "record": record,
-            "error": e.errors()
-        })
-
-print(f"Valid records: {len(valid_records)}")
-print(f"Invalid records: {len(invalid_records)}")
-
-invalid_records  # Optional: inspect validation errors
-
-
-
-
-
-
-from sqlalchemy import text
-
-# Convert Pydantic models to dictionaries
-records = [ep.model_dump() for ep in validated]
-
-insert_query = text("""
-INSERT INTO episode_data (
-    uuid,
-    episode_number,
-    post_id,
-    title,
-    short_title,
-    slug,
-    date,
-    video_id,
-    blurb,
-    summary,
-    main_points,
-    recent_news,
-    related_episodes,
-    guest_highlights,
-    web_content,
-    categories,
-    tags,
-    media_link,
-    media_description
-)
-VALUES (
-    :uuid,
-    :episode_number,
-    :post_id,
-    :title,
-    :short_title,
-    :slug,
-    :date,
-    :video_id,
-    :blurb,
-    :summary,
-    :main_points,
-    :recent_news,
-    :related_episodes,
-    :guest_highlights,
-    :web_content,
-    :categories,
-    :tags,
-    :media_link,
-    :media_description
-);
-""")
-
-with engine.connect() as conn:
-    conn.execute(insert_query, records)  # bulk insert
-    conn.commit()
-
-print("Insert complete.")
-
-
-
-
-
-
-
-
-with engine.connect() as conn:
-    result = conn.execute(text("SELECT * FROM users;"))
-    rows = result.fetchall()
-
-rows
-
-
-
-
-
-
-
-
-
-
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
-from datetime import datetime
-
-
-class EpisodeDataSchema(BaseModel):
-    """Podcast episode data and metadata"""
-
-    uuid: Optional[str] = Field(None, max_length=50)
-    episode_number: int
-    post_id: Optional[int] = None
-    title: Optional[str] = None
-    short_title: Optional[str] = None
-    slug: Optional[str] = None
-    date: Optional[datetime] = None
-    video_id: Optional[str] = Field(None, max_length=20)
-    blurb: Optional[str] = None
-    summary: Optional[str] = None
-    main_points: Optional[str] = None
-    recent_news: Optional[str] = None
-    related_episodes: Optional[List[Dict[str, Any]]] = None
-    guest_highlights: Optional[str] = None
-    web_content: Optional[str] = None
-    categories: Optional[List[str]] = None
-    tags: Optional[List[str]] = None
-    media_link: Optional[str] = None
-    media_description: Optional[str] = None
-
-    model_config = {
-        "from_attributes": True  # allows ORM mode
-    }
-
-
-connector.close()
+[
+  {
+    "id": 36366,
+    "slug": "terms-and-conditions"
+  },
+  {
+    "id": 36331,
+    "slug": "media-kit"
+  },
+  {
+    "id": 36192,
+    "slug": "media-kit-full"
+  },
+  {
+    "id": 34193,
+    "slug": "mediakit"
+  },
+  {
+    "id": 34362,
+    "slug": "performance-paradox"
+  },
+  {
+    "id": 33679,
+    "slug": "case-study-nulogy-ltsc"
+  },
+  {
+    "id": 33682,
+    "slug": "case-study-reveel-ltsc"
+  },
+  {
+    "id": 31627,
+    "slug": "client-intake"
+  },
+  {
+    "id": 30684,
+    "slug": "case-studies-lets-talk-supply"
+  },
+  {
+    "id": 30179,
+    "slug": "letstalk-supply-case-studies"
+  },
+  {
+    "id": 28883,
+    "slug": "thank-you"
+  },
+  {
+    "id": 28342,
+    "slug": "diversity-and-inclusion-blended"
+  },
+  {
+    "id": 27708,
+    "slug": "join-our-expert-network"
+  },
+  {
+    "id": 27688,
+    "slug": "transforming-freight-operations-a-case-study-on-blackberry-radar"
+  },
+  {
+    "id": 27658,
+    "slug": "the-argents-express-group-case-study"
+  },
+  {
+    "id": 479,
+    "slug": "women-in-supply-chain-award-winners"
+  },
+  {
+    "id": 26691,
+    "slug": "supply-chain-news"
+  },
+  {
+    "id": 26519,
+    "slug": "live-shows-questionnaire"
+  },
+  {
+    "id": 25849,
+    "slug": "linkedin"
+  },
+  {
+    "id": 24653,
+    "slug": "work-with-us-3"
+  },
+  {
+    "id": 25231,
+    "slug": "slider-demo"
+  },
+  {
+    "id": 25195,
+    "slug": "frostbytes"
+  },
+  {
+    "id": 25166,
+    "slug": "tpm-today-2"
+  },
+  {
+    "id": 24059,
+    "slug": "work-with-us-2"
+  },
+  {
+    "id": 23810,
+    "slug": "supply-chain-media-hub"
+  },
+  {
+    "id": 23432,
+    "slug": "practice-page"
+  },
+  {
+    "id": 23386,
+    "slug": "about-us"
+  },
+  {
+    "id": 23319,
+    "slug": "home-v2"
+  },
+  {
+    "id": 23120,
+    "slug": "landing-page-v1"
+  },
+  {
+    "id": 22469,
+    "slug": "video-gallery"
+  },
+  {
+    "id": 22248,
+    "slug": "on-the-margins"
+  },
+  {
+    "id": 22175,
+    "slug": "events"
+  },
+  {
+    "id": 22116,
+    "slug": "join-lets-talk-supply-contest"
+  },
+  {
+    "id": 22092,
+    "slug": "join-lets-talk-supply-creative-room-opt-in"
+  },
+  {
+    "id": 22037,
+    "slug": "secret-society-of-supply-chain-membership"
+  },
+  {
+    "id": 21984,
+    "slug": "join-lets-talk-supply-chain-newsletter-notifications-and-its-community"
+  },
+  {
+    "id": 19886,
+    "slug": "relex-talks"
+  },
+  {
+    "id": 19833,
+    "slug": "supply-chain-unfiltered"
+  },
+  {
+    "id": 19598,
+    "slug": "test"
+  },
+  {
+    "id": 19375,
+    "slug": "privacy-policy-2"
+  },
+  {
+    "id": 19255,
+    "slug": "web-accessibility-compliance-statement"
+  },
+  {
+    "id": 16902,
+    "slug": "top-5-ways-to-reduce-your-costs-of-delivery-returns"
+  },
+  {
+    "id": 16308,
+    "slug": "linkedin-live-event"
+  },
+  {
+    "id": 15162,
+    "slug": "the-intelligence-perspective-with-overhaul"
+  },
+  {
+    "id": 14777,
+    "slug": "podcast-mini-series"
+  },
+  {
+    "id": 13993,
+    "slug": "special-delivery"
+  },
+  {
+    "id": 12659,
+    "slug": "impact"
+  },
+  {
+    "id": 11427,
+    "slug": "no-bullshipping"
+  },
+  {
+    "id": 11353,
+    "slug": "all-categories"
+  },
+  {
+    "id": 11226,
+    "slug": "action-items"
+  },
+  {
+    "id": 9963,
+    "slug": "coming-in-hot"
+  },
+  {
+    "id": 9961,
+    "slug": "thoughts-and-coffee"
+  },
+  {
+    "id": 9468,
+    "slug": "my-account"
+  },
+  {
+    "id": 9467,
+    "slug": "checkout"
+  },
+  {
+    "id": 9466,
+    "slug": "cart"
+  },
+  {
+    "id": 9465,
+    "slug": "shop"
+  },
+  {
+    "id": 8995,
+    "slug": "women-in-supply-chain-podcast"
+  },
+  {
+    "id": 8985,
+    "slug": "women-in-supply-chain-blog"
+  },
+  {
+    "id": 8969,
+    "slug": "blog"
+  },
+  {
+    "id": 8959,
+    "slug": "podcast"
+  },
+  {
+    "id": 8950,
+    "slug": "work-with-us"
+  },
+  {
+    "id": 8948,
+    "slug": "subscribe"
+  },
+  {
+    "id": 8946,
+    "slug": "about"
+  },
+  {
+    "id": 8920,
+    "slug": "ltsc-youtube"
+  },
+  {
+    "id": 8907,
+    "slug": "women-in-supply-chain"
+  },
+  {
+    "id": 8895,
+    "slug": "diversity-and-inclusion-blended"
+  },
+  {
+    "id": 8880,
+    "slug": "tpm-today"
+  },
+  {
+    "id": 8874,
+    "slug": "lets-talk-supply-chain"
+  },
+  {
+    "id": 8867,
+    "slug": "home"
+  }
+]
