@@ -1,59 +1,101 @@
 Hi [Name],
 
-I would like to clarify an important point before we proceed with switching the domain for https://letstalksupplychain.com/ to the new website (Next.js on Google Cloud).
+Below is the complete step-by-step plan to move https://letstalksupplychain.com/ to the new website (Next.js on Google Cloud), while keeping the existing WordPress system available for admin/archive purposes.
 
-As discussed earlier, after the DNS change:
-
-• https://letstalksupplychain.com/ will point to the new website
-• WordPress will no longer be accessible via the main domain
-• WordPress will remain active on the hosting server for admin/archive purposes
-
-However, there is one technical confirmation we need from the hosting side.
+Please review carefully — the order of steps is important.
 
 ---
 
-## IMPORTANT: MEDIA & FILE ACCESS AFTER DOMAIN SWITCH
+## OBJECTIVE
 
-Currently, WordPress images and files are stored under paths like:
+After migration:
 
-https://letstalksupplychain.com/wp-content/uploads/...
-
-Once the domain is pointed to Google Cloud, these URLs will no longer load from WordPress, because the domain will be connected to the new platform.
-
-For WordPress to remain fully accessible for admin/archive use, we must confirm that:
-
-• The hosting provider allows access via its direct server URL
-• Media files (images, uploads, PDFs, etc.) are accessible via that server address
-• There are no restrictions that force traffic only through the main domain
-
-In simple terms, we need to ensure that the site and all its data (posts, images, uploads) will still be reachable through the hosting provider’s direct access URL after the domain is switched.
+• https://letstalksupplychain.com/ will display the new website
+• WordPress will remain active on the hosting server
+• WordPress will be used only for admin/archive
+• No data will be deleted
+• No hosting will be cancelled
 
 ---
 
-## WHAT WE NEED FROM YOUR SIDE
+## PHASE 1 – VERIFY WORDPRESS HOSTING ACCESS
 
-1. Confirmation of the hosting provider name
-2. Access to the hosting control panel (if available)
-3. Confirmation from hosting support that the website and media files will remain accessible via the server/hosting URL even after the domain DNS is changed
+Before changing anything, we must confirm that WordPress and all its files (posts, images, uploads, PDFs, etc.) can be accessed through the hosting provider’s direct/server URL.
 
-This is important to ensure there is no unexpected loss of access to historical data.
+Step 1 – Identify Hosting Provider
+We need confirmation of which company is hosting WordPress.
+
+Step 2 – Obtain Hosting/Server Access URL
+The hosting provider must confirm the direct access URL (for example, something like a server-based web address).
+
+Step 3 – Test Full Access
+Using that hosting URL, we must confirm:
+• WordPress admin loads
+• Media library images load
+• Upload files open correctly
+• No forced redirect to letstalksupplychain.com
+
+This step ensures that once the domain is moved, all WordPress data remains accessible.
+
+Important:
+If the hosting server forces everything to use letstalksupplychain.com, we must resolve that before proceeding.
 
 ---
 
-## IMPORTANT REASSURANCE
+## PHASE 2 – PREPARE THE NEW WEBSITE
 
-• We are NOT deleting WordPress
-• We are NOT cancelling hosting
-• We are NOT removing any data
-• We are only changing where the public domain points
+Step 4 – Confirm Next.js Site is Live on Google Cloud
+The new site is already deployed and working on its Cloud Run URL.
 
-But we must confirm hosting behavior before performing the DNS switch.
+Step 5 – Configure Domain in Google Cloud
+We will connect letstalksupplychain.com inside Google Cloud so it is ready to receive traffic.
+
+At this stage, the public website remains unchanged.
 
 ---
 
-Once we receive confirmation that WordPress and its media files remain accessible independently of the main domain, we can safely proceed with the domain update.
+## PHASE 3 – DOMAIN (DNS) SWITCH
 
-Please let me know the hosting details so we can validate this before scheduling the switch.
+Step 6 – Update DNS Records
+The domain letstalksupplychain.com will be pointed from the current WordPress hosting server to Google Cloud.
+
+Once this is done:
+
+• Visitors going to https://letstalksupplychain.com/ will see the new website
+• WordPress will no longer open via the main domain
+• WordPress will only be accessible via the hosting server URL
+
+DNS updates typically take minutes to a few hours to fully propagate.
+
+---
+
+## AFTER THE SWITCH
+
+Public Website:
+https://letstalksupplychain.com/ → New Next.js website
+
+WordPress:
+Accessible via hosting/server URL for admin/archive only
+
+All posts, media files, and uploads remain stored on the hosting server.
+
+---
+
+## IMPORTANT CONFIRMATION REQUIRED
+
+Before proceeding to the DNS switch, we need confirmation that:
+
+• The hosting server allows full access to WordPress and media files without requiring the main domain
+• Images under /wp-content/uploads/ remain accessible through the server URL
+• There are no hosting restrictions that would block access after the domain change
+
+This verification is critical to avoid loss of access to historical data.
+
+---
+
+Once we receive confirmation from the hosting provider, we can schedule the domain switch safely.
+
+Please share the hosting provider details so we can complete Phase 1 and proceed accordingly.
 
 Best regards,
 [Your Name]
