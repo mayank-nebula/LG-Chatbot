@@ -1,40 +1,314 @@
-// "/lets-talk-supply-chain-asiapac-technology-in-supply-chains-series-ep1":
-  //   "/podcasts/lets-talk-supply-chain-asiapac-technology-in-supply-chains-series-ep1",
-
-  // "/lets-talk-supply-chain-asiapac-6-shipz":
-  //   "/podcasts/lets-talk-supply-chain-asiapac-6-shipz",
-
-  // "/lets-talk-supply-chain-asiapac-5-transformational-digitization-julian-logixboard":
-  //   "/podcasts/lets-talk-supply-chain-asiapac-5-transformational-digitization-julian-logixboard",
-
-  // "/lets-talk-supply-chain-asiapac-4-tony-richter-bastian-consulting":
-  //   "/podcasts/lets-talk-supply-chain-asiapac-4-tony-richter-bastian-consulting",
-
-  // "/lets-talk-supply-chain-asiapac-2-hurrican-alison-the-untold-story":
-  //   "/podcasts/lets-talk-supply-chain-asiapac-2-hurrican-alison-the-untold-story",
-
-  // "/lets-talk-supply-chain-asiapac-2-i-was-taught-how-to-think":
-  //   "/podcasts/lets-talk-supply-chain-asiapac-2-i-was-taught-how-to-think",
-
-  // "/asiapac-episode1": "/podcasts/asiapac-episode1",
-
-  // "/logtech-exclusive-we-ran-from-blockchain-2":
-  //   "/podcasts/logtech-exclusive-we-ran-from-blockchain-2",
-
-  // "/logtech-exclusive-we-ran-from-blockchain":
-  //   "/podcasts/logtech-exclusive-we-ran-from-blockchain",
-
-  // "/your-first-exclusive-from-logtech-your-blockchain-questions-answered":
-  //   "/podcasts/your-first-exclusive-from-logtech-your-blockchain-questions-answered",
-
-  // "/exclusive-live-interview-with-ceo-of-terracycle":
-  //   "/podcasts/exclusive-live-interview-with-ceo-of-terracycle",
-
-  // "/7-min-sunday-an-exclusive-with-jeremy-nixon-ceo-one":
-  //   "/podcasts/7-min-sunday-an-exclusive-with-jeremy-nixon-ceo-one",
-
-  // "/7-min-sunday-an-exclusive-with-john-mccauley-vp-of-cargill":
-  //   "/podcasts/7-min-sunday-an-exclusive-with-john-mccauley-vp-of-cargill",
-
-  // "/7-min-sunday-an-exclusive-interview-with-peder-winther-of-panalpina":
-  //   "/podcasts/7-min-sunday-an-exclusive-interview-with-peder-winther-of-panalpina",
+[
+  {
+    "uuid": "e6fdef9c-ac0f-4b31-8148-cfd0890b8eb2",
+    "episode_number": null,
+    "post_id": 17775,
+    "title": "Let&#8217;s Talk Supply Chain™ AsiaPac &#8211; Technology in Supply Chains Series EP#1",
+    "slug": "lets-talk-supply-chain-asiapac-technology-in-supply-chains-series-ep1",
+    "date": "2023-04-25T10:06:49",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "\t\t<div data-elementor-type=\"wp-post\" data-elementor-id=\"17775\" class=\"elementor elementor-17775\" data-elementor-post-type=\"post\">\n\t\t\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-1fce4d7f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"1fce4d7f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-79b90c95\" data-id=\"79b90c95\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-5672981b elementor-widget elementor-widget-text-editor\" data-id=\"5672981b\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"text-editor.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t\t\t\t\t<div id=\"buzzsprout-player-12715624\"></div><script src=\"https://www.buzzsprout.com/1833002/12715624-technology-in-supply-chains-series-part-1-foundational-methodologies.js?container_id=buzzsprout-player-12715624&#038;player=small\" type=\"text/javascript\" charset=\"utf-8\"></script>\n\n<div></div>\n<span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">Join Let&#8217;s Talk Supply Chain™ host, Jonathan Kempe, in a weekly, ten part series, on Technology in Supply Chains. From AI to NLP, IoT to Cybersecurity: We&#8217;ll explore a wide variety of supply chain technologies, and hear from industry luminaries, practitioners, vendors and suppliers about how these technologies transform, predict, correct, secure and increase the visibility of cargo at rest and in transit.</span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">Part 1 covers the &#8216;Foundational Methodologies&#8217; you should employ when you consider, evaluate and implement supply chain technologies. </span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">\nJonathan covers:</span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">1. Being specific about business needs, risks, liabilities and profitability</span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">2. Assessing technology through a contextually-aligned business-centric lens</span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">3. Ensuring that the *problem* drives the *solution*</span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">4. Pertinent examples for Warehouse Management and Digital Forwarding</span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">5. A simple yet powerful methodology to employ as you speak with vendors/suppliers</span><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><br style=\"border: 0px solid #e5e7eb; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-scroll-snap-strictness: proximity; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: #3b82f680; --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\" /><span style=\"color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px;\">Any insights to share? Connect with us on LinkedIn or other social media channels, and don&#8217;t forget to subscribe / favourite our Podcast so you can catch all of the new episodes that come out over the next ten weeks.</span>\n<h3><b>Listen to all our previous episodes here:</b></h3>\t\t\t\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-348887f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"348887f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-1f64ad2\" data-id=\"1f64ad2\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-f26b23f elementor-widget elementor-widget-html\" data-id=\"f26b23f\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"html.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t<div id='buzzsprout-large-player'></div><script type='text/javascript' charset='utf-8' src='https://www.buzzsprout.com/1833002.js?artist=&container_id=buzzsprout-large-player&player=large'></script>\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t</div>\n\t\t",
+    "categories": [5446, 5468, 6922, 5388],
+    "tags": [
+      6918, 5989, 6360, 5432, 6919, 5886, 7124, 6533, 5583, 6920, 6921, 5569,
+      6349, 5408, 7121, 7122, 5383, 6923, 6924, 6299, 6441, 5426, 6913, 5343,
+      6518, 5391, 5871, 5739, 5539, 5551
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"300\" src=\"https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain-300x300.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain-300x300.png 300w, https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain-1024x1024.png 1024w, https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain-150x150.png 150w, https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain-768x768.png 768w, https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain-600x600.png 600w, https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain-100x100.png 100w, https://letstalksupplychain.com/wp-content/uploads/2023/06/SERIES-Technology-in-Supply-Chain.png 1400w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "75d3859b-19c8-4109-9871-f5848720c63c",
+    "episode_number": null,
+    "post_id": 15729,
+    "title": "Let&#8217;s Talk Supply Chain™ AsiaPac 6: Part II &#8211; shipz.com",
+    "slug": "lets-talk-supply-chain-asiapac-6-shipz",
+    "date": "2022-09-29T07:26:53",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "\t\t<div data-elementor-type=\"wp-post\" data-elementor-id=\"15729\" class=\"elementor elementor-15729\" data-elementor-post-type=\"post\">\n\t\t\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-1fce4d7f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"1fce4d7f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-79b90c95\" data-id=\"79b90c95\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-5672981b elementor-widget elementor-widget-text-editor\" data-id=\"5672981b\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"text-editor.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t\t\t\t\t<div id=\"buzzsprout-player-11404909\"> </div><p><script src=\"https://www.buzzsprout.com/1833002/11404909-part-ii-shipz-com.js?container_id=buzzsprout-player-11404909&amp;player=small\" type=\"text/javascript\" charset=\"utf-8\"></script></p><p>In this follow up to our previous episode, Jonathan and Sarah chat all things shipz.com! We learn about the platforms&#8217; origins, how it will serve the shipping industry, and the transformational impact Shipz has on the experience of Shippers and Service Providers. We explore features like tracking and booking, and discuss why accurate maths and data normalisation are critically important to the shipment process.</p><p>If you&#8217;re a Shipper (importer, exporter, eCommerce seller, or BCO) head over to shipz.com and create your account: You can start for free, track your first five shipments for free, and request quotes from a whole range of Verified Service Providers for free, too. There&#8217;s no monthly lock in: You only pay once a booking is confirmed.</p><p>If you&#8217;re a Service Provider (freight forwarder, 3PL, or NVOCC) create your free account, then step through our Verified Provider process so you can quote and receive payments for bookings. Again, no monthly lock in: You only pay once a booking is confirmed.</p><p>We are excited for the launch of shipz.com, and we hope you are too!</p><p>Shipper support: https://www.shipz.com/support-shippers<br />Provider support: https://www.shipz.com/support-providers</p><p>Follow Shipz on LinkedIn: https://www.linkedin.com/company/shipz/</p><h3><b>Listen to all our previous episodes here:</b></h3>\t\t\t\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-348887f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"348887f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-1f64ad2\" data-id=\"1f64ad2\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-f26b23f elementor-widget elementor-widget-html\" data-id=\"f26b23f\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"html.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t<div id='buzzsprout-large-player'></div><script type='text/javascript' charset='utf-8' src='https://www.buzzsprout.com/1833002.js?artist=&container_id=buzzsprout-large-player&player=large'></script>\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t</div>\n\t\t",
+    "categories": [5446, 5468, 6922, 5388],
+    "tags": [
+      6918, 5989, 6360, 5432, 6919, 5886, 7124, 6533, 5583, 6920, 6921, 5569,
+      6349, 5408, 7121, 7122, 5383, 6923, 6924, 6299, 6441, 7123, 5426, 6913,
+      5343, 6518, 5391, 5871, 5739, 5539, 5551, 7125
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2023/02/Screenshot-2023-02-08-at-2.53.19-pm-1.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2023/02/Screenshot-2023-02-08-at-2.53.19-pm-1.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"271\" src=\"https://letstalksupplychain.com/wp-content/uploads/2023/02/Screenshot-2023-02-08-at-2.53.19-pm-1-300x271.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2023/02/Screenshot-2023-02-08-at-2.53.19-pm-1-300x271.png 300w, https://letstalksupplychain.com/wp-content/uploads/2023/02/Screenshot-2023-02-08-at-2.53.19-pm-1-768x694.png 768w, https://letstalksupplychain.com/wp-content/uploads/2023/02/Screenshot-2023-02-08-at-2.53.19-pm-1-600x542.png 600w, https://letstalksupplychain.com/wp-content/uploads/2023/02/Screenshot-2023-02-08-at-2.53.19-pm-1.png 936w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "f17dd112-cc96-46c9-bb80-077b2e75f1af",
+    "episode_number": null,
+    "post_id": 15719,
+    "title": "Let&#8217;s Talk Supply Chain™ AsiaPac 5: Transformational Digitization &#8211; Julian (Logixboard)",
+    "slug": "lets-talk-supply-chain-asiapac-5-transformational-digitization-julian-logixboard",
+    "date": "2022-04-08T07:09:44",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "\t\t<div data-elementor-type=\"wp-post\" data-elementor-id=\"15719\" class=\"elementor elementor-15719\" data-elementor-post-type=\"post\">\n\t\t\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-1fce4d7f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"1fce4d7f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-79b90c95\" data-id=\"79b90c95\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-5672981b elementor-widget elementor-widget-text-editor\" data-id=\"5672981b\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"text-editor.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t\t\t\t\t<div id=\"buzzsprout-player-10519838\"> </div><p><script src=\"https://www.buzzsprout.com/1833002/10519838-transformational-digitization-julian-logixboard.js?container_id=buzzsprout-player-10519838&#038;player=small\" type=\"text/javascript\" charset=\"utf-8\"></script></p><p>&#8220;Our industry isn&#8217;t going to change. People are never going to log into online systems. They will always want to deal directly with people!&#8221;.</p><p>We&#8217;ve observed a colossal amount of change over the last 24 months. COVID has completely changed how we all work, interact and go about our business. Alongside the chaos stands technology providers like Logixboard, who offer solutions for the modern, contactless, digital, customer-centric, and online era.  In an informative and engaging discussion with Co-Founder Julian Alvarez, we hear about:</p><p>&#8211; Julian&#8217;s journey from seeing a distinct need 6 years ago to now<br />&#8211; The discovery of supply-chain operating systems without customer-facing solutions<br />&#8211; How ongoing technological shifts, are being driven by shipper demand<br />&#8211; Why Teams and a &#8216;People First&#8217; culture is critical to Logixboard&#8217;s success</p><p>If you&#8217;re associated with a small-to-medium freight forwarder, you&#8217;ll hear practical insights that will transform your business operations and help you win new customers. And if you&#8217;re a supply-chain enthusiast you&#8217;ll hear how modern systems can tangibly change how cargo moves across the world!</p><h2><strong>RESOURCES AND LINKS MENTIONED:</strong></h2><p>Check out our other podcasts <a href=\"https://ltscasiapac.buzzsprout.com/\" rel=\"nofollow noopener\" target=\"_blank\">HERE</a>.</p>\t\t\t\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-348887f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"348887f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-1f64ad2\" data-id=\"1f64ad2\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-f26b23f elementor-widget elementor-widget-html\" data-id=\"f26b23f\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"html.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t<div id='buzzsprout-large-player'></div><script type='text/javascript' charset='utf-8' src='https://www.buzzsprout.com/1833002.js?artist=&container_id=buzzsprout-large-player&player=large'></script>\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t</div>\n\t\t",
+    "categories": [5446, 5468, 6922, 5388],
+    "tags": [
+      6918, 5989, 6360, 5432, 6919, 5886, 7124, 6533, 5583, 6920, 6921, 5569,
+      6349, 5408, 7121, 7122, 5383, 6923, 6924, 6299, 6441, 7123, 5426, 6913,
+      5343, 6518, 5391, 5871, 5739, 5539, 5551, 7125
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2023/02/PODCAST-LXB.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2023/02/PODCAST-LXB.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"251\" src=\"https://letstalksupplychain.com/wp-content/uploads/2023/02/PODCAST-LXB-300x251.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2023/02/PODCAST-LXB-300x251.png 300w, https://letstalksupplychain.com/wp-content/uploads/2023/02/PODCAST-LXB-768x644.png 768w, https://letstalksupplychain.com/wp-content/uploads/2023/02/PODCAST-LXB-600x503.png 600w, https://letstalksupplychain.com/wp-content/uploads/2023/02/PODCAST-LXB.png 940w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "18c71eea-12e0-41c7-9e42-4d7df9da9c7c",
+    "episode_number": null,
+    "post_id": 12580,
+    "title": "Let&#8217;s Talk Supply Chain™ AsiaPac 4: Tony Richter, Bastian Consulting",
+    "slug": "lets-talk-supply-chain-asiapac-4-tony-richter-bastian-consulting",
+    "date": "2022-03-13T05:22:32",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "\t\t<div data-elementor-type=\"wp-post\" data-elementor-id=\"12580\" class=\"elementor elementor-12580\" data-elementor-post-type=\"post\">\n\t\t\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-1fce4d7f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"1fce4d7f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-79b90c95\" data-id=\"79b90c95\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-5672981b elementor-widget elementor-widget-text-editor\" data-id=\"5672981b\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"text-editor.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t\t\t\t\t<div id=\"buzzsprout-player-10149220\"></div><script src=\"https://www.buzzsprout.com/1833002/10149220-technology-people-tony-from-bastian.js?container_id=buzzsprout-player-10149220&#038;player=small\" type=\"text/javascript\" charset=\"utf-8\"></script>\n<p style=\"margin-bottom: 25px; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\"><span style=\"color: #000000; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 17px;\">In this episode, we chat with Tony Richter from Bastian Consulting. Tony is the founding Partner of Bastian Consulting, a boutique firm providing local and regional recruitment &amp; search capability. Tony holds a Master’s Degree in Supply Chain Management and has a huge amount of experience across multiple domains. </span><br style=\"color: #000000; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 17px;\" /><br style=\"color: #000000; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 17px;\" /><span style=\"color: #000000; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 17px;\">Tony has built up an unparalleled network of professionals in the supply chain, logistics, freight and technology domains. He shares a number of key insights over many years of consulting and, recruitment, and shares his perspectives on what is required to place extraordinary  leaders within great companies.</span><br style=\"color: #000000; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 17px;\" /><br style=\"color: #000000; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 17px;\" /><span style=\"color: #000000; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 17px;\">Check out Bastian at bconsult.io, and as always: Like, comment and share our episode with your colleagues, family and friends! </span></p>\n\n<ul>\n \t<li><a href=\"https://ltscasiapac.buzzsprout.com/1833002/10149220-tony-richter-bastian-consulting\" rel=\"nofollow noopener\" target=\"_blank\">Buzzsprout Direct Link</a></li>\n \t<li><a href=\"https://podcasts.apple.com/au/podcast/lets-talk-supply-chain-asia-pacific/id1582631301?i=1000552326574\" rel=\"nofollow noopener\" target=\"_blank\">Apple</a></li>\n \t<li><a href=\"https://open.spotify.com/episode/7Cym5xe9xFodQeAQNvDyXr?si=beOnruzbSmSgK9_F_XPxdA\" rel=\"nofollow noopener\" target=\"_blank\">Spotify</a></li>\n \t<li><a href=\"https://music.amazon.com/podcasts/6b6ec25f-00ca-46a8-8ac0-7190ada59bd5/episodes/b13ec[…]lk-supply-chain-asia-pacific-tony-richter-bastian-consulting\" rel=\"nofollow noopener\" target=\"_blank\">Amazon</a></li>\n</ul>\n<h2><strong>RESOURCES AND LINKS MENTIONED:</strong></h2>\nCheck out our other podcasts <a href=\"https://ltscasiapac.buzzsprout.com/\" rel=\"nofollow noopener\" target=\"_blank\">HERE</a>.\t\t\t\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-99db908 elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"99db908\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-2e2f468\" data-id=\"2e2f468\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-348887f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"348887f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-1f64ad2\" data-id=\"1f64ad2\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-f26b23f elementor-widget elementor-widget-html\" data-id=\"f26b23f\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"html.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t<div id='buzzsprout-large-player'></div><script type='text/javascript' charset='utf-8' src='https://www.buzzsprout.com/1833002.js?artist=&container_id=buzzsprout-large-player&player=large'></script>\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t</div>\n\t\t",
+    "categories": [5446, 5468, 6922, 5388],
+    "tags": [
+      6918, 5989, 6360, 5432, 6919, 5886, 7124, 6533, 5583, 6920, 6921, 5569,
+      6349, 5408, 7121, 7122, 5383, 6923, 6924, 6299, 6441, 7123, 5426, 6913,
+      5343, 6518, 5391, 5871, 5739, 5539, 5551, 7125
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2022/03/EP4_BASTIAN-ART.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2022/03/EP4_BASTIAN-ART.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"251\" src=\"https://letstalksupplychain.com/wp-content/uploads/2022/03/EP4_BASTIAN-ART-300x251.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2022/03/EP4_BASTIAN-ART-300x251.png 300w, https://letstalksupplychain.com/wp-content/uploads/2022/03/EP4_BASTIAN-ART-768x644.png 768w, https://letstalksupplychain.com/wp-content/uploads/2022/03/EP4_BASTIAN-ART-600x503.png 600w, https://letstalksupplychain.com/wp-content/uploads/2022/03/EP4_BASTIAN-ART.png 940w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "3f1997c1-51db-455b-bd5f-a025705fdec6",
+    "episode_number": null,
+    "post_id": 10669,
+    "title": "Let&#8217;s Talk Supply Chain™ AsiaPac 3: Hurricane Alison &#8211; The Untold Story",
+    "slug": "lets-talk-supply-chain-asiapac-2-hurrican-alison-the-untold-story",
+    "date": "2021-11-15T22:47:09",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "\t\t<div data-elementor-type=\"wp-post\" data-elementor-id=\"10669\" class=\"elementor elementor-10669\" data-elementor-post-type=\"post\">\n\t\t\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-1fce4d7f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"1fce4d7f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-79b90c95\" data-id=\"79b90c95\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-5672981b elementor-widget elementor-widget-text-editor\" data-id=\"5672981b\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"text-editor.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t\t\t\t\t<div>&nbsp;</div>\n<p></p>\n<p style=\"margin-bottom: 25px; color: rgb(102, 102, 102); font-family: lato, &quot;Helvetic Neue&quot;, Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">Join host&nbsp;<b>Jonathan Kempe</b>, and special guest&nbsp;<b>Alison Cusack</b>&nbsp;“The Shipping Lawyer” aka Hurricane Alison on&nbsp;<b><em>Let’s Talk Supply Chain Asia Pacific’s’</em></b><b>&nbsp;</b>third episode. Jonathan and Alison cover several highly relevant and powerful topics, in a raw and unedited episode:</p><ul style=\"list-style-type: none; margin-top: 10px; margin-bottom: 10px; margin-left: 35px; color: rgb(102, 102, 102); font-family: lato, &quot;Helvetic Neue&quot;, Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\"><li style=\"list-style: disc; line-height: 32px;\">How Alison started in the maritime + shipping industry</li><li style=\"list-style: disc; line-height: 32px;\">Alison courageously shares about the immediate and long-term impact of being assaulted at a high-profile industry function</li><li style=\"list-style: disc; line-height: 32px;\">Alison details her wrestle with why and how she should tell her story&nbsp;</li><li style=\"list-style: disc; line-height: 32px;\">Hear a clear explanation of the expectation to be ‘the perfect victim’&nbsp;</li><li style=\"list-style: disc; line-height: 32px;\">Alison finishes with a direct call to action for the industry, and gives a clear message of support to other victims’ who need to be heard, understood, and believed</li></ul><p style=\"margin-bottom: 25px; color: rgb(102, 102, 102); font-family: lato, &quot;Helvetic Neue&quot;, Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">Thank you, Alison, for sharing with such courage. Don’t forget to visit&nbsp;<a href=\"http://www.cusackandco.com.au/\" rel=\"noopener nofollow\" target=\"_blank\" style=\"color: rgb(146, 193, 60);\">www.cusackandco.com.au</a>&nbsp;for legal help with your shipments, and to sign up for the industry leading Propel Forward shipping course.</p><p style=\"margin-bottom: 25px; color: rgb(102, 102, 102); font-family: lato, &quot;Helvetic Neue&quot;, Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">This episode is sponsored by: Parallel.<br>Visit&nbsp;<a href=\"http://www.parallelshipping.com/\" rel=\"noopener nofollow\" target=\"_blank\" style=\"color: rgb(146, 193, 60);\">www.parallelshipping.com</a>&nbsp;and start your free trial today!</p>\n<p>It is a privilege to hear from such a Alison. We look forward to further<br>stimulating discussions with a range of guests from the Asia Pacific region, and from all over<br>the world!</p>\n<h2><strong>RESOURCES AND LINKS MENTIONED:</strong></h2>\n<p>Check out our other podcasts <a href=\"https://ltscasiapac.buzzsprout.com/\" rel=\"nofollow noopener\" target=\"_blank\">HERE</a>.</p>\t\t\t\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t</div>\n\t\t",
+    "categories": [5446, 5468, 6922, 5388],
+    "tags": [
+      6918, 5989, 6360, 5432, 6919, 5886, 7124, 6533, 5583, 6920, 6921, 5569,
+      6349, 5408, 7121, 7122, 5383, 6923, 6924, 6299, 6441, 7123, 5426, 6913,
+      5343, 6518, 5391, 5871, 5739, 5539, 5551, 7125
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"251\" src=\"https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC-300x251.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC-300x251.png 300w, https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC-1024x858.png 1024w, https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC-768x644.png 768w, https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC-600x503.png 600w, https://letstalksupplychain.com/wp-content/uploads/2021/11/LTSC_Ep3_AC.png 1410w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "67767c8b-c1f9-4ae7-b6fb-949cff62a978",
+    "episode_number": null,
+    "post_id": 10661,
+    "title": "Let&#8217;s Talk Supply Chain™ AsiaPac 2: &#8220;I was taught how to think&#8221;",
+    "slug": "lets-talk-supply-chain-asiapac-2-i-was-taught-how-to-think",
+    "date": "2021-09-23T22:36:23",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "\t\t<div data-elementor-type=\"wp-post\" data-elementor-id=\"10661\" class=\"elementor elementor-10661\" data-elementor-post-type=\"post\">\n\t\t\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-1fce4d7f elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"1fce4d7f\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-79b90c95\" data-id=\"79b90c95\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-5672981b elementor-widget elementor-widget-text-editor\" data-id=\"5672981b\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"text-editor.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t\t\t\t\t<div id=\"buzzsprout-player-9246368\"></div><script src=\"https://www.buzzsprout.com/1833002/9246368-i-was-taught-how-to-think.js?container_id=buzzsprout-player-9246368&#038;player=small\" type=\"text/javascript\" charset=\"utf-8\"></script>\n<p style=\"margin-bottom: 25px; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">Join host <b>Jonathan Kempe</b>, and special guest <b>Jay Fortenberry</b>, a 40 year veteran of supply chains, on <b><em>Let’s Talk Supply Chain Asia Pacific’s’</em></b> second episode! Jonathan and Jay discuss a number of highly relevant and applicable topics :</p>\n\n<ul style=\"list-style-type: none; margin-top: 10px; margin-bottom: 10px; margin-left: 35px; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">\n \t<li style=\"list-style: disc; line-height: 32px;\">Hear about Jay’s long and impressive history in multiple global companies</li>\n \t<li style=\"list-style: disc; line-height: 32px;\">We discuss JIT vs JIC vs a plethora of other acronyms that Jay has lived through</li>\n \t<li style=\"list-style: disc; line-height: 32px;\">What we can learn from Peloton’s supply-chain disruptions</li>\n \t<li style=\"list-style: disc; line-height: 32px;\">How TPS and other systems like cash-to-cash cycle management improve outcomes</li>\n \t<li style=\"list-style: disc; line-height: 32px;\">How supply-chain collaboration and ‘walking the floor’ can save you time and money</li>\n \t<li style=\"list-style: disc; line-height: 32px;\">Find out why  “…you don’t want to lose your rear-end over a thermostat”!</li>\n</ul>\n<p style=\"margin-bottom: 25px; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">In a highly practical and condensed episode, Jay reminds us of a number of foundational skills that are critical for industry participants to learn and practice. Some of them may not be the latest buzzwords, but when implemented well, can massively improve supply-chain efficiency while decreasing costs, and increasing profit.</p>\nIt is a privilege to hear from such a seasoned practitioner. We look forward to further\nstimulating discussions with a range of guests from the Asia Pacific region, and from all over\nthe world!\n<h2><strong>RESOURCES AND LINKS MENTIONED:</strong></h2>\nCheck out our other podcasts <a href=\"https://ltscasiapac.buzzsprout.com/\" rel=\"nofollow noopener\" target=\"_blank\">HERE</a>.\t\t\t\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t</div>\n\t\t",
+    "categories": [5446, 5468, 6922, 5388],
+    "tags": [
+      6918, 5989, 6360, 5432, 6919, 5886, 7124, 6533, 5583, 6920, 6921, 5569,
+      6349, 5408, 7121, 7122, 5383, 6923, 6924, 6299, 6441, 7123, 5426, 6913,
+      5343, 6518, 5391, 5871, 5739, 5539, 5551, 7125
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2021/11/PODCAST-TEMPLATE-3.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2021/11/PODCAST-TEMPLATE-3.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"251\" src=\"https://letstalksupplychain.com/wp-content/uploads/2021/11/PODCAST-TEMPLATE-3-300x251.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2021/11/PODCAST-TEMPLATE-3-300x251.png 300w, https://letstalksupplychain.com/wp-content/uploads/2021/11/PODCAST-TEMPLATE-3-768x644.png 768w, https://letstalksupplychain.com/wp-content/uploads/2021/11/PODCAST-TEMPLATE-3-600x503.png 600w, https://letstalksupplychain.com/wp-content/uploads/2021/11/PODCAST-TEMPLATE-3.png 940w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "552ce17f-634a-49ae-99a7-cf01fa038407",
+    "episode_number": null,
+    "post_id": 7259,
+    "title": "Let&#8217;s Talk Supply Chain™ AsiaPac 1: New Beginnings In A Chaotic New Normal",
+    "slug": "asiapac-episode1",
+    "date": "2021-08-31T07:00:33",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "\t\t<div data-elementor-type=\"wp-post\" data-elementor-id=\"7259\" class=\"elementor elementor-7259\" data-elementor-post-type=\"post\">\n\t\t\t\t\t\t<section class=\"elementor-section elementor-top-section elementor-element elementor-element-2a6e03a elementor-section-boxed elementor-section-height-default elementor-section-height-default\" data-id=\"2a6e03a\" data-element_type=\"section\" data-e-type=\"section\" data-settings=\"{&quot;jet_parallax_layout_list&quot;:[]}\">\n\t\t\t\t\t\t<div class=\"elementor-container elementor-column-gap-default\">\n\t\t\t\t\t<div class=\"elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-20481874\" data-id=\"20481874\" data-element_type=\"column\" data-e-type=\"column\">\n\t\t\t<div class=\"elementor-widget-wrap elementor-element-populated\">\n\t\t\t\t\t\t<div class=\"elementor-element elementor-element-7991ae34 elementor-widget elementor-widget-text-editor\" data-id=\"7991ae34\" data-element_type=\"widget\" data-e-type=\"widget\" data-widget_type=\"text-editor.default\">\n\t\t\t\t<div class=\"elementor-widget-container\">\n\t\t\t\t\t\t\t\t\t<div id=\"buzzsprout-player-9042242\"></div><script src=\"https://www.buzzsprout.com/1833002/9042242-new-beginnings-in-a-chaotic-new-normal.js?container_id=buzzsprout-player-9042242&#038;player=small\" type=\"text/javascript\" charset=\"utf-8\"></script>\n\n<p style=\"margin-bottom: 25px; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">Join host <b>Jonathan Kempe</b>, and special guests <b>Eric Dawicki </b>and <b>Jillian Carson-Jackson</b>, on <b><em>Let’s Talk Supply Chain Asia Pacific’s’</em></b> first ever episode! Jonathan, Eric and Jillian discuss a range of relevant, pressing and engaging topics, including: The characteristics and character of those that serve at sea; causes of the current disruptions in supply chains and across the maritime domain; the experience of a woman in maritime; the seafarer crisis, and how it has impacted professionals at sea, and global supply-chains. Eric and Jillian share their personal stories and reflections of being influenced, assisted, and challenged during their careers at sea.</p>\n<p style=\"margin-bottom: 25px; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\">Eric’s reflections on the current state of the supply-chain industry is decisive and thought-provoking. Jillian’s account as a woman in maritime is particularly moving – It is clear, even though great strides have been made, that there is still a lot of work to be done to support women who work in maritime environments. We also cover the evolving seafarer crisis, that has increased the disruption of global supply chains, and dramatically impacted the lives of many hard-working seafaring professionals. A call to change, and a message of support from the President of WISTA Australia, rounds out the episode.</p>\n<p style=\"margin-bottom: 25px; color: #666666; font-family: lato, 'Helvetic Neue', Arial, san-serif; font-size: 18px; font-style: normal; font-weight: 400;\"> It is a privilege to hear from two seasoned practitioners. We look forward to further stimulating discussions with a range of guests from the Asia Pacific region, and from all over the world!</p>\n\n<h2><strong>RESOURCES AND LINKS MENTIONED:</strong></h2>\nCheck out our other podcasts <a href=\"https://ltscasiapac.buzzsprout.com/\" rel=\"nofollow noopener\" target=\"_blank\">HERE</a>.\t\t\t\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t</div>\n\t\t\t\t\t</div>\n\t\t</section>\n\t\t\t\t</div>\n\t\t",
+    "categories": [5446, 5468, 6922, 5388],
+    "tags": [
+      6918, 5989, 6360, 5432, 6919, 5886, 7124, 6533, 5583, 6920, 6921, 5569,
+      6349, 5408, 7121, 7122, 5383, 6923, 6924, 6299, 6441, 7123, 5426, 6913,
+      5343, 6518, 5391, 5871, 5739, 5539, 5551, 7125
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner.jpg",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner.jpg'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"169\" src=\"https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner-300x169.jpg\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner-300x169.jpg 300w, https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner-600x338.jpg 600w, https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner-1024x576.jpg 1024w, https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner-768x432.jpg 768w, https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner-1536x864.jpg 1536w, https://letstalksupplychain.com/wp-content/uploads/2021/08/LTSC_APAC_Main_EP1_banner.jpg 1920w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "824c9363-c97e-46ee-8e41-3a34fecd086f",
+    "episode_number": null,
+    "post_id": 11962,
+    "title": "Logtech Exclusive! We ran from Blockchain…",
+    "slug": "logtech-exclusive-we-ran-from-blockchain-2",
+    "date": "2019-09-29T09:47:37",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "<p><iframe class=\"podcast-class\" style=\"display: block;\" src=\"https://html5-player.libsyn.com/embed/episode/id/11338148/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/\" width=\"100%\" height=\"90\" frameborder=\"0\" scrolling=\"no\"><span data-mce-type=\"bookmark\" style=\"display: inline-block; width: 0px; overflow: hidden; line-height: 0;\" class=\"mce_SELRES_start\">﻿</span></iframe></p>\n<p>In this second exclusive from Logtech 2019, Chris Co-Founder of Slync.io joins me to tell us why they started on a path to blockchain and then ran the other way, why? well listen to find out more!</p>\n",
+    "categories": [5430, 5885, 5446, 5388],
+    "tags": [],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2022/01/ChrisKirchnerSlyncCEO-1.jpg",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2022/01/ChrisKirchnerSlyncCEO-1.jpg'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"200\" src=\"https://letstalksupplychain.com/wp-content/uploads/2022/01/ChrisKirchnerSlyncCEO-1-300x200.jpg\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2022/01/ChrisKirchnerSlyncCEO-1-300x200.jpg 300w, https://letstalksupplychain.com/wp-content/uploads/2022/01/ChrisKirchnerSlyncCEO-1-768x512.jpg 768w, https://letstalksupplychain.com/wp-content/uploads/2022/01/ChrisKirchnerSlyncCEO-1-600x400.jpg 600w, https://letstalksupplychain.com/wp-content/uploads/2022/01/ChrisKirchnerSlyncCEO-1.jpg 800w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "38573244-605f-448e-ba14-964d878314b9",
+    "episode_number": null,
+    "post_id": 1910,
+    "title": "Logtech Exclusive! We ran from Blockchain&#8230;",
+    "slug": "logtech-exclusive-we-ran-from-blockchain",
+    "date": "2019-09-29T08:00:57",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "<p><iframe style=\"display:block;\"  src=\"https://html5-player.libsyn.com/embed/episode/id/11338148/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/\" width=\"100%\" height=\"90\" scrolling=\"no\" class=\"podcast-class\" frameborder=\"0\" placement=\"top\" primary_content_url=\"https://chtbl.com/track/744833/traffic.libsyn.com/2babestalksupplychain/Sarah__Chris_Full_Episode.mp3\" theme=\"custom\" custom_color=\"0083b6\" libsyn_item_id=\"11338148\"></iframe><br />In this second exclusive from Logtech 2019, Chris Co-Founder of Slync.io joins me to tell us why they started on a path to blockchain and then ran the other way, why? well listen to find out more!</p>\n",
+    "categories": [5885, 5430, 5388],
+    "tags": [
+      5441, 5378, 5404, 5421, 5569, 5426, 6226, 5537, 6085, 5343, 5539, 5522,
+      5551
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2019/09/ChrisKirchnerSlyncCEO-1.jpg",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2019/09/ChrisKirchnerSlyncCEO-1.jpg'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"200\" src=\"https://letstalksupplychain.com/wp-content/uploads/2019/09/ChrisKirchnerSlyncCEO-1-300x200.jpg\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2019/09/ChrisKirchnerSlyncCEO-1-300x200.jpg 300w, https://letstalksupplychain.com/wp-content/uploads/2019/09/ChrisKirchnerSlyncCEO-1-600x400.jpg 600w, https://letstalksupplychain.com/wp-content/uploads/2019/09/ChrisKirchnerSlyncCEO-1-768x512.jpg 768w, https://letstalksupplychain.com/wp-content/uploads/2019/09/ChrisKirchnerSlyncCEO-1.jpg 800w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "33309155-6af3-4aed-9af5-7362ca5fbbfd",
+    "episode_number": null,
+    "post_id": 1907,
+    "title": "Your first exclusive from Logtech! Your Blockchain questions answered!",
+    "slug": "your-first-exclusive-from-logtech-your-blockchain-questions-answered",
+    "date": "2019-09-22T08:00:32",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "<p><iframe style=\"display:block;\"  src=\"https://html5-player.libsyn.com/embed/episode/id/11338112/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/\" width=\"100%\" height=\"90\" scrolling=\"no\" class=\"podcast-class\" frameborder=\"0\" placement=\"top\" primary_content_url=\"https://chtbl.com/track/744833/traffic.libsyn.com/2babestalksupplychain/Sarah__Bryan_Full_Episode.mp3\" theme=\"custom\" custom_color=\"0083b6\" libsyn_item_id=\"11338112\"></iframe><br />A few months ago I posed the question to the community &#8220;What are your biggest questions about blockchain&#8221; and you sent me your questions! Recently at Logtech 2019 in Las Vegas I caught up with some of the thought leaders in supply chain tech to answer your questions about blockchain, they warn us about the security and tell us why they pivot their business to avoid this technology.</p>\n<p>This is the first of two exclusives, join me as I speak to Brian Glick of Chain.io</p>\n",
+    "categories": [5885, 5430, 5446, 5388],
+    "tags": [
+      5441, 5378, 6223, 5404, 5569, 5545, 5408, 6224, 5640, 6225, 5426, 5343,
+      5539
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot.jpg",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot.jpg'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"234\" src=\"https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot-300x234.jpg\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot-300x234.jpg 300w, https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot-600x468.jpg 600w, https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot-1024x799.jpg 1024w, https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot-768x599.jpg 768w, https://letstalksupplychain.com/wp-content/uploads/2019/09/Brian-Glick-Headshot.jpg 1033w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "a98fc386-f390-4669-97d7-1dc9d04346d7",
+    "episode_number": null,
+    "post_id": 1262,
+    "title": "EXCLUSIVE! live interview with CEO of Terracycle",
+    "slug": "exclusive-live-interview-with-ceo-of-terracycle",
+    "date": "2019-06-09T11:06:24",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "<p><iframe style=\"display:block;\"  src=\"https://html5-player.libsyn.com/embed/episode/id/10103105/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/\" width=\"100%\" height=\"90\" scrolling=\"no\" class=\"podcast-class\" frameborder=\"0\" placement=\"top\" primary_content_url=\"https://chtbl.com/track/744833/traffic.libsyn.com/2babestalksupplychain/Tom_CEO_of_Terracycle.wav\" theme=\"custom\" custom_color=\"0083b6\" libsyn_item_id=\"10103105\"></iframe><br />For Subscribers only! I recently caught up with Tom Szaky, CEO of Terracyle at the SCMA National Conference in Montreal!</p>\n<p>He joined me to talk about how we can re-think waste in our supply chains and use circular supply chain in helping to reduce waste without massive corporate change.</p>\n<p>Plus, with such a complex supply chain Tom also talks about their biggest supply chain challenges and how they maintain consistency of their inbound supply chain with so many moving parts.</p>\n<p>Join me for this exclusive interview and for more information about Terracycle and their global impact, visit them at <a href=\"https://www.terracycle.com/en-US/\" rel=\"nofollow noopener\" target=\"_blank\">https://www.terracycle.com/en-US/</a></p>\n",
+    "categories": [5430, 5446, 5388, 5763],
+    "tags": [
+      5752, 5753, 5754, 5755, 5756, 5757, 5758, 5759, 5760, 5761, 5513, 5762,
+      5764, 5765, 5766, 5767
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"267\" src=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png 300w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-600x534.png 600w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png 741w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "82a0b24c-11de-4997-9e59-cab4dbb67601",
+    "episode_number": null,
+    "post_id": 1311,
+    "title": "7 min Sunday &#8211; An Exclusive with Jeremy Nixon, CEO ONE",
+    "slug": "7-min-sunday-an-exclusive-with-jeremy-nixon-ceo-one",
+    "date": "2019-06-11T12:48:58",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "<p><iframe style=\"display:block;\"  src=\"https://html5-player.libsyn.com/embed/episode/id/9181022/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/\" width=\"100%\" height=\"90\" scrolling=\"no\" class=\"podcast-class\" frameborder=\"0\" placement=\"top\" primary_content_url=\"https://chtbl.com/track/744833/traffic.libsyn.com/2babestalksupplychain/Victoryusca_190313_Jeremy_Nixon_TPM_2019.mp3\" theme=\"custom\" custom_color=\"0083b6\" libsyn_item_id=\"9181022\"></iframe><br />Hello listeners!</p>\n<p>Remember a while back on listeners corner you commented with questions you have for the CEO of an ocean carrier. Well, I had the chance to briefly chat with Jeremy Nixon, CEO of ONE and asked him a lot of your most pressing questions.</p>\n<p>7 minute Sundays are exclusive episodes that I will be sharing sporadically as I travel the world and speak with some of the least accessible figures in supply chain!</p>\n<p>Enjoy!</p>\n",
+    "categories": [5430, 5446, 5388, 5502],
+    "tags": [
+      5823, 5824, 5408, 5825, 5383, 5826, 5546, 5597, 5827, 5640, 5426, 5549,
+      5343, 5828, 5551
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"267\" src=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png 300w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-600x534.png 600w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png 741w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "838b04fd-eca0-42d6-96a7-cbaada423dfc",
+    "episode_number": null,
+    "post_id": 1309,
+    "title": "7 Min Sunday &#8211; An EXCLUSIVE with John McCauley, VP of Cargill",
+    "slug": "7-min-sunday-an-exclusive-with-john-mccauley-vp-of-cargill",
+    "date": "2019-06-11T12:47:30",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "<p><iframe style=\"display:block;\"  src=\"https://html5-player.libsyn.com/embed/episode/id/9288905/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/\" width=\"100%\" height=\"90\" scrolling=\"no\" class=\"podcast-class\" frameborder=\"0\" placement=\"top\" primary_content_url=\"https://chtbl.com/track/744833/traffic.libsyn.com/2babestalksupplychain/Victoryusca_190313_John_McCauley_TPM_2019.mp3\" theme=\"custom\" custom_color=\"0083b6\" libsyn_item_id=\"9288905\"></iframe><br />Hello Listeners!</p>\n<p>You asked and John answered!</p>\n<p>I recently caught up with John McCauley, VP of Transportation and Logistics at Cargill, a global player in the shipping industry at TPM 2019 to ask him your questions!</p>\n<p>Back in February you posted the questions you would have if you had 5 minutes with a VP of a large BCO, pay attention because your question might have been asked!</p>\n<p>Enjoy!</p>\n",
+    "categories": [5430, 5446, 5387, 5388],
+    "tags": [
+      5815, 5816, 5817, 5818, 5819, 5545, 5408, 5820, 5821, 5426, 5343, 5550,
+      5551, 5822
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"267\" src=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png 300w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-600x534.png 600w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png 741w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  },
+  {
+    "uuid": "4cc244e4-ea7f-46d7-9e16-2694f6f5f118",
+    "episode_number": null,
+    "post_id": 795,
+    "title": "7 Min Sunday &#8211; an EXCLUSIVE interview with Peder Winther of Panalpina",
+    "slug": "7-min-sunday-an-exclusive-interview-with-peder-winther-of-panalpina",
+    "date": "2019-05-24T14:12:33",
+    "video_id": null,
+    "summary": null,
+    "main_points": null,
+    "recent_news": null,
+    "related_episodes": [],
+    "guest_highlights": null,
+    "web_content": "<p><iframe style=\"display:block;\"  src=\"https://html5-player.libsyn.com/embed/episode/id/9289028/height/90/theme/custom/thumbnail/no/direction/forward/render-playlist/no/custom-color/0083b6/\" width=\"100%\" height=\"90\" scrolling=\"no\" class=\"podcast-class\" frameborder=\"0\" placement=\"top\" primary_content_url=\"https://chtbl.com/track/744833/traffic.libsyn.com/2babestalksupplychain/Victoryusca_190313_Peder_Winther_TPM_2019.mp3\" theme=\"custom\" custom_color=\"0083b6\" libsyn_item_id=\"9289028\"></iframe><br />Hello Listeners!</p>\n<p>This is the last Exclusive from TPM 2019, in this brief episode I am asking Peder Winther, Global Head of OceanFreight at Panalpina your most pressing questions that you sent to me on Linkedin back in February.</p>\n<p>Find out what he thinks of Uber Freight and Flexport and how freight forwarders are looking at innovation in the industry.</p>\n<p>Enjoy!</p>\n",
+    "categories": [5430, 5446, 5388, 5502],
+    "tags": [
+      5542, 5543, 5433, 5544, 5545, 5408, 5546, 5547, 5548, 5390, 5426, 5549,
+      5343, 5550, 5551, 5541
+    ],
+    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png",
+    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png'><img fetchpriority=\"high\" decoding=\"async\" width=\"300\" height=\"267\" src=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png\" class=\"attachment-medium size-medium\" alt=\"\" srcset=\"https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-300x267.png 300w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1-600x534.png 600w, https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png 741w\" sizes=\"(max-width: 300px) 100vw, 300px\" title=\"\"></a></p>\n"
+  }
+]
