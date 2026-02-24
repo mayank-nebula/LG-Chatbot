@@ -32,6 +32,32 @@ const nextConfig: NextConfig = {
   },
 
   output: "standalone",
+
+  // --- ADDED SEO HEADERS HERE ---
+  async headers() {
+    return [
+      {
+        // 1. "noindex, nofollow" for the 9 legacy links + admin
+        source: "/:path(landing-page-v1|test|slider-demo|work-with-us-3|work-with-us-2|practice-page|media-kit|media-kit-full|mediakit|admin)",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
+        // 2. "noindex, follow" for legacy disallowed pages (Cart, Thank you, Checkout)
+        source: "/:path(cart|checkout|thank-you)",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, follow",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
