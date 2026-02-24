@@ -1,19 +1,40 @@
-[
-  {
-    "uuid": "7f0373d0-13eb-47c2-bfc9-7adb88fe6cee",
-    "type": "blogs",
-    "post_id": 1706,
-    "title": "How Truman’s Reduces the Cleaning Product Supply Chain by 70%",
-    "slug": "how-trumans-reduces-the-cleaning-product-supply-chain-by-70",
-    "date": "2019-07-25T08:00:10",
-    "summary": null,
-    "main_points": null,
-    "recent_news": null,
-    "related_articles": [],
-    "web_content": "<p>For decades, home cleaners have lined retail shelves in ready-to-spray, use-it-then-lose-it bottles that contain 98 percent water.</p>\n<p>To meet consumer demand, big cleaning brands <i>each</i> ship more than 30 million pounds of water and 1.5 million pounds of single-use plastic in these bottles. Dozens of brands do it. In all, more than 10.8 billion pounds of water and 625 million pounds of single-use plastic flow through their supply chains each year.</p>\n<p>At <a href=\"https://www.trumans.com/\" rel=\"nofollow noopener\" target=\"_blank\">Truman’s</a>, we studied the industry&#8217;s supply chain, as we knew it was ripe for disruption. We focused on solving issues related to delivery and, as a result, have reduced the typical industry supply chain by 70%.</p>\n<h2>Big problems with Big Cleaning</h2>\n<p>Cleaning products sold at traditional retail stores follow essentially the same route to arrive there. After assembly, they’re put in boxes, which are loaded onto pallets or into crates, which are then transferred onto trucks by a forklift. The pallets or crates are then driven to a distribution center/warehouse, where they’re unloaded and moved into their assigned position.</p>\n<p>There they sit, consuming overhead costs, until they’re put onto another truck to travel to a retail store. At the store, they’re unloaded in the stocking area, where some of them wait, while a few are plucked from their boxes and put on the shelf.</p>\n<p>And there they remain, consuming overhead costs, until they’re plucked from the shelf by a consumer who has probably driven several miles (alone yet in a vehicle designed to hold five or more people), completing one of the longest and most inefficient supply chains we&#8217;ve ever seen.</p>\n<p>Think online retail makes it any better? Think again. Consider the supply chain required to constantly deliver products right to our doorsteps: manufacturing facilities, shipping containers, distribution centers and large trucks to move goods from point A to point B.</p>\n<p>Yet the e-commerce segment of the home cleaning category is growing 50 percent annually. Two-day shipping with Amazon Prime (soon to be one-day) has made many customers numb to the realities of delivery and hides the real costs of fuel, labor and environmental impact. Think about the building/vehicle emissions and the packaging waste. This cycle also puts pressure on suppliers, and as a result, employees.</p>\n<h2>From supply chain to demand chain</h2>\n<p>By contrast, Truman’s follows a totally different “demand chain” route that uses less packaging, involves fewer overhead costs, and results in lower overall energy consumption and carbon-dioxide emissions.</p>\n<p>Our four simple, non-toxic household cleaners come in small concentrate cartridges. Users fill and refill the same bottles with tap water and additional cartridges. Customers receive refill kits either by subscription or a la carte purchases — never fewer than four cartridges at a time — which are sent to their homes at their convenience.</p>\n<p>Thanks to our direct contact with customers, we’re able to keep close tabs on demand. We manufacture and ship only the number of products that have been ordered, and we deliver them straight to the door, carefully packaged to minimize waste.</p>\n<p>The compact size of our cartridges makes them perfect for “bulk” shipments, solving economic and environmental issues. To give a sense of the environmental savings, a pallet of them weighs less than 45 pounds, so they&#8217;re much more economical to ship than full bottles (filled or empty). It takes 30 semi-trucks to ship the equivalent number of ready-to-use cleaning bottles as it does one semi-truck of Truman’s refill cartridges.</p>\n<p>By being mindful of packaging and the number of shipments we make, a Truman’s subscription results not just in significantly less plastic waste but less overall environmental impact because we bypass the traditional retail supply-chain. Truman’s cleaners are easier on the environment than traditional home cleaners from the moment of manufacture to the day they arrive at consumers’ doorsteps.</p>\n<p>Thanks to our slim, lighter packaging and a direct-to-consumer business model, we’ve streamlined delivery and eliminated several links in the supply chain.</p>\n<p>We&#8217;re not taking a position that we&#8217;ve invented anything new. We didn&#8217;t invent e-commerce, subscription models or cleaning concentrates. What we&#8217;re doing is leading the charge around the idea that if a product is 98% water, there is a better way to get it from point A to point B.</p>\n<p>Learn more about our cleaners and our mission at <a href=\"https://www.trumans.com/\" rel=\"nofollow noopener\" target=\"_blank\">trumans.com</a>.</p>\n",
-    "categories": [5458, 5702],
-    "tags": [5378, 5752, 6158, 5462, 6159, 5343, 5601],
-    "media_link": "https://letstalksupplychain.com/wp-content/uploads/2019/07/Truman.jpeg",
-    "media_description": "<p class=\"attachment\"><a href='https://letstalksupplychain.com/wp-content/uploads/2019/07/Truman.jpeg'><img fetchpriority=\"high\" decoding=\"async\" width=\"259\" height=\"194\" src=\"https://letstalksupplychain.com/wp-content/uploads/2019/07/Truman.jpeg\" class=\"attachment-medium size-medium\" alt=\"\" title=\"\"></a></p>\n"
-  }
-]
+// "/lets-talk-supply-chain-asiapac-technology-in-supply-chains-series-ep1":
+  //   "/podcasts/lets-talk-supply-chain-asiapac-technology-in-supply-chains-series-ep1",
+
+  // "/lets-talk-supply-chain-asiapac-6-shipz":
+  //   "/podcasts/lets-talk-supply-chain-asiapac-6-shipz",
+
+  // "/lets-talk-supply-chain-asiapac-5-transformational-digitization-julian-logixboard":
+  //   "/podcasts/lets-talk-supply-chain-asiapac-5-transformational-digitization-julian-logixboard",
+
+  // "/lets-talk-supply-chain-asiapac-4-tony-richter-bastian-consulting":
+  //   "/podcasts/lets-talk-supply-chain-asiapac-4-tony-richter-bastian-consulting",
+
+  // "/lets-talk-supply-chain-asiapac-2-hurrican-alison-the-untold-story":
+  //   "/podcasts/lets-talk-supply-chain-asiapac-2-hurrican-alison-the-untold-story",
+
+  // "/lets-talk-supply-chain-asiapac-2-i-was-taught-how-to-think":
+  //   "/podcasts/lets-talk-supply-chain-asiapac-2-i-was-taught-how-to-think",
+
+  // "/asiapac-episode1": "/podcasts/asiapac-episode1",
+
+  // "/logtech-exclusive-we-ran-from-blockchain-2":
+  //   "/podcasts/logtech-exclusive-we-ran-from-blockchain-2",
+
+  // "/logtech-exclusive-we-ran-from-blockchain":
+  //   "/podcasts/logtech-exclusive-we-ran-from-blockchain",
+
+  // "/your-first-exclusive-from-logtech-your-blockchain-questions-answered":
+  //   "/podcasts/your-first-exclusive-from-logtech-your-blockchain-questions-answered",
+
+  // "/exclusive-live-interview-with-ceo-of-terracycle":
+  //   "/podcasts/exclusive-live-interview-with-ceo-of-terracycle",
+
+  // "/7-min-sunday-an-exclusive-with-jeremy-nixon-ceo-one":
+  //   "/podcasts/7-min-sunday-an-exclusive-with-jeremy-nixon-ceo-one",
+
+  // "/7-min-sunday-an-exclusive-with-john-mccauley-vp-of-cargill":
+  //   "/podcasts/7-min-sunday-an-exclusive-with-john-mccauley-vp-of-cargill",
+
+  // "/7-min-sunday-an-exclusive-interview-with-peder-winther-of-panalpina":
+  //   "/podcasts/7-min-sunday-an-exclusive-interview-with-peder-winther-of-panalpina",
