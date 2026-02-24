@@ -1,16 +1,29 @@
-https://letstalksupplychain.com/landing-page-v1			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/test			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/slider-demo			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/work-with-us-3/			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/work-with-us-2/			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/practice-page/			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/media-kit			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/media-kit-full			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
-https://letstalksupplychain.com/mediakit			 Add   <meta name="robots" content="noindex, nofollow" /> & not to be added in sitemap
+import { MetadataRoute } from 'next'
 
-
-	Add the robots.txt file and meta robots tag on website
-1.	Use same as on current site for robots.txt file
-2.	Update the global meta robots tag to: meta name="robots" content="index, follow, max-snippet:-1, max-video-preview:-1, max-image-preview:large" />
-3.	Pages listed as disallowed in the current robots.txt (e.g., add to cart, thank you pages) should use: <meta name="robots" content="noindex, follow" />
-4.	Admin level pages should use: <meta name="robots" content="noindex, nofollow" />
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: '*',
+      allow: '/',
+      disallow: [
+        // 1. Add your current site's disallowed paths here
+        '/cart', 
+        '/thank-you',
+        '/admin',
+        
+        // 2. The 9 specific URLs requested to be hidden
+        '/landing-page-v1',
+        '/test',
+        '/slider-demo',
+        '/work-with-us-3/',
+        '/work-with-us-2/',
+        '/practice-page/',
+        '/media-kit',
+        '/media-kit-full',
+        '/mediakit'
+      ],
+    },
+    // Keep this out of the sitemap by simply not adding those URLs to your sitemap generator
+    sitemap: 'https://letstalksupplychain.com/sitemap.xml',
+  }
+}
