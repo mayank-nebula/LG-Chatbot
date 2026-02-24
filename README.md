@@ -53,3 +53,39 @@
 524: TBP
 525: TBP
 522: TBP
+
+
+
+
+
+
+
+
+
+import json
+
+# Load JSON file
+with open("episodes.json", "r") as f:
+    data = json.load(f)
+
+# Extract episode numbers
+episodes = [item["episode_number"] for item in data]
+
+# Remove duplicates (if any)
+episodes = sorted(set(episodes))
+
+# 1️⃣ Sort descending
+descending = sorted(episodes, reverse=True)
+
+print("Episodes in descending order:")
+print(descending)
+
+# 2️⃣ Find missing numbers
+if episodes:
+    full_range = set(range(min(episodes), max(episodes) + 1))
+    missing = sorted(full_range - set(episodes))
+
+    print("\nMissing episode numbers:")
+    print(missing if missing else "No missing episodes 🎉")
+else:
+    print("No episode data found.")
