@@ -1,103 +1,53 @@
-import { env } from "@/lib/env";
-import { safeFetchJSON } from "@/lib/fetch";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { urlMap } from "./lib/urlMap";
 
-function cleanLdJson(raw: string): string {
-  let cleaned = raw.replace(/\\'/g, "'");
-  cleaned = cleaned.replace(/\\&/g, "&");
-  cleaned = cleaned.replace(/\\([^"\\/bfnrtu])/g, "$1");
-  return cleaned;
+const COOKIE_NAME = "anon_session";
+const THIRTY_DAYS = 60 * 60 * 24 * 30;
+
+function genUuid(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16);
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
-function extractLdJson(html: string): any[] {
-  const results: any[] = [];
-  const scriptRegex =
-    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match;
+export function proxy(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
 
-  while ((match = scriptRegex.exec(html)) !== null) {
-    const raw = match[1];
-    if (!raw || !raw.trim()) continue;
+  if (urlMap[pathname]) {
+    const destination = urlMap[pathname];
+    const redirectUrl = new URL(destination, req.url);
 
-    try {
-      results.push(JSON.parse(raw));
-      continue;
-    } catch (e) {}
-
-    try {
-      const cleaned = cleanLdJson(raw);
-      results.push(JSON.parse(cleaned));
-    } catch (e) {
-      console.warn("Warning: Failed to parse ld+json block after cleaning:", e);
-    }
+    return NextResponse.redirect(redirectUrl, {
+      status: 301,
+    });
   }
 
-  return results;
-}
+  const sessionId = req.cookies.get(COOKIE_NAME)?.value;
 
-export async function getPageGraph(slug: string, type: string) {
-  try {
-    const url = `${env.SITE_URL}/wp-json/rankmath/v1/getHead?url=${env.SITE_URL}/${slug}`;
-    const res = await safeFetchJSON(url);
-
-    if (!res || !res.head) return null;
-
-    const headHtml = res.head;
-    const parsedSchema = extractLdJson(headHtml);
-
-    for (const schema of parsedSchema) {
-      if (schema["@graph"]) {
-        let filteredGraph = schema["@graph"].filter((item: any) => {
-          const itemType = item["@type"];
-          const isExcludedType = Array.isArray(itemType)
-            ? itemType.includes("Organization") || itemType.includes("WebSite")
-            : itemType === "Organization" || itemType === "WebSite";
-
-          return !isExcludedType;
-        });
-
-        if (type !== "podcasts") {
-          const targetType = type === "blogs" ? "BlogPosting" : "NewsArticle";
-          
-          filteredGraph.forEach((item: any) => {
-            if (
-              item["@type"] === "Article" ||
-              item["@type"] === "BlogPosting" ||
-              item["@type"] === "NewsArticle"
-            ) {
-              item["@type"] = targetType;
-            } else if (Array.isArray(item["@type"])) {
-              const index = item["@type"].findIndex((t: string) => 
-                ["Article", "BlogPosting", "NewsArticle"].includes(t)
-              );
-              if (index !== -1) {
-                item["@type"][index] = targetType;
-              }
-            }
-          });
-        }
-
-        const siteUrl = env.PUBLIC_SITE_URL;
-        const oldUrl = `${env.SITE_URL}/${slug}`;
-        const newUrl = type === "podcasts" 
-          ? `${siteUrl}/podcasts/${slug}`
-          : `${siteUrl}/supply-chain-hub/pr-news/${slug}`;
-
-        const escapedOldUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(escapedOldUrl + '(?=["/#?])', "g");
-
-        const graphString = JSON.stringify(filteredGraph);
-        const replacedString = graphString.replace(regex, newUrl);
-        filteredGraph = JSON.parse(replacedString);
-
-        return {
-          "@context": "https://schema.org",
-          "@graph": filteredGraph,
-        };
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("Error fetching schema data:", error);
-    return null;
+  if (!sessionId) {
+    const id = genUuid();
+    const response = NextResponse.next();
+    response.cookies.set({
+      name: COOKIE_NAME,
+      value: id,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: THIRTY_DAYS,
+    });
+    return response;
   }
+
+  return NextResponse.next();
 }
+
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+};
