@@ -1,3 +1,6 @@
+import { env } from "@/lib/env";
+import { safeFetchJSON } from "@/lib/fetch";
+
 function cleanLdJson(raw: string): string {
   // Replace invalid \' with just ' (most common culprit)
   let cleaned = raw.replace(/\\'/g, "'");
@@ -14,16 +17,13 @@ function cleanLdJson(raw: string): string {
   return cleaned;
 }
 
-/**
- * Safely extract and parse all application/ld+json script tags from HTML.
- * Handles invalid escape sequences gracefully.
- */
 function extractLdJson(html: string): any[] {
   const results: any[] = [];
-  
+
   // Find all <script type="application/ld+json">...</script>
   // This regex handles any attributes that might appear before or after the type attribute.
-  const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  const scriptRegex =
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let match;
 
   while ((match = scriptRegex.exec(html)) !== null) {
@@ -48,4 +48,65 @@ function extractLdJson(html: string): any[] {
   }
 
   return results;
+}
+
+export async function getPageGraph(slug: string, type: string) {
+  try {
+    const url = `${env.SITE_URL}/wp-json/rankmath/v1/getHead?url=${env.SITE_URL}/${slug}`;
+    const res = await safeFetchJSON(url);
+
+    const headHtml = res?.head;
+    const parsedSchema = extractLdJson(headHtml);
+
+    for (const schema of parsedSchema) {
+      if (schema["@graph"]) {
+        let filteredGraph = schema["@graph"].filter((item: any) => {
+          const type = item["@type"];
+          const isExcludedType = Array.isArray(type)
+            ? type.includes("Organization") || type.includes("WebSite")
+            : type === "Organization" || type === "WebSite";
+
+          return !isExcludedType;
+        });
+
+        if (type === "podcasts") {
+          const siteUrl = env.PUBLIC_SITE_URL;
+          const oldUrl = `${env.SITE_URL}/${slug}`;
+          const newUrl = `${siteUrl}/podcasts/${slug}`;
+
+          const graphString = JSON.stringify(filteredGraph);
+          const replacedString = graphString.replace(
+            new RegExp(oldUrl, "g"),
+            newUrl,
+          );
+          filteredGraph = JSON.parse(replacedString);
+        } else {
+          if (type === "blogs") {
+            // change type to Blog Posting
+          } else {
+            // change type to News Article
+          }
+          const siteUrl = env.PUBLIC_SITE_URL;
+          const oldUrl = `${env.SITE_URL}/${slug}`;
+          const newUrl = `${siteUrl}/supply-chain-hub/pr-news/${slug}`;
+
+          const graphString = JSON.stringify(filteredGraph);
+          const replacedString = graphString.replace(
+            new RegExp(oldUrl, "g"),
+            newUrl,
+          );
+          filteredGraph = JSON.parse(replacedString);
+        }
+
+        return {
+          "@context": "https://schema.org",
+          "@graph": filteredGraph,
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching podcast data for Open Graph:", error);
+    return null;
+  }
 }
