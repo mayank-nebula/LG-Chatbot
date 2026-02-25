@@ -1,97 +1,51 @@
-import { NextResponse } from "next/server";
-import { env } from "@/lib/env";
-import { safeFetchJSON } from "@/lib/fetch";
+function cleanLdJson(raw: string): string {
+  // Replace invalid \' with just ' (most common culprit)
+  let cleaned = raw.replace(/\\'/g, "'");
 
-export async function fetchWithTimeout(
-  url: string,
-  options: RequestInit = {},
-  timeout = 15_000,
-): Promise<Response> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`Request timed out after ${timeout} ms: ${url}`));
-    }, timeout);
+  // Replace invalid \& with &
+  cleaned = cleaned.replace(/\\&/g, "&");
 
-    fetch(url, options)
-      .then((res) => {
-        clearTimeout(timer);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
+  // Remove any other invalid single-char escapes not allowed in JSON
+  // Valid JSON escapes: \" \\ \/ \b \f \n \r \t \uXXXX
+  // This regex matches a backslash followed by any character NOT in that valid list,
+  // and replaces it with just the character itself.
+  cleaned = cleaned.replace(/\\([^"\\/bfnrtu])/g, "$1");
+
+  return cleaned;
 }
 
-export async function safeFetchJSON(url: string, options: RequestInit = {}) {
-  const res = await fetchWithTimeout(url, {
-    headers: { "User-Agent": "Mozilla/5.0", ...(options.headers ?? {}) },
-    ...options,
-  });
+/**
+ * Safely extract and parse all application/ld+json script tags from HTML.
+ * Handles invalid escape sequences gracefully.
+ */
+function extractLdJson(html: string): any[] {
+  const results: any[] = [];
+  
+  // Find all <script type="application/ld+json">...</script>
+  // This regex handles any attributes that might appear before or after the type attribute.
+  const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Fetch failed (${res.status}) ${url} - ${body}`);
-  }
+  while ((match = scriptRegex.exec(html)) !== null) {
+    const raw = match[1];
+    if (!raw || !raw.trim()) continue;
 
-  const text = await res.text();
-
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    // Provide a short preview to help diagnosis without leaking everything.
-    const preview = text.slice(0, 300);
-    console.error("safeFetchJSON: invalid JSON response preview:", preview);
-    throw new Error("Invalid JSON response");
-  }
-}
-
-async function fetchAllCategories() {
-  let page = 1;
-  let allCategories: any[] = [];
-
-  while (true) {
-    const url = new URL(`${env.WP_BASE}/categories`);
-    url.searchParams.set("per_page", "100");
-    url.searchParams.set("orderby", "count");
-    url.searchParams.set("order", "desc");
-    url.searchParams.set("_fields", "id,slug,name");
-
-    const data: any = await safeFetchJSON(url.toString(), {
-      next: { revalidate: 3600 },
-    });
-
-    allCategories = [...allCategories, ...data];
-    console.log(data);
-    const totalPages = Number(data.headers.get("X-WP-TotalPages") ?? 1);
-
-    if (page >= totalPages) {
-      break;
+    // First attempt: parse as-is
+    try {
+      results.push(JSON.parse(raw));
+      continue;
+    } catch (e) {
+      // Failed to parse, move to second attempt
     }
 
-    page++;
+    // Second attempt: clean invalid escapes then retry
+    try {
+      const cleaned = cleanLdJson(raw);
+      results.push(JSON.parse(cleaned));
+    } catch (e) {
+      console.warn("Warning: Failed to parse ld+json block after cleaning:", e);
+    }
   }
 
-  return allCategories;
-}
-
-export async function GET() {
-  try {
-    const categories = await fetchAllCategories();
-
-    const formatted = categories.map((cat: any) => ({
-      id: cat.id,
-      slug: cat.slug,
-      name: cat.name,
-    }));
-
-    return NextResponse.json(formatted);
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json(
-      { error: "Failed to fetch categories" },
-      { status: 500 },
-    );
-  }
+  return results;
 }
