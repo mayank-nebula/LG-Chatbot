@@ -1,60 +1,38 @@
-export interface BreadcrumbListItem {
-  "@type": "ListItem";
-  position: number;
-  name: string;
-  item: string;
+import { BreadcrumbListSchema, generateBreadcrumbList } from "./breadcrumb";
+
+export type JsonLdNode = Record<string, unknown>;
+
+export interface JsonLdGraph {
+  "@context"?: string;
+  "@graph"?: JsonLdNode[];
 }
 
-export interface BreadcrumbListSchema {
-  "@type": "BreadcrumbList";
-  itemListElement: BreadcrumbListItem[];
-}
+export function appendToGraph(
+  existingGraph: JsonLdGraph | null | undefined,
+  newNode: Record<string, unknown>
+): JsonLdGraph {
+  const graph: JsonLdNode[] = Array.isArray(existingGraph?.["@graph"])
+    ? [...(existingGraph!["@graph"] as JsonLdNode[])]
+    : [];
 
-export function generateBreadcrumbList(url: string): BreadcrumbListSchema {
-  if (!url) {
-    throw new Error("URL is required to generate breadcrumbs.");
+  const alreadyExists = graph.some(
+    (node) => node["@type"] === newNode["@type"]
+  );
+
+  if (!alreadyExists) {
+    graph.push(newNode as JsonLdNode);
   }
 
-  const parsedUrl = new URL(url);
-
-  const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
-
-  const cleanPath = parsedUrl.pathname.replace(/\/+$/, "");
-
-  const segments = cleanPath.split("/").filter(Boolean);
-
-  const itemListElement: BreadcrumbListItem[] = [];
-
-  itemListElement.push({
-    "@type": "ListItem",
-    position: 1,
-    name: "Home",
-    item: baseUrl,
-  });
-
-  let currentPath = "";
-
-  segments.forEach((segment, index) => {
-    currentPath += `/${segment}`;
-
-    const formattedName = formatSegment(segment);
-
-    itemListElement.push({
-      "@type": "ListItem",
-      position: index + 2,
-      name: formattedName,
-      item: `${baseUrl}${currentPath}`,
-    });
-  });
-
   return {
-    "@type": "BreadcrumbList",
-    itemListElement,
+    "@context": existingGraph?.["@context"] ?? "https://schema.org",
+    "@graph": graph,
   };
 }
 
-function formatSegment(segment: string): string {
-  return decodeURIComponent(segment)
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+export function buildGraphWithBreadcrumbs(
+  url: string,
+  existingGraph?: JsonLdGraph | null
+): JsonLdGraph {
+  const breadcrumb: BreadcrumbListSchema = generateBreadcrumbList(url);
+  return appendToGraph(existingGraph, breadcrumb);
 }
