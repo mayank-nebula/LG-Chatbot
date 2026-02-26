@@ -1,53 +1,123 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { urlMap } from "./lib/urlMap";
-
-const COOKIE_NAME = "anon_session";
-const THIRTY_DAYS = 60 * 60 * 24 * 30;
-
-function genUuid(): string {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.floor(Math.random() * 16);
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://letstalksupplychain.com/#organization",
+      "name": "Lets Talk Supply Chain",
+      "sameAs": [
+        "https://web.facebook.com/letstalksupplychain/",
+        "https://twitter.com/LetsTalkSChain"
+      ],
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://letstalksupplychain.com/#logo",
+        "url": "https://letstalksupplychain.com/wp-content/uploads/2021/10/LTSC-favicon-500x500-1.jpg",
+        "contentUrl": "https://letstalksupplychain.com/wp-content/uploads/2021/10/LTSC-favicon-500x500-1.jpg",
+        "caption": "Let's Talk Supply Chain",
+        "inLanguage": "en-US",
+        "width": "500",
+        "height": "500"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://letstalksupplychain.com/#website",
+      "url": "https://letstalksupplychain.com",
+      "name": "Let's Talk Supply Chain",
+      "publisher": {
+        "@id": "https://letstalksupplychain.com/#organization"
+      },
+      "inLanguage": "en-US"
+    },
+    {
+      "@type": "ImageObject",
+      "@id": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png",
+      "url": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png",
+      "width": "741",
+      "height": "659",
+      "inLanguage": "en-US"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://letstalksupplychain.com/podcast/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": "1",
+          "item": {
+            "@id": "https://letstalksupplychain.com",
+            "name": "Home"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": "2",
+          "item": {
+            "@id": "https://letstalksupplychain.com/podcast/",
+            "name": "Podcast"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://letstalksupplychain.com/podcast/#webpage",
+      "url": "https://letstalksupplychain.com/podcast/",
+      "name": "Podcast &bull; Let\u2019s Talk Supply Chain - Podcasts, Live Shows, Industry Experts, Supply Chain News",
+      "datePublished": "2021-09-30T12:36:03+05:30",
+      "dateModified": "2025-03-21T00:12:29+05:30",
+      "isPartOf": {
+        "@id": "https://letstalksupplychain.com/#website"
+      },
+      "primaryImageOfPage": {
+        "@id": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png"
+      },
+      "inLanguage": "en-US",
+      "breadcrumb": {
+        "@id": "https://letstalksupplychain.com/podcast/#breadcrumb"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://letstalksupplychain.com/podcast/#author",
+      "name": "aline.nicoleli@gmail.com",
+      "image": {
+        "@type": "ImageObject",
+        "@id": "https://secure.gravatar.com/avatar/49c50faf30c4cde68a249c26067abae2315dca9b17d2128db168225a90244b2c?s=96&amp;d=mm&amp;r=g",
+        "url": "https://secure.gravatar.com/avatar/49c50faf30c4cde68a249c26067abae2315dca9b17d2128db168225a90244b2c?s=96&amp;d=mm&amp;r=g",
+        "caption": "aline.nicoleli@gmail.com",
+        "inLanguage": "en-US"
+      },
+      "worksFor": {
+        "@id": "https://letstalksupplychain.com/#organization"
+      }
+    },
+    {
+      "headline": "Podcast &bull; Let\u2019s Talk Supply Chain - Podcasts, Live Shows, Industry Experts, Supply Chain News",
+      "description": "Hi! I\u2019m Sarah Barnes-Humphrey, and supply chain is in my blood. Growing up in a family of logistics entrepreneurs, I played with trucks not Barbies and our",
+      "datePublished": "2021-09-30T12:36:03+05:30",
+      "dateModified": "2025-03-21T00:12:29+05:30",
+      "image": {
+        "@id": "https://letstalksupplychain.com/wp-content/uploads/2025/01/Diseno-sin-titulo-6-1.png"
+      },
+      "author": {
+        "@id": "https://letstalksupplychain.com/podcast/#author",
+        "name": "aline.nicoleli@gmail.com"
+      },
+      "@type": "Article",
+      "name": "Podcast &bull; Let\u2019s Talk Supply Chain - Podcasts, Live Shows, Industry Experts, Supply Chain News",
+      "@id": "https://letstalksupplychain.com/podcast/#schema-238429",
+      "isPartOf": {
+        "@id": "https://letstalksupplychain.com/podcast/#webpage"
+      },
+      "publisher": {
+        "@id": "https://letstalksupplychain.com/#organization"
+      },
+      "inLanguage": "en-US",
+      "mainEntityOfPage": {
+        "@id": "https://letstalksupplychain.com/podcast/#webpage"
+      }
+    }
+  ]
 }
-
-export function proxy(req: NextRequest) {
-  const pathname = req.nextUrl.pathname;
-
-  if (urlMap[pathname]) {
-    const destination = urlMap[pathname];
-    const redirectUrl = new URL(destination, req.url);
-
-    return NextResponse.redirect(redirectUrl, {
-      status: 301,
-    });
-  }
-
-  const sessionId = req.cookies.get(COOKIE_NAME)?.value;
-
-  if (!sessionId) {
-    const id = genUuid();
-    const response = NextResponse.next();
-    response.cookies.set({
-      name: COOKIE_NAME,
-      value: id,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: THIRTY_DAYS,
-    });
-    return response;
-  }
-
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
-};
