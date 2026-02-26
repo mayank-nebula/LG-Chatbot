@@ -1,129 +1,48 @@
 import { env } from "@/lib/env";
 import { safeFetchJSON } from "@/lib/fetch";
 
-function cleanLdJson(raw: string): string {
-  let cleaned = raw.replace(/\\'/g, "'");
-  cleaned = cleaned.replace(/\\&/g, "&");
-  cleaned = cleaned.replace(/\\([^"\\/bfnrtu])/g, "$1");
-  return cleaned;
-}
-
-function extractLdJson(html: string): any[] {
-  const results: any[] = [];
-  const scriptRegex =
-    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match;
-
-  while ((match = scriptRegex.exec(html)) !== null) {
-    const raw = match[1];
-    if (!raw || !raw.trim()) continue;
-
-    try {
-      results.push(JSON.parse(raw));
-      continue;
-    } catch (e) {}
-
-    try {
-      const cleaned = cleanLdJson(raw);
-      results.push(JSON.parse(cleaned));
-    } catch (e) {
-      console.warn("Warning: Failed to parse ld+json block after cleaning:", e);
-    }
-  }
-
-  return results;
-}
-
-export async function getPageGraph(slug: string, type: string) {
+export async function getPageCanonical(slug: string, type: string) {
   try {
     const url = `${env.SITE_URL}/wp-json/rankmath/v1/getHead?url=${env.SITE_URL}/${slug}`;
     const res = await safeFetchJSON(url);
 
     if (!res || !res.head) return null;
 
-    const headHtml = res.head;
-    const parsedSchema = extractLdJson(headHtml);
+    const headHtml: string = res.head;
 
-    for (const schema of parsedSchema) {
-      if (schema["@graph"]) {
-        let filteredGraph = schema["@graph"].filter((item: any) => {
-          const itemType = item["@type"];
-          const isExcludedType = Array.isArray(itemType)
-            ? itemType.includes("Organization") ||
-              itemType.includes("WebSite") ||
-              itemType.includes("BreadcrumbList")
-            : itemType === "Organization" ||
-              itemType === "WebSite" ||
-              itemType === "BreadcrumbList";
+    const canonicalMatch = headHtml.match(
+      /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*\/?>/i,
+    ) ?? headHtml.match(
+      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["'][^>]*\/?>/i,
+    );
 
-          return !isExcludedType;
-        });
+    if (!canonicalMatch || !canonicalMatch[1]) return null;
 
-        if (type === "blogs" || type === "news" || type === "podcasts") {
-          const targetType =
-            type === "blogs"
-              ? "BlogPosting"
-              : type === "news"
-                ? "NewsArticle"
-                : "PodcastEpisode";
+    const rawCanonical = canonicalMatch[1];
 
-          const typesToReplace = [
-            "Article",
-            "BlogPosting",
-            "NewsArticle",
-            "PodcastEpisode",
-          ];
+    const siteUrl = env.PUBLIC_SITE_URL;
 
-          filteredGraph.forEach((item: any) => {
-            if (!item["@type"]) return;
+    const newCanonical =
+      type === "podcasts"
+        ? `${siteUrl}/podcasts/${slug}`
+        : `${siteUrl}/supply-chain-hub/pr-news/${slug}`;
 
-            if (typeof item["@type"] === "string") {
-              if (typesToReplace.includes(item["@type"])) {
-                item["@type"] = targetType;
-              }
-              return;
-            }
+    // Replace the old SITE_URL base with the public site URL, then override
+    // the full slug-specific URL with the correctly-typed canonical.
+    const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const globalSiteUrlRegex = new RegExp(escapedSiteUrl, "g");
 
-            if (Array.isArray(item["@type"])) {
-              item["@type"] = item["@type"].map((t: string) =>
-                typesToReplace.includes(t) ? targetType : t,
-              );
-            }
-          });
-        }
+    const withPublicBase = rawCanonical.replace(globalSiteUrlRegex, siteUrl);
 
-        const siteUrl = env.PUBLIC_SITE_URL;
-        const oldUrl = `${env.SITE_URL}/${slug}`;
-        const newUrl =
-          type === "podcasts"
-            ? `${siteUrl}/podcasts/${slug}`
-            : `${siteUrl}/supply-chain-hub/pr-news/${slug}`;
+    // If the URL already points at the slug just swap in the typed path,
+    // otherwise trust the public-base-replaced value.
+    const canonical = withPublicBase.includes(slug)
+      ? newCanonical
+      : withPublicBase;
 
-        // 1. Existing regex: Replaces the specific post URL
-        const escapedOldUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const specificUrlRegex = new RegExp(escapedOldUrl + '(?=["/#?])', "g");
-
-        // 2. New regex: Replaces all remaining occurrences of the base SITE_URL
-        const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const globalSiteUrlRegex = new RegExp(escapedSiteUrl, "g");
-
-        const graphString = JSON.stringify(filteredGraph);
-        
-        // Apply both replacements
-        let replacedString = graphString.replace(specificUrlRegex, newUrl);
-        replacedString = replacedString.replace(globalSiteUrlRegex, siteUrl);
-        
-        filteredGraph = JSON.parse(replacedString);
-
-        return {
-          "@context": "https://schema.org",
-          "@graph": filteredGraph,
-        };
-      }
-    }
-    return null;
+    return canonical;
   } catch (error) {
-    console.error("Error fetching schema data:", error);
+    console.error("Error fetching canonical data:", error);
     return null;
   }
 }
