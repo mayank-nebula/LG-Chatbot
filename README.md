@@ -20,25 +20,19 @@ export async function getPageCanonical(slug: string, type: string) {
 
     const rawCanonical = canonicalMatch[1];
 
+    // Extract the slug from the canonical href returned by RankMath.
+    // e.g. "https://old-domain.com/real-slug/" → "real-slug"
+    const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const slugFromHref = rawCanonical
+      .replace(new RegExp(`^${escapedSiteUrl}/?`), "") // strip base domain
+      .replace(/\/+$/, "");                             // strip trailing slash
+
     const siteUrl = env.PUBLIC_SITE_URL;
 
-    const newCanonical =
+    const canonical =
       type === "podcasts"
-        ? `${siteUrl}/podcasts/${slug}`
-        : `${siteUrl}/supply-chain-hub/pr-news/${slug}`;
-
-    // Replace the old SITE_URL base with the public site URL, then override
-    // the full slug-specific URL with the correctly-typed canonical.
-    const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const globalSiteUrlRegex = new RegExp(escapedSiteUrl, "g");
-
-    const withPublicBase = rawCanonical.replace(globalSiteUrlRegex, siteUrl);
-
-    // If the URL already points at the slug just swap in the typed path,
-    // otherwise trust the public-base-replaced value.
-    const canonical = withPublicBase.includes(slug)
-      ? newCanonical
-      : withPublicBase;
+        ? `${siteUrl}/podcasts/${slugFromHref}`
+        : `${siteUrl}/supply-chain-hub/pr-news/${slugFromHref}`;
 
     return canonical;
   } catch (error) {
