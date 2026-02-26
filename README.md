@@ -1,34 +1,31 @@
-function parseCanonical(headHtml: string, type: string): string | null {
-  const canonicalMatch =
-    headHtml.match(
-      /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*\/?>/i,
-    ) ??
-    headHtml.match(
-      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["'][^>]*\/?>/i,
-    );
+import { breadcrumbs } from '@forge42/seo-tools/structured-data/breadcrumb';
 
-  if (!canonicalMatch?.[1]) return null;
+function generateBreadcrumbsFromUrl(url: string) {
+  const parsedUrl = new URL(url);
+  const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
 
-  const rawCanonical = canonicalMatch[1];
-  const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const segments = parsedUrl.pathname
+    .split('/')
+    .filter(Boolean);
 
-  // If canonical is on a different domain, use it as-is
-  if (!new RegExp(`^${escapedSiteUrl}`).test(rawCanonical)) {
-    return rawCanonical;
-  }
+  const breadcrumbItems = [
+    { name: 'Home', url: baseUrl },
+  ];
 
-  // Same domain — extract slug and rebuild with correct typed path
-  const slugFromHref = rawCanonical
-    .replace(new RegExp(`^${escapedSiteUrl}/?`), "")
-    .replace(/\/+$/, "");
+  let currentPath = '';
 
-  const siteUrl = env.PUBLIC_SITE_URL;
+  segments.forEach((segment) => {
+    currentPath += `/${segment}`;
 
-  return type === "podcasts"
-    ? `${siteUrl}/podcasts/${slugFromHref}`
-    : type === "supply-chain-hub/women-in-supply-chain"
-      ? `${siteUrl}/supply-chain-hub/women-in-supply-chain/${slugFromHref}`
-      : type === "blogs"
-        ? `${siteUrl}/supply-chain-hub/pr-news/${slugFromHref}`
-        : `${siteUrl}/${slugFromHref}`;
+    const formattedName = segment
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+    breadcrumbItems.push({
+      name: formattedName,
+      url: `${baseUrl}${currentPath}`,
+    });
+  });
+
+  return breadcrumbs(breadcrumbItems);
 }
