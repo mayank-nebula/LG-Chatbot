@@ -11,15 +11,19 @@ export interface BreadcrumbListSchema {
 }
 
 /**
- * Generate a Schema.org BreadcrumbList object from a full URL.
- * Returns ONLY the BreadcrumbList object (no @context, no graph wrapper).
+ * Generate Schema.org BreadcrumbList from a full absolute URL.
+ * No external libraries required.
  */
 export function generateBreadcrumbList(url: string): BreadcrumbListSchema {
+  if (!url) {
+    throw new Error("URL is required to generate breadcrumbs.");
+  }
+
   const parsedUrl = new URL(url);
 
   const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
 
-  // Clean pathname (remove trailing slash)
+  // Remove trailing slashes
   const cleanPath = parsedUrl.pathname.replace(/\/+$/, "");
 
   // Split path into segments
@@ -27,7 +31,7 @@ export function generateBreadcrumbList(url: string): BreadcrumbListSchema {
 
   const itemListElement: BreadcrumbListItem[] = [];
 
-  // Always include Home
+  // Always add Home
   itemListElement.push({
     "@type": "ListItem",
     position: 1,
@@ -40,10 +44,7 @@ export function generateBreadcrumbList(url: string): BreadcrumbListSchema {
   segments.forEach((segment, index) => {
     currentPath += `/${segment}`;
 
-    // Format slug into readable text
-    const formattedName = decodeURIComponent(segment)
-      .replace(/[-_]+/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    const formattedName = formatSegment(segment);
 
     itemListElement.push({
       "@type": "ListItem",
@@ -57,4 +58,13 @@ export function generateBreadcrumbList(url: string): BreadcrumbListSchema {
     "@type": "BreadcrumbList",
     itemListElement,
   };
+}
+
+/**
+ * Convert URL segment into human-readable breadcrumb name
+ */
+function formatSegment(segment: string): string {
+  return decodeURIComponent(segment)
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
