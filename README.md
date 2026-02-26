@@ -1,32 +1,21 @@
-type JsonLdNode = Record<string, unknown>;
-
-interface JsonLdGraph {
-  "@context"?: string;
-  "@graph"?: JsonLdNode[];
-}
-
-/**
- * Append a schema node into an existing JSON-LD graph safely.
- */
 export function appendToGraph(
-  existingGraph: JsonLdGraph | null,
+  existingGraph: JsonLdGraph | null | undefined,
   newNode: JsonLdNode
 ): JsonLdGraph {
-  const result: JsonLdGraph = {
-    "@context": existingGraph?.["@context"] ?? "https://schema.org",
-    "@graph": Array.isArray(existingGraph?.["@graph"])
-      ? [...existingGraph!["@graph"]!]
-      : [],
-  };
+  const graph: JsonLdNode[] = Array.isArray(existingGraph?.["@graph"])
+    ? [...(existingGraph!["@graph"] as JsonLdNode[])]
+    : [];
 
-  // Prevent duplicate nodes of the same @type
-  const alreadyExists = result["@graph"]!.some(
+  const alreadyExists = graph.some(
     (node) => node["@type"] === newNode["@type"]
   );
 
   if (!alreadyExists) {
-    result["@graph"]!.push(newNode);
+    graph.push(newNode);
   }
 
-  return result;
+  return {
+    "@context": existingGraph?.["@context"] ?? "https://schema.org",
+    "@graph": graph,
+  };
 }
