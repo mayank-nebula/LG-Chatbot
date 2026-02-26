@@ -1,4 +1,4 @@
-type JsonLdNode = Record<string, any>;
+type JsonLdNode = Record<string, unknown>;
 
 interface JsonLdGraph {
   "@context"?: string;
@@ -15,17 +15,17 @@ export function appendToGraph(
   const result: JsonLdGraph = {
     "@context": existingGraph?.["@context"] ?? "https://schema.org",
     "@graph": Array.isArray(existingGraph?.["@graph"])
-      ? [...existingGraph!["@graph"]]
+      ? [...existingGraph!["@graph"]!]
       : [],
   };
 
-  // Prevent duplicate BreadcrumbList
-  const alreadyExists = result["@graph"].some(
+  // Prevent duplicate nodes of the same @type
+  const alreadyExists = result["@graph"]!.some(
     (node) => node["@type"] === newNode["@type"]
   );
 
   if (!alreadyExists) {
-    result["@graph"].push(newNode);
+    result["@graph"]!.push(newNode);
   }
 
   return result;
