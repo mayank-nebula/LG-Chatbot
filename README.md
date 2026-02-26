@@ -54,36 +54,39 @@ export async function getPageGraph(slug: string, type: string) {
               itemType.includes("BreadcrumbList")
             : itemType === "Organization" ||
               itemType === "WebSite" ||
-              itemType == "BreadcrumbList";
+              itemType === "BreadcrumbList";
 
           return !isExcludedType;
         });
 
-        if (type === "blogs" || type === "news") {
-          const targetType = type === "blogs" ? "BlogPosting" : "NewsArticle";
+        if (type === "blogs" || type === "news" || type === "podcasts") {
+          const targetType =
+            type === "blogs"
+              ? "BlogPosting"
+              : type === "news"
+                ? "NewsArticle"
+                : "PodcastEpisode";
+
+          const typesToReplace = [
+            "Article",
+            "BlogPosting",
+            "NewsArticle",
+            "PodcastEpisode",
+          ];
+
           filteredGraph.forEach((item: any) => {
             if (!item["@type"]) return;
 
-            if (item["@type"] === "PodcastEpisode") {
-              item["@type"] = targetType;
-              return;
-            }
-
-            if (typeof item["@type"] == "string") {
-              item["@type"] = targetType;
+            if (typeof item["@type"] === "string") {
+              if (typesToReplace.includes(item["@type"])) {
+                item["@type"] = targetType;
+              }
               return;
             }
 
             if (Array.isArray(item["@type"])) {
               item["@type"] = item["@type"].map((t: string) =>
-                [
-                  "Article",
-                  "BlogPosting",
-                  "NewsArticle",
-                  "PodcastEpisode",
-                ].includes(t)
-                  ? targetType
-                  : t,
+                typesToReplace.includes(t) ? targetType : t,
               );
             }
           });
@@ -96,11 +99,20 @@ export async function getPageGraph(slug: string, type: string) {
             ? `${siteUrl}/podcasts/${slug}`
             : `${siteUrl}/supply-chain-hub/pr-news/${slug}`;
 
+        // 1. Existing regex: Replaces the specific post URL
         const escapedOldUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(escapedOldUrl + '(?=["/#?])', "g");
+        const specificUrlRegex = new RegExp(escapedOldUrl + '(?=["/#?])', "g");
+
+        // 2. New regex: Replaces all remaining occurrences of the base SITE_URL
+        const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const globalSiteUrlRegex = new RegExp(escapedSiteUrl, "g");
 
         const graphString = JSON.stringify(filteredGraph);
-        const replacedString = graphString.replace(regex, newUrl);
+        
+        // Apply both replacements
+        let replacedString = graphString.replace(specificUrlRegex, newUrl);
+        replacedString = replacedString.replace(globalSiteUrlRegex, siteUrl);
+        
         filteredGraph = JSON.parse(replacedString);
 
         return {
