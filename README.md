@@ -1,31 +1,60 @@
-import { breadcrumbs } from '@forge42/seo-tools/structured-data/breadcrumb';
+export interface BreadcrumbListItem {
+  "@type": "ListItem";
+  position: number;
+  name: string;
+  item: string;
+}
 
-function generateBreadcrumbsFromUrl(url: string) {
+export interface BreadcrumbListSchema {
+  "@type": "BreadcrumbList";
+  itemListElement: BreadcrumbListItem[];
+}
+
+/**
+ * Generate a Schema.org BreadcrumbList object from a full URL.
+ * Returns ONLY the BreadcrumbList object (no @context, no graph wrapper).
+ */
+export function generateBreadcrumbList(url: string): BreadcrumbListSchema {
   const parsedUrl = new URL(url);
+
   const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
 
-  const segments = parsedUrl.pathname
-    .split('/')
-    .filter(Boolean);
+  // Clean pathname (remove trailing slash)
+  const cleanPath = parsedUrl.pathname.replace(/\/+$/, "");
 
-  const breadcrumbItems = [
-    { name: 'Home', url: baseUrl },
-  ];
+  // Split path into segments
+  const segments = cleanPath.split("/").filter(Boolean);
 
-  let currentPath = '';
+  const itemListElement: BreadcrumbListItem[] = [];
 
-  segments.forEach((segment) => {
+  // Always include Home
+  itemListElement.push({
+    "@type": "ListItem",
+    position: 1,
+    name: "Home",
+    item: baseUrl,
+  });
+
+  let currentPath = "";
+
+  segments.forEach((segment, index) => {
     currentPath += `/${segment}`;
 
-    const formattedName = segment
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    // Format slug into readable text
+    const formattedName = decodeURIComponent(segment)
+      .replace(/[-_]+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
-    breadcrumbItems.push({
+    itemListElement.push({
+      "@type": "ListItem",
+      position: index + 2,
       name: formattedName,
-      url: `${baseUrl}${currentPath}`,
+      item: `${baseUrl}${currentPath}`,
     });
   });
 
-  return breadcrumbs(breadcrumbItems);
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement,
+  };
 }
