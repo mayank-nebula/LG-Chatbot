@@ -1,31 +1,25 @@
+type JsonLdNode = Record<string, any>;
+
 interface JsonLdGraph {
   "@context"?: string;
-  "@graph"?: Record<string, any>[];
+  "@graph"?: JsonLdNode[];
 }
 
 /**
- * Safely append a schema node into an existing JSON-LD graph.
- * - Preserves @context
- * - Creates @graph if missing
- * - Prevents duplicates by @type (optional safeguard)
+ * Append a schema node into an existing JSON-LD graph safely.
  */
 export function appendToGraph(
-  existingJsonLd: JsonLdGraph,
-  newNode: Record<string, any>
+  existingGraph: JsonLdGraph | null,
+  newNode: JsonLdNode
 ): JsonLdGraph {
-  const result: JsonLdGraph = { ...existingJsonLd };
+  const result: JsonLdGraph = {
+    "@context": existingGraph?.["@context"] ?? "https://schema.org",
+    "@graph": Array.isArray(existingGraph?.["@graph"])
+      ? [...existingGraph!["@graph"]]
+      : [],
+  };
 
-  // Ensure @context exists
-  if (!result["@context"]) {
-    result["@context"] = "https://schema.org";
-  }
-
-  // Ensure @graph exists
-  if (!Array.isArray(result["@graph"])) {
-    result["@graph"] = [];
-  }
-
-  // Optional: avoid duplicate BreadcrumbList
+  // Prevent duplicate BreadcrumbList
   const alreadyExists = result["@graph"].some(
     (node) => node["@type"] === newNode["@type"]
   );
