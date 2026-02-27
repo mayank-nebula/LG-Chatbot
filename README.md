@@ -1,76 +1,43 @@
-function parseGraph(
-  headHtml: string,
-  slug: string,
-  type: string,
-): object | null {
-  const siteUrl = env.PUBLIC_SITE_URL;
-  const parsedSchema = extractLdJson(headHtml);
+import { MetadataRoute } from "next";
+import { env } from "@/lib/env";
 
-  for (const schema of parsedSchema) {
-    if (!schema["@graph"]) continue;
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: [
+        "/cart",
+        "/thank-you",
+        "/admin",
 
-    let filteredGraph = schema["@graph"].filter((item: any) => {
-      const itemType = item["@type"];
-      const isExcluded = Array.isArray(itemType)
-        ? itemType.includes("Organization") ||
-          itemType.includes("WebSite") ||
-          itemType.includes("BreadcrumbList")
-        : itemType === "Organization" ||
-          itemType === "WebSite" ||
-          itemType === "BreadcrumbList";
-      return !isExcluded;
-    });
-
-    if (type === "blogs" || type === "news" || type === "podcasts") {
-      const targetType =
-        type === "blogs"
-          ? "BlogPosting"
-          : type === "news"
-            ? "NewsArticle"
-            : "PodcastEpisode";
-
-      const typesToReplace = [
-        "Article",
-        "BlogPosting",
-        "NewsArticle",
-        "PodcastEpisode",
-      ];
-
-      filteredGraph.forEach((item: any) => {
-        if (!item["@type"]) return;
-        if (typeof item["@type"] === "string") {
-          if (typesToReplace.includes(item["@type"]))
-            item["@type"] = targetType;
-          return;
-        }
-        if (Array.isArray(item["@type"])) {
-          item["@type"] = item["@type"].map((t: string) =>
-            typesToReplace.includes(t) ? targetType : t,
-          );
-        }
-      });
-    }
-
-    const oldUrl = `${env.SITE_URL}/${slug}`;
-    const newUrl =
-      type === "podcasts"
-        ? `${siteUrl}/podcasts/${slug}`
-        : `${siteUrl}/supply-chain-hub/pr-news/${slug}`;
-
-    const escapedOldUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-    let replacedString = JSON.stringify(filteredGraph)
-      .replace(new RegExp(escapedOldUrl + '(?=["/#?])', "g"), newUrl)
-      .replace(
-        new RegExp(escapedSiteUrl + '(?!/wp)(?=["/#?])', "g"),
-        siteUrl,
-      );
-
-    filteredGraph = JSON.parse(replacedString);
-
-    return { "@context": "https://schema.org", "@graph": filteredGraph };
-  }
-
-  return null;
+        "/landing-page-v1",
+        "/test",
+        "/slider-demo",
+        "/work-with-us-3/",
+        "/work-with-us-2/",
+        "/practice-page/",
+        "/media-kit",
+        "/media-kit-full",
+        "/mediakit",
+      ],
+    },
+    // Keep this out of the sitemap by simply not adding those URLs to your sitemap generator
+    sitemap: `${env.PUBLIC_SITE_URL}/sitemap.xml`,
+  };
 }
+
+Disallow: /landing-page-v1
+Disallow: /test
+Disallow: /slider-demo
+Disallow: /work-with-us-3/
+Disallow: /work-with-us-2/
+Disallow: /practice-page/
+Disallow: /media-kit
+Disallow: /media-kit-full
+Disallow: /mediakit
+ 
+ye vale txt main nahi, meta robots main noindex no follow krna tha
+ 
+baki Monday krte hain
+ 
