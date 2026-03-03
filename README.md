@@ -1,58 +1,3 @@
-add_action('acf/init', function() {
-
-    // Parent Page (Appears After ACF)
-
-    acf_add_options_page([
-        'page_title' => 'Site Pages',
-        'menu_title' => 'Site Pages',
-        'menu_slug'  => 'site-pages',
-        'redirect'   => false,
-        'position'   => 81,
-        'icon_url'   => 'dashicons-admin-generic',
-    ]);
-
-    // Child Pages Under Parent
-
-    $pages = [
-        'home-page',
-        'about-page',
-        'contact-page',
-        'services-page',
-        'blog-page',
-        'portfolio-page',
-        'faq-page',
-        'pricing-page',
-        'team-page',
-        'testimonials-page'
-    ];
-
-    foreach ($pages as $slug) {
-
-        acf_add_options_sub_page([
-            'page_title'  => ucwords(str_replace('-', ' ', $slug)),
-            'menu_title'  => ucwords(str_replace('-', ' ', $slug)),
-            'menu_slug'   => $slug,
-            'parent_slug' => 'site-pages',
-
-            // IMPORTANT: unique storage key
-            'post_id'     => str_replace('-', '_', $slug),
-        ]);
-    }
-
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
 add_action('rest_api_init', function () {
 
     register_rest_route('site/v1', '/options/(?P<slug>[a-zA-Z0-9_-]+)', [
@@ -72,7 +17,14 @@ add_action('rest_api_init', function () {
                 );
             }
 
-            return $fields;
+            $response = new WP_REST_Response($fields);
+
+            // Disable caching
+            $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->header('Pragma', 'no-cache');
+            $response->header('Expires', '0');
+
+            return $response;
         },
         'permission_callback' => '__return_true'
     ]);
