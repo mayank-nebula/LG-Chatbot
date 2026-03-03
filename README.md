@@ -4,10 +4,22 @@ add_action('rest_api_init', function () {
         'methods'  => 'GET',
         'callback' => function ($data) {
 
-            $slug = $data['slug'];
+            // Disable external object cache for this request
+            wp_using_ext_object_cache(false);
+            wp_suspend_cache_addition(true);
+
+            $slug    = $data['slug'];
             $post_id = str_replace('-', '_', $slug);
 
-            $fields = get_fields($post_id);
+            // Clear ACF + WP caches
+            if (function_exists('acf_flush_value_cache')) {
+                acf_flush_value_cache($post_id);
+            }
+            clean_post_cache($post_id);
+            wp_cache_delete($post_id, 'post_meta');
+
+            // Get fresh fields (disable formatting cache)
+            $fields = get_fields($post_id, false);
 
             if (!$fields) {
                 return new WP_Error(
@@ -19,7 +31,7 @@ add_action('rest_api_init', function () {
 
             $response = new WP_REST_Response($fields);
 
-            // Disable caching
+            // Strong no-cache headers
             $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             $response->header('Pragma', 'no-cache');
             $response->header('Expires', '0');
