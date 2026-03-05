@@ -1,72 +1,118 @@
-import { NextResponse } from 'next/server';
-// ⚠️ Update this import to match your actual file structure
-// Using runQuery instead of query to avoid your unstable_cache wrapper
-import { runQuery } from '@/lib/db'; 
+In **Next.js (App Router)** you can use `unstable_cache` to cache results based on a **key**.
+If the **URL already exists in cache**, it returns the cached data.
+If **not**, it calls your fetch function, stores the result, and returns it.
 
-// Force Next.js to never cache this API route
-export const dynamic = 'force-dynamic';
+Below is a **simple pattern** for this.
 
-export async function GET() {
-  // Define your services status object
-  const services = {
-    database: 'disconnected',
-    wordpress: 'disconnected',
+---
+
+# Example: Cache data by URL using `unstable_cache`
+
+```ts
+import { unstable_cache } from "next/cache";
+
+/**
+ * Dummy function to simulate fetching data
+ */
+async function fetchData(url: string) {
+  console.log("Fetching fresh data for:", url);
+
+  // simulate API delay
+  await new Promise((r) => setTimeout(r, 500));
+
+  return {
+    url,
+    data: "Dummy API response",
+    time: Date.now(),
   };
-
-  try {
-    // ---------------------------------------------------------
-    // 1. Check Database (Postgres/MySQL Pool)
-    // ---------------------------------------------------------
-    await runQuery('SELECT 1', []);
-    services.database = 'connected';
-
-    // ---------------------------------------------------------
-    // 2. Check WordPress System Status API
-    // ---------------------------------------------------------
-    // ⚠️ Replace with your actual WordPress domain!
-    const WP_URL = 'https://YOUR_WP_DOMAIN.com/wp-json/v1/options/system-status';
-    
-    const wpResponse = await fetch(WP_URL, {
-      method: 'GET',
-      cache: 'no-store', // CRITICAL: Forces fetch to bypass Next.js cache
-    });
-
-    if (!wpResponse.ok) {
-      throw new Error(`WordPress API failed with status: ${wpResponse.status}`);
-    }
-
-    // You mentioned "if any result it is ok"
-    const wpData = await wpResponse.json();
-    if (wpData) {
-      services.wordpress = 'connected';
-    } else {
-      throw new Error('WordPress API returned empty data');
-    }
-
-    // ---------------------------------------------------------
-    // 3. Return Success (200 OK) if everything passed
-    // ---------------------------------------------------------
-    return NextResponse.json(
-      { 
-        status: 'ok', 
-        services,
-        timestamp: new Date().toISOString() 
-      },
-      { status: 200 }
-    );
-
-  } catch (error: any) {
-    // If ANY check fails, catch block catches it and returns 503
-    console.error('Health check failed:', error);
-    
-    return NextResponse.json(
-      { 
-        status: 'error', 
-        services, // Shows exactly which service failed (e.g., db connected, wp disconnected)
-        message: error.message,
-        timestamp: new Date().toISOString() 
-      },
-      { status: 503 } // 503 Service Unavailable
-    );
-  }
 }
+
+/**
+ * Function that returns cached data if exists,
+ * otherwise fetches and stores it.
+ */
+export async function getCachedData(url: string) {
+  const cachedFn = unstable_cache(
+    async () => {
+      return fetchData(url);
+    },
+    ["url-cache", url], // cache key
+    {
+      revalidate: 60, // seconds
+    }
+  );
+
+  return cachedFn();
+}
+```
+
+---
+
+# Usage
+
+```ts
+const data = await getCachedData(
+  "https://api.example.com/products?page=1"
+);
+
+console.log(data);
+```
+
+---
+
+# What happens
+
+1️⃣ First call
+
+```
+getCachedData(url)
+```
+
+* cache miss
+* `fetchData()` runs
+* result stored in Next.js cache
+
+2️⃣ Second call with same URL
+
+* cache hit
+* `fetchData()` NOT called
+
+3️⃣ Different URL
+
+```
+getCachedData("https://api.example.com/products?page=2")
+```
+
+* new cache entry created
+
+---
+
+# Example output
+
+First call
+
+```
+Fetching fresh data for: https://api.example.com/products?page=1
+```
+
+Second call
+
+```
+(no log → returned from cache)
+```
+
+---
+
+💡 **Important Tip**
+
+Make sure the **URL is part of the cache key**:
+
+```ts
+["url-cache", url]
+```
+
+Otherwise different URLs could return the **same cached result**.
+
+---
+
+If you want, I can also show a **better production pattern** used in large Next.js apps (global cache helper + dedupe + tags).
