@@ -4,33 +4,31 @@ function parseGraph(
   type: string,
 ): object | null {
   const siteUrl = env.PUBLIC_SITE_URL;
-  const parsedSchema = extractLdJson(headHtml);
+  const parsedSchema: ParsedSchema[] = extractLdJson(headHtml);
 
-  for (const schema of parsedSchema) {
-    if (!schema["@graph"]) continue;
+  // Find the first schema that actually contains a @graph
+  const schema = parsedSchema.find((s) => s["@graph"]);
+  if (!schema || !schema["@graph"]) return null;
 
-    let filteredGraph = schema["@graph"].filter((item: any) => {
-      const itemType = item["@type"];
-      const isExcluded = Array.isArray(itemType)
-        ? itemType.includes("Organization") ||
-          itemType.includes("WebSite") ||
-          itemType.includes("BreadcrumbList")
-        : itemType === "Organization" ||
-          itemType === "WebSite" ||
-          itemType === "BreadcrumbList";
-      return !isExcluded;
-    });
+  // 1. Define types to exclude based on the 'type' argument
+  const excludedTypes = new Set(["Organization", "WebSite", "BreadcrumbList"]);
+  
+  if (type === "podcasts") {
+    // Note: Assuming you wanted to ADD 'BlogPosting' to the exclusions for podcasts
+    excludedTypes.add("BlogPosting"); 
+  }
 
-    if (type === "podcasts") {
-      let filteredGraph = schema["@graph"].filter((item: any) => {
-        const itemType = item["@type"];
-        const isExcluded = Array.isArray(itemType)
-          ? itemType.includes("BlogPosting")
-          : itemType === "BlogPosting";
-        return !isExcluded;
-      });
-    }
-
+  // 2. Filter the graph cleanly
+  const filteredItems = schema["@graph"].filter((item) => {
+    if (!item["@type"]) return true;
+    
+    // Normalize itemType to an array so we can check it uniformly
+    const itemTypes = Array.isArray(item["@type"]) ? item["@type"] : [item["@type"]];
+    
+    // Check if ANY of the item's types are in our excluded set
+    const isExcluded = itemTypes.some((t) => excludedTypes.has(t));
+    return !isExcluded;
+  });
     const oldUrl = `${env.SITE_URL}/${slug}`;
     const newUrl =
       type === "podcasts"
