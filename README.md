@@ -28,7 +28,7 @@ steps:
       - "--all-tags"
       - "us-central1-docker.pkg.dev/$PROJECT_ID/next-app-repo/letstalksuppychain"
 
-  # Step 3: Deploy to Cloud Run
+  # Step 3: Deploy to Cloud Run with AlloyDB Auth Proxy sidecar
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:latest"
     id: Deploy frontend service
     entrypoint: gcloud
@@ -45,8 +45,17 @@ steps:
       - "--allow-unauthenticated"
       - "--service-account"
       - "service-acc-gcp@steam-genius-475213-t6.iam.gserviceaccount.com"
+      # ✅ AlloyDB Auth Proxy sidecar container
+      - "--container"
+      - "alloydb-proxy"
+      - "--image=gcr.io/alloydb-connectors/alloydb-auth-proxy:latest"
+      - "--args=--port=5432,projects/$PROJECT_ID/locations/us-central1/clusters/${_ALLOYDB_CLUSTER}/instances/${_ALLOYDB_INSTANCE}"
+      # ✅ Switch back to your app container
+      - "--container"
+      - "letstalksuppychain"
       - "--set-env-vars"
-      - "SITE_URL=${_SITE_URL},WP_BASE=${_WP_BASE},DB_HOST=34.58.164.47,DB_PORT=${_DB_PORT},DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},YOUTUBE_CHANNEL_ID=${_YOUTUBE_CHANNEL_ID},MAILCHIMP_FROM_EMAIL=${_MAILCHIMP_FROM_EMAIL}"
+      # ✅ DB_HOST points to localhost — proxy handles the rest
+      - "SITE_URL=${_SITE_URL},WP_BASE=${_WP_BASE},DB_HOST=127.0.0.1,DB_PORT=5432,DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},YOUTUBE_CHANNEL_ID=${_YOUTUBE_CHANNEL_ID},MAILCHIMP_FROM_EMAIL=${_MAILCHIMP_FROM_EMAIL}"
       - "--set-secrets"
       - "DB_PASSWORD=frontend-db-password:latest,YOUTUBE_API_KEY=frontend-youtube-api-key:latest,PRIVATE_STREAM_URL=frontend-private-stream-url:latest,MAILCHIMP_TRANSACTIONAL_API_KEY=mailchimp-transactional-api-key:latest"
 
