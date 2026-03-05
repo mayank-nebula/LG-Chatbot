@@ -1,48 +1,36 @@
-function parseGraph(
-  headHtml: string,
-  slug: string,
-  type: string,
-): object | null {
-  const siteUrl = env.PUBLIC_SITE_URL;
-  const parsedSchema = extractLdJson(headHtml);
+async function createPool(): Promise<Pool> {
+  const dbHost = env.DB_HOST || "127.0.0.1";
+  const dbPort = Number(env.DB_PORT) || 5432;
+  const dbUser = env.DB_USER;
+  const dbPassword = env.DB_PASSWORD;
+  const dbName = env.DB_NAME;
 
-  for (const schema of parsedSchema) {
-    if (!schema["@graph"]) continue;
-
-    const excludedTypes = ["Organization", "WebSite", "BreadcrumbList"];
-
-    if (type === "podcasts") {
-      excludedTypes.push("BlogPosting");
-    }
-
-    let filteredGraph = schema["@graph"].filter((item: any) => {
-      const itemType = item["@type"];
-      // Convert to array so we don't have to write separate logic for strings vs arrays
-      const types = Array.isArray(itemType) ? itemType : [itemType];
-      
-      // Return true only if NONE of the types match our excluded list
-      return !types.some((t: string) => excludedTypes.includes(t));
-    });
-
-    const oldUrl = `${env.SITE_URL}/${slug}`;
-    const newUrl =
-      type === "podcasts"
-        ? `${siteUrl}/podcasts/${slug}`
-        : type == "blogs"
-          ? `${siteUrl}/supply-chain-hub/pr-news/${slug}`
-          : "";
-
-    const escapedOldUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-    let replacedString = JSON.stringify(filteredGraph)
-      .replace(new RegExp(escapedOldUrl + '(?=["/#?])', "g"), newUrl)
-      .replace(new RegExp(escapedSiteUrl + '(?!/wp)(?=["/#?])', "g"), siteUrl);
-
-    filteredGraph = JSON.parse(replacedString);
-
-    return { "@context": "https://schema.org", "@graph": filteredGraph };
+  if (!dbUser || !dbPassword || !dbName) {
+    throw new Error("DB_USER, DB_PASSWORD, and DB_NAME env vars are required.");
   }
 
-  return null;
+  const pool = new Pool({
+    host: dbHost,
+    port: dbPort,
+    user: dbUser,
+    password: dbPassword,
+    database: dbName,
+    max: 5,
+    idleTimeoutMillis: 0,
+    connectionTimeoutMillis: 5000,
+    ssl:
+      process.env.NODE_ENV === "production"
+        ? { rejectUnauthorized: false }
+        : false,
+  });
+
+  pool.on("error", (err) => console.error("[pg] pool error", err));
+  return pool;
 }
+
+
+
+
+
+
+
