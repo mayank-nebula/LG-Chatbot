@@ -1,25 +1,27 @@
-import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { env } from "@/lib/env";
 
 /**
- * Generic function to fetch page content from WordPress REST API with ISR
- * Use this for pages - data will be revalidated every 60 minutes
- * @template T - The type of data being fetched
- * @param endpoint - The API endpoint (e.g., 'about-us-page')
- * @param errorMessage - Custom error message if fetch fails
- * @returns Promise containing the typed page content
+ * Build WordPress API URL
+ * Centralized URL creation
  */
-export async function fetchPageContent<T>(
+function buildWpUrl(endpoint: string) {
+  const timestamp = Date.now();
+  return `${env.SITE_URL}/wp-json/site/v1/options/${endpoint}?t=${timestamp}`;
+}
+
+/**
+ * Base fetcher (no caching logic here)
+ */
+async function fetchFromWordPress<T>(
   endpoint: string,
   errorMessage: string = `Failed to fetch content from ${endpoint}`,
 ): Promise<T> {
-  const timestamp = Date.now();
-  const res = await fetch(
-    `${env.SITE_URL}/wp-json/site/v1/options/${endpoint}?t=${timestamp}`,
-    {
-      next: { revalidate: 3600 }, // ISR: Revalidate every 60 minutes
-    },
-  );
+  const url = buildWpUrl(endpoint);
+
+  const res = await fetch(url, {
+    cache: "no-store", // let unstable_cache control caching
+  });
 
   if (!res.ok) {
     throw new Error(errorMessage);
@@ -29,28 +31,39 @@ export async function fetchPageContent<T>(
 }
 
 /**
- * Cached version of fetchPageContent for components (header, footer, etc.)
- * Uses React's cache() to deduplicate requests within a single render
- * @template T - The type of data being fetched
- * @param endpoint - The API endpoint (e.g., 'header')
- * @param errorMessage - Custom error message if fetch fails
- * @returns Promise containing the typed page content
+ * Page-level fetch with ISR (unchanged behavior)
  */
-export const fetchPageContentCached = cache(async function <T>(
+export async function fetchPageContent<T>(
   endpoint: string,
   errorMessage: string = `Failed to fetch content from ${endpoint}`,
 ): Promise<T> {
-  const timestamp = Date.now();
-  const res = await fetch(
-    `${env.SITE_URL}/wp-json/site/v1/options/${endpoint}?t=${timestamp}`,
-    {
-      next: { revalidate: 3600 }, // ISR: Revalidate every 60 minutes
-    },
-  );
+  const res = await fetch(buildWpUrl(endpoint), {
+    next: { revalidate: 3600 }, // ISR: 60 minutes
+  });
 
   if (!res.ok) {
     throw new Error(errorMessage);
   }
 
   return res.json() as Promise<T>;
-});
+}
+
+/**
+ * Global cached version for shared components (header, footer, etc.)
+ * Cache key is based on endpoint slug
+ * Shared across users
+ */
+export async function fetchPageContentCached<T>(
+  endpoint: string,
+  errorMessage: string = `Failed to fetch content from ${endpoint}`,
+): Promise<T> {
+  const cachedFn = unstable_cache(
+    async () => fetchFromWordPress<T>(endpoint, errorMessage),
+    ["wp-options", endpoint], // cache key based on endpoint
+    {
+      revalidate: 3600, // 60 minutes
+    },
+  );
+
+  return cachedFn();
+}
