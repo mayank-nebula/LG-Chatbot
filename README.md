@@ -1,6 +1,9 @@
 import { env } from "@/lib/env";
 import { safeFetchJSON } from "@/lib/fetch";
 import { decode } from "html-entities";
+import { unstable_cache } from "next/cache";
+
+const REVALIDATE = 3600;
 
 export interface PageMetadata {
   title: string | null;
@@ -32,6 +35,7 @@ function extractLdJson(html: string): any[] {
   const results: any[] = [];
   const scriptRegex =
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+
   let match;
 
   while ((match = scriptRegex.exec(html)) !== null) {
@@ -41,7 +45,7 @@ function extractLdJson(html: string): any[] {
     try {
       results.push(JSON.parse(raw));
       continue;
-    } catch (e) {}
+    } catch {}
 
     try {
       const cleaned = cleanLdJson(raw);
@@ -60,8 +64,11 @@ function extractMetaContent(html: string, selector: string): string | null {
       `|<meta[^>]*content=["']([^"']*)["'][^>]*(?:name|property|http-equiv)=["']${selector}["'][^>]*\\/?>`,
     "i",
   );
+
   const match = html.match(regex);
+
   if (!match) return null;
+
   return match[1] ?? match[2] ?? null;
 }
 
@@ -109,7 +116,7 @@ function parseGraph(
     const newUrl =
       type === "podcasts"
         ? `${siteUrl}/podcasts/${slug}`
-        : type == "blogs"
+        : type === "blogs"
           ? `${siteUrl}/supply-chain-hub/pr-news/${slug}`
           : "";
 
@@ -174,7 +181,9 @@ function parseCanonical(headHtml: string, type: string): string | null {
 function parseMetadata(headHtml: string): PageMetadata {
   const siteUrl = env.PUBLIC_SITE_URL;
   const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const rb = (v: string | null) => replaceBaseUrl(v, escapedSiteUrl, siteUrl);
+
+  const rb = (v: string | null) =>
+    replaceBaseUrl(v, escapedSiteUrl, siteUrl);
 
   return {
     title: decode(rb(extractTitle(headHtml))) ?? null,
@@ -193,6 +202,41 @@ function parseMetadata(headHtml: string): PageMetadata {
   };
 }
 
+/* ------------------------------------------------ */
+/* FETCH + CACHE HEAD HTML (ONLY DEPENDS ON SLUG) */
+/* ------------------------------------------------ */
+
+async function _fetchRankMathHeadHtml(slug: string): Promise<string | null> {
+  try {
+    const url = `${env.SITE_URL}/wp-json/rankmath/v1/getHead?url=${env.SITE_URL}/${slug}`;
+
+    try {
+      const res = await safeFetchJSON(url);
+      if (res?.head) return res.head;
+    } catch {}
+
+    const rawRes = await fetch(`${env.SITE_URL}/${slug}`);
+
+    if (!rawRes.ok) return null;
+
+    return await rawRes.text();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRankMathHeadHtml(slug: string) {
+  return unstable_cache(
+    () => _fetchRankMathHeadHtml(slug),
+    ["rankmath-head-html", slug],
+    { revalidate: REVALIDATE },
+  )();
+}
+
+/* ------------------------------------------------ */
+/* MAIN FUNCTION */
+/* ------------------------------------------------ */
+
 export async function getRankMathHead(
   slug: string,
   type: string,
@@ -203,20 +247,7 @@ export async function getRankMathHead(
   },
 ): Promise<RankMathHeadData | null> {
   try {
-    const url = `${env.SITE_URL}/wp-json/rankmath/v1/getHead?url=${env.SITE_URL}/${slug}`;
-
-    let headHtml: string | null = null;
-
-    try {
-      const res = await safeFetchJSON(url, {
-        next: { revalidate: 3600 },
-      });
-      if (res?.head) headHtml = res.head;
-    } catch {
-      const rawRes = await fetch(`${env.SITE_URL}/${slug}`);
-      if (!rawRes.ok) return null;
-      headHtml = await rawRes.text();
-    }
+    const headHtml = await fetchRankMathHeadHtml(slug);
 
     if (!headHtml) return null;
 
