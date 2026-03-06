@@ -1,263 +1,140 @@
+import { MetadataRoute } from "next";
+import { query } from "@/lib/db";
 import { env } from "@/lib/env";
-import { safeFetchJSON } from "@/lib/fetch";
-import { decode } from "html-entities";
-import { unstable_cache } from "next/cache";
+import postsData from "@/data/wisc_blog.json";
 
-const REVALIDATE = 3600;
+const BASE_URL = env.PUBLIC_SITE_URL;
+const NOW = new Date();
 
-export interface PageMetadata {
-  title: string | null;
-  description: string | null;
-  ogTitle: string | null;
-  ogDescription: string | null;
-  ogImage: string | null;
-  ogType: string | null;
-  twitterTitle: string | null;
-  twitterDescription: string | null;
-  twitterImage: string | null;
-  twitterCard: string | null;
+function toUrl(path: string): string {
+  return `${BASE_URL}${path}`;
 }
 
-export interface RankMathHeadData {
-  graph: object | null;
-  canonical: string | null;
-  metadata: PageMetadata | null;
+function toDate(date?: string | null): Date {
+  if (!date) return NOW;
+  const parsed = new Date(date);
+  return isNaN(parsed.getTime()) ? NOW : parsed;
 }
 
-function cleanLdJson(raw: string): string {
-  let cleaned = raw.replace(/\\'/g, "'");
-  cleaned = cleaned.replace(/\\&/g, "&");
-  cleaned = cleaned.replace(/\\([^"\\/bfnrtu])/g, "$1");
-  return cleaned;
-}
+async function getPodcastsSlugs(): Promise<{ slug: string; date: string }[]> {
+  try {
+    const sql = `
+      SELECT slug, date 
+      FROM episodes_data
+      ORDER BY date DESC
+    `;
 
-function extractLdJson(html: string): any[] {
-  const results: any[] = [];
-  const scriptRegex =
-    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+    const rows = await query<{
+      slug: string;
+      date: string;
+    }>(sql, []);
 
-  let match;
-
-  while ((match = scriptRegex.exec(html)) !== null) {
-    const raw = match[1];
-    if (!raw || !raw.trim()) continue;
-
-    try {
-      results.push(JSON.parse(raw));
-      continue;
-    } catch {}
-
-    try {
-      const cleaned = cleanLdJson(raw);
-      results.push(JSON.parse(cleaned));
-    } catch (e) {
-      console.warn("Warning: Failed to parse ld+json block after cleaning:", e);
-    }
+    return rows;
+  } catch (err) {
+    console.error("[sitemap] Failed to fetch podcast slugs:", err);
+    return [];
   }
-
-  return results;
 }
 
-function extractMetaContent(html: string, selector: string): string | null {
-  const regex = new RegExp(
-    `<meta[^>]*(?:name|property|http-equiv)=["']${selector}["'][^>]*content=["']([^"']*)["'][^>]*\\/?>` +
-      `|<meta[^>]*content=["']([^"']*)["'][^>]*(?:name|property|http-equiv)=["']${selector}["'][^>]*\\/?>`,
-    "i",
+async function getNewsSlugs(): Promise<{ slug: string; date: string }[]> {
+  try {
+    const sql = `
+      SELECT slug, date 
+      FROM articles_data
+      ORDER BY date DESC
+    `;
+
+    const rows = await query<{
+      slug: string;
+      date: string;
+    }>(sql, []);
+
+    return rows;
+  } catch (err) {
+    console.error("[sitemap] Failed to fetch news slugs:", err);
+    return [];
+  }
+}
+
+const STATIC_ROUTES: {
+  path: string;
+  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
+  priority: number;
+}[] = [
+  { path: "/", changeFrequency: "weekly", priority: 1.0 },
+  { path: "/supply-chain-hub", changeFrequency: "weekly", priority: 0.9 },
+  {
+    path: "/supply-chain-hub/pr-news",
+    changeFrequency: "monthly",
+    priority: 0.8,
+  },
+  {
+    path: "/supply-chain-hub/linkedin-updates",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+  {
+    path: "/supply-chain-hub/women-in-supply-chain",
+    changeFrequency: "never",
+    priority: 0.8,
+  },
+  { path: "/community", changeFrequency: "never", priority: 0.8 },
+  { path: "/podcasts", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/events", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/about-us", changeFrequency: "never", priority: 0.5 },
+  { path: "/watch", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/watch/tpm-today", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/work-with-us", changeFrequency: "never", priority: 0.5 },
+  { path: "/impact", changeFrequency: "weekly", priority: 0.5 },
+  { path: "/terms-and-conditions", changeFrequency: "never", priority: 0.5 },
+  { path: "/privacy-policy", changeFrequency: "never", priority: 0.5 },
+  {
+    path: "/watch/thoughts-and-coffee",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+  {
+    path: "/watch/performance-paradox",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+];
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [podcasts, news] = await Promise.all([
+    getPodcastsSlugs(),
+    getNewsSlugs(),
+  ]);
+
+  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map(
+    ({ path, changeFrequency, priority }) => ({
+      url: toUrl(path),
+      lastModified: NOW,
+      changeFrequency,
+      priority,
+    }),
   );
 
-  const match = html.match(regex);
+  const wiscEntries: MetadataRoute.Sitemap = postsData.map((item) => ({
+    url: toUrl(`/supply-chain-hub/women-in-supply-chain${item.slug}`),
+    lastModified: toDate(item.date),
+    changeFrequency: "never",
+    priority: 0.9,
+  }));
 
-  if (!match) return null;
+  const podcastEntries: MetadataRoute.Sitemap = podcasts.map((item) => ({
+    url: toUrl(`/podcasts/${item.slug}`),
+    lastModified: toDate(item.date),
+    changeFrequency: "monthly",
+    priority: 0.9,
+  }));
 
-  return match[1] ?? match[2] ?? null;
-}
+  const newsEntries: MetadataRoute.Sitemap = news.map((item) => ({
+    url: toUrl(`/supply-chain-hub/pr-news/${item.slug}`),
+    lastModified: toDate(item.date),
+    changeFrequency: "monthly",
+    priority: 0.9,
+  }));
 
-function extractTitle(html: string): string | null {
-  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return match ? match[1].trim() : null;
-}
-
-function replaceBaseUrl(
-  value: string | null,
-  escapedSiteUrl: string,
-  publicSiteUrl: string,
-): string | null {
-  if (!value) return null;
-  return value.replace(new RegExp(escapedSiteUrl, "g"), publicSiteUrl);
-}
-
-function parseGraph(
-  headHtml: string,
-  slug: string,
-  type: string,
-): object | null {
-  const siteUrl = env.PUBLIC_SITE_URL;
-  const parsedSchema = extractLdJson(headHtml);
-
-  for (const schema of parsedSchema) {
-    if (!schema["@graph"]) continue;
-
-    const excludedTypes = ["Organization", "WebSite", "BreadcrumbList"];
-
-    if (type === "podcasts") {
-      excludedTypes.push("BlogPosting");
-    } else if (type === "blogs") {
-      excludedTypes.push("PodcastEpisode");
-    }
-
-    let filteredGraph = schema["@graph"].filter((item: any) => {
-      const itemType = item["@type"];
-      const types = Array.isArray(itemType) ? itemType : [itemType];
-
-      return !types.some((t: string) => excludedTypes.includes(t));
-    });
-
-    const oldUrl = `${env.SITE_URL}/${slug}`;
-    const newUrl =
-      type === "podcasts"
-        ? `${siteUrl}/podcasts/${slug}`
-        : type === "blogs"
-          ? `${siteUrl}/supply-chain-hub/pr-news/${slug}`
-          : "";
-
-    const escapedOldUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-    let replacedString = JSON.stringify(filteredGraph)
-      .replace(new RegExp(escapedOldUrl + '(?=["/#?])', "g"), newUrl)
-      .replace(new RegExp(escapedSiteUrl + '(?!/wp)(?=["/#?])', "g"), siteUrl);
-
-    filteredGraph = JSON.parse(replacedString);
-
-    return { "@context": "https://schema.org", "@graph": filteredGraph };
-  }
-
-  return null;
-}
-
-function parseCanonical(headHtml: string, type: string): string | null {
-  const canonicalMatch =
-    headHtml.match(
-      /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*\/?>/i,
-    ) ??
-    headHtml.match(
-      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["'][^>]*\/?>/i,
-    );
-
-  if (!canonicalMatch?.[1]) return null;
-
-  const rawCanonical = canonicalMatch[1];
-  const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  if (!new RegExp(`^${escapedSiteUrl}`).test(rawCanonical)) {
-    return rawCanonical;
-  }
-
-  const slugFromHref = rawCanonical
-    .replace(new RegExp(`^${escapedSiteUrl}/?`), "")
-    .replace(/\/+$/, "");
-
-  const siteUrl = env.PUBLIC_SITE_URL;
-
-  return type === "podcasts"
-    ? `${siteUrl}/podcasts/${slugFromHref}`
-    : type === "supply-chain-hub/women-in-supply-chain"
-      ? `${siteUrl}/supply-chain-hub/women-in-supply-chain/${slugFromHref}`
-      : type === "blogs"
-        ? `${siteUrl}/supply-chain-hub/pr-news/${slugFromHref}`
-        : type === "supply-chain-news"
-          ? `${siteUrl}/supply-chain-hub/pr-news`
-          : type === "wisc"
-            ? `${siteUrl}/supply-chain-hub/women-in-supply-chain`
-            : type === "linkedin"
-              ? `${siteUrl}/linkedin-updates`
-              : type === "ltsc-youtube"
-                ? `${siteUrl}/watch`
-                : type === "watch"
-                  ? `${siteUrl}/watch/${slugFromHref}`
-                  : `${siteUrl}/${slugFromHref}`;
-}
-
-function parseMetadata(headHtml: string): PageMetadata {
-  const siteUrl = env.PUBLIC_SITE_URL;
-  const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  const rb = (v: string | null) =>
-    replaceBaseUrl(v, escapedSiteUrl, siteUrl);
-
-  return {
-    title: decode(rb(extractTitle(headHtml))) ?? null,
-    description:
-      decode(rb(extractMetaContent(headHtml, "description"))) ?? null,
-    ogTitle: decode(rb(extractMetaContent(headHtml, "og:title"))) ?? null,
-    ogDescription:
-      decode(rb(extractMetaContent(headHtml, "og:description"))) ?? null,
-    ogImage: extractMetaContent(headHtml, "og:image") ?? null,
-    ogType: decode(extractMetaContent(headHtml, "og:type")) ?? null,
-    twitterTitle: extractMetaContent(headHtml, "twitter:title") ?? null,
-    twitterDescription:
-      extractMetaContent(headHtml, "twitter:description") ?? null,
-    twitterImage: extractMetaContent(headHtml, "twitter:image") ?? null,
-    twitterCard: extractMetaContent(headHtml, "twitter:card") ?? null,
-  };
-}
-
-/* ------------------------------------------------ */
-/* FETCH + CACHE HEAD HTML (ONLY DEPENDS ON SLUG) */
-/* ------------------------------------------------ */
-
-async function _fetchRankMathHeadHtml(slug: string): Promise<string | null> {
-  try {
-    const url = `${env.SITE_URL}/wp-json/rankmath/v1/getHead?url=${env.SITE_URL}/${slug}`;
-
-    try {
-      const res = await safeFetchJSON(url);
-      if (res?.head) return res.head;
-    } catch {}
-
-    const rawRes = await fetch(`${env.SITE_URL}/${slug}`);
-
-    if (!rawRes.ok) return null;
-
-    return await rawRes.text();
-  } catch {
-    return null;
-  }
-}
-
-async function fetchRankMathHeadHtml(slug: string) {
-  return unstable_cache(
-    () => _fetchRankMathHeadHtml(slug),
-    ["rankmath-head-html", slug],
-    { revalidate: REVALIDATE },
-  )();
-}
-
-/* ------------------------------------------------ */
-/* MAIN FUNCTION */
-/* ------------------------------------------------ */
-
-export async function getRankMathHead(
-  slug: string,
-  type: string,
-  options: { graph?: boolean; canonical?: boolean; metadata?: boolean } = {
-    graph: true,
-    canonical: true,
-    metadata: true,
-  },
-): Promise<RankMathHeadData | null> {
-  try {
-    const headHtml = await fetchRankMathHeadHtml(slug);
-
-    if (!headHtml) return null;
-
-    return {
-      graph: options.graph ? parseGraph(headHtml, slug, type) : null,
-      canonical: options.canonical ? parseCanonical(headHtml, type) : null,
-      metadata: options.metadata ? parseMetadata(headHtml) : null,
-    };
-  } catch (error) {
-    console.error("Error fetching RankMath head data:", error);
-    return null;
-  }
+  return [...staticEntries, ...wiscEntries, ...podcastEntries, ...newsEntries];
 }
