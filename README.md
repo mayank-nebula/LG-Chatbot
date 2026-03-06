@@ -1,4 +1,27 @@
-media_link: item.media_link?.replace(
-    /https:\/\/letstalksupplychain\.com/g,
-    "https://wp.letstalksupplychain.com"
-  )
+const data: any = await safeFetchJSON(url.toString(), {
+    next: { revalidate: 3600 },
+  });
+
+
+  export async function safeFetchJSON(url: string, options: RequestInit = {}) {
+  const res = await fetchWithTimeout(url, {
+    headers: { "User-Agent": "Mozilla/5.0", ...(options.headers ?? {}) },
+    ...options,
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Fetch failed (${res.status}) ${url} - ${body}`);
+  }
+
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    // Provide a short preview to help diagnosis without leaking everything.
+    const preview = text.slice(0, 300);
+    console.error("safeFetchJSON: invalid JSON response preview:", preview);
+    throw new Error("Invalid JSON response");
+  }
+}
