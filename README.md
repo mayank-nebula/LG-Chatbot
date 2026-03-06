@@ -1,13 +1,13 @@
-While reviewing the YouTube integration, I noticed a difference between the previous implementation and the current approach, which explains the higher YouTube Data API quota usage.
+Hi Soniya,
 
-In the earlier implementation, the system fetched the channel’s complete YouTube feed using the uploads playlist and then filtered the results in the application to identify previous live streams before rendering them. Since playlist-based requests cost only 1 quota unit per request, this approach kept the API usage relatively low.
+This sounds good. We will need a couple of supporting documents for the request.  
 
-However, that approach also had a limitation from a user experience perspective. Because it relied on fetching the general uploads feed and filtering afterward, cases could occur where the “Load More” functionality did not return any additional relevant results even though the user expected more live event content.
+Can you ask your team to compile and provide the following:
+1.	Current Daily Quota Usage: You can pull a screenshot or export of the quota usage graph from the Google Cloud Console (APIs & Services > Quotas > YouTube Data API v3) showing recent consumption trends.
+2.	Requested Quota: Based on your expected daily search.list request volume, please provide a specific quota number you'd like to request, along with a brief explanation of how you arrived at that figure.
+3.	Business Justification: A short written statement explaining the purpose of the integration, why the search.list endpoint is necessary, and the user impact if the quota limit is not increased.
+These documents are required for Google to evaluate whether they will grant the request or not.
 
-In the current implementation, the integration uses the search.list endpoint with parameters such as eventType=live and eventType=upcoming to directly retrieve relevant live event data. This helps ensure that the results being loaded are specifically related to live or upcoming events, providing a better and more consistent user experience.
+Thanks,
 
-However, the search.list endpoint costs 100 quota units per request, which leads to significantly higher quota consumption compared to the earlier playlist-based approach.
-
-Due to this difference in API usage and the frequency of requests, the project is reaching the current daily quota limit.
-
-Could you please help initiate a request to increase the YouTube Data API daily quota for this project so the integration can continue to function smoothly?
+Chris
