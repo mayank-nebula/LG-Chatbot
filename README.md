@@ -1,253 +1,232 @@
-import { unstable_cache } from "next/cache";
 import { env } from "@/lib/env";
 import { safeFetchJSON } from "@/lib/fetch";
+import { decode } from "html-entities";
 
-import type {
-  PlaylistResponse,
-  LiveDetailsMap,
-  LiveEventResponse,
-} from "@/types/youtube";
-
-const REVALIDATE = 3600;
-
-export const PLAYLIST_MAP: Record<string, string> = {
-  "tpm-today": "PLFKDRuq7tnIpkl7eUKgCbdvpX7dCpAdRN",
-  "performance-paradox": "PLFKDRuq7tnIpnPt44AVdo0QnqlCoEDfTy",
-  "thoughts-and-coffee": "PLFKDRuq7tnIphnKPW1IAivCVG92M0v6fE",
-};
-
-export function resolvePlaylist(keyword: string): string | null {
-  return PLAYLIST_MAP[keyword] ?? null;
+export interface PageMetadata {
+  title: string | null;
+  description: string | null;
+  ogTitle: string | null;
+  ogDescription: string | null;
+  ogImage: string | null;
+  ogType: string | null;
+  twitterTitle: string | null;
+  twitterDescription: string | null;
+  twitterImage: string | null;
+  twitterCard: string | null;
 }
 
-/* ------------------------------------------------ */
-/* PLAYLIST VIDEOS */
-/* ------------------------------------------------ */
-
-const _fetchPlaylistVideos = async (
-  playlistId: string,
-  pageToken?: string,
-  limit = 9,
-): Promise<PlaylistResponse> => {
-  const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
-
-  url.searchParams.set("part", "snippet");
-  url.searchParams.set("maxResults", String(limit));
-  url.searchParams.set("playlistId", playlistId);
-  url.searchParams.set("key", env.YOUTUBE_API_KEY);
-
-  if (pageToken) url.searchParams.set("pageToken", pageToken);
-
-  const data: any = await safeFetchJSON(url.toString());
-
-  return {
-    items: (data.items ?? []).map((item: any) => ({
-      videoId: item.snippet.resourceId?.videoId ?? null,
-      title: item.snippet.title ?? "",
-      publishedAt: item.snippet.publishedAt ?? "",
-      thumbnail: item.snippet.thumbnails?.medium?.url ?? null,
-    })),
-    playlistThumbnail: data.items?.[0]?.snippet?.thumbnails?.high?.url,
-    nextPageToken: data.nextPageToken ?? null,
-  };
-};
-
-export async function fetchPlaylistVideos(
-  playlistId: string,
-  pageToken?: string,
-  limit = 9,
-) {
-  return unstable_cache(
-    () => _fetchPlaylistVideos(playlistId, pageToken, limit),
-    ["yt-playlist", playlistId, pageToken ?? "", String(limit)],
-    { revalidate: REVALIDATE },
-  )();
+export interface RankMathHeadData {
+  graph: object | null;
+  canonical: string | null;
+  metadata: PageMetadata | null;
 }
 
-/* ------------------------------------------------ */
-/* COMPLETED EVENTS */
-/* ------------------------------------------------ */
-
-const _fetchCompletedEvents = async (
-  pageToken?: string,
-  limit = 9,
-): Promise<PlaylistResponse> => {
-  const url = new URL("https://www.googleapis.com/youtube/v3/search");
-
-  url.searchParams.set("part", "snippet");
-  url.searchParams.set("channelId", env.YOUTUBE_CHANNEL_ID);
-  url.searchParams.set("type", "video");
-  url.searchParams.set("eventType", "completed");
-  url.searchParams.set("maxResults", String(limit));
-  url.searchParams.set("order", "date");
-  url.searchParams.set("key", env.YOUTUBE_API_KEY);
-
-  if (pageToken) url.searchParams.set("pageToken", pageToken);
-
-  const data: any = await safeFetchJSON(url.toString());
-
-  return {
-    items: (data.items ?? []).map((item: any) => ({
-      videoId: item.id?.videoId ?? null,
-      title: item.snippet.title ?? "",
-      publishedAt: item.snippet.publishedAt ?? "",
-      thumbnail: item.snippet.thumbnails?.medium?.url ?? null,
-    })),
-    playlistThumbnail: null,
-    nextPageToken: data.nextPageToken ?? null,
-  };
-};
-
-export async function fetchCompletedEvents(pageToken?: string, limit = 9) {
-  return unstable_cache(
-    () => _fetchCompletedEvents(pageToken, limit),
-    ["yt-completed", pageToken ?? "", String(limit)],
-    { revalidate: REVALIDATE },
-  )();
+function cleanLdJson(raw: string): string {
+  let cleaned = raw.replace(/\\'/g, "'");
+  cleaned = cleaned.replace(/\\&/g, "&");
+  cleaned = cleaned.replace(/\\([^"\\/bfnrtu])/g, "$1");
+  return cleaned;
 }
 
-/* ------------------------------------------------ */
-/* GENERIC YOUTUBE EVENT REQUEST */
-/* ------------------------------------------------ */
+function extractLdJson(html: string): any[] {
+  const results: any[] = [];
+  const scriptRegex =
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
 
-const _ytRequestEvents = async (
-  endpoint: string,
-  params: Record<string, string>,
-): Promise<LiveEventResponse> => {
-  const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
+  while ((match = scriptRegex.exec(html)) !== null) {
+    const raw = match[1];
+    if (!raw || !raw.trim()) continue;
 
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    try {
+      results.push(JSON.parse(raw));
+      continue;
+    } catch (e) {}
 
-  const data: any = await safeFetchJSON(url.toString());
-
-  return {
-    items: (data.items ?? []).map((item: any) => ({
-      videoId: item.id?.videoId ?? null,
-      title: item.snippet?.title ?? "",
-      thumbnail: item.snippet?.thumbnails?.medium?.url ?? null,
-    })),
-  };
-};
-
-async function ytRequestEvents(
-  endpoint: string,
-  params: Record<string, string>,
-) {
-  const cacheKey = [
-    "yt-events",
-    endpoint,
-    ...Object.values(params),
-  ];
-
-  return unstable_cache(
-    () => _ytRequestEvents(endpoint, params),
-    cacheKey,
-    { revalidate: REVALIDATE },
-  )();
-}
-
-/* ------------------------------------------------ */
-/* LIVE DETAILS */
-/* ------------------------------------------------ */
-
-const _fetchLiveDetails = async (
-  videoIds: string[],
-): Promise<LiveDetailsMap> => {
-  if (!videoIds || videoIds.length === 0) return {};
-
-  const url = new URL("https://www.googleapis.com/youtube/v3/videos");
-
-  url.searchParams.set("part", "liveStreamingDetails");
-  url.searchParams.set("id", videoIds.join(","));
-  url.searchParams.set("key", env.YOUTUBE_API_KEY);
-
-  const data: any = await safeFetchJSON(url.toString());
-
-  const result: LiveDetailsMap = {};
-
-  for (const item of data.items ?? []) {
-    result[item.id] = {
-      scheduledStartTime:
-        item.liveStreamingDetails?.scheduledStartTime ?? null,
-      actualStartTime:
-        item.liveStreamingDetails?.actualStartTime ?? null,
-    };
+    try {
+      const cleaned = cleanLdJson(raw);
+      results.push(JSON.parse(cleaned));
+    } catch (e) {
+      console.warn("Warning: Failed to parse ld+json block after cleaning:", e);
+    }
   }
 
-  return result;
-};
-
-export async function fetchLiveDetails(videoIds: string[]) {
-  return unstable_cache(
-    () => _fetchLiveDetails(videoIds),
-    ["yt-live-details", ...videoIds],
-    { revalidate: REVALIDATE },
-  )();
+  return results;
 }
 
-/* ------------------------------------------------ */
-/* ALL RECENT VIDEOS */
-/* ------------------------------------------------ */
+function extractMetaContent(html: string, selector: string): string | null {
+  const regex = new RegExp(
+    `<meta[^>]*(?:name|property|http-equiv)=["']${selector}["'][^>]*content=["']([^"']*)["'][^>]*\\/?>` +
+      `|<meta[^>]*content=["']([^"']*)["'][^>]*(?:name|property|http-equiv)=["']${selector}["'][^>]*\\/?>`,
+    "i",
+  );
+  const match = html.match(regex);
+  if (!match) return null;
+  return match[1] ?? match[2] ?? null;
+}
 
-const _fetchAllRecentVideos = async (
-  pageToken?: string,
-  limit = 9,
-): Promise<PlaylistResponse> => {
-  const url = new URL("https://www.googleapis.com/youtube/v3/search");
+function extractTitle(html: string): string | null {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match ? match[1].trim() : null;
+}
 
-  url.searchParams.set("part", "snippet");
-  url.searchParams.set("channelId", env.YOUTUBE_CHANNEL_ID);
-  url.searchParams.set("maxResults", String(limit));
-  url.searchParams.set("order", "date");
-  url.searchParams.set("type", "video");
-  url.searchParams.set("key", env.YOUTUBE_API_KEY);
+function replaceBaseUrl(
+  value: string | null,
+  escapedSiteUrl: string,
+  publicSiteUrl: string,
+): string | null {
+  if (!value) return null;
+  return value.replace(new RegExp(escapedSiteUrl, "g"), publicSiteUrl);
+}
 
-  if (pageToken) url.searchParams.set("pageToken", pageToken);
+function parseGraph(
+  headHtml: string,
+  slug: string,
+  type: string,
+): object | null {
+  const siteUrl = env.PUBLIC_SITE_URL;
+  const parsedSchema = extractLdJson(headHtml);
 
-  const data: any = await safeFetchJSON(url.toString());
+  for (const schema of parsedSchema) {
+    if (!schema["@graph"]) continue;
+
+    const excludedTypes = ["Organization", "WebSite", "BreadcrumbList"];
+
+    if (type === "podcasts") {
+      excludedTypes.push("BlogPosting");
+    } else if (type === "blogs") {
+      excludedTypes.push("PodcastEpisode");
+    }
+
+    let filteredGraph = schema["@graph"].filter((item: any) => {
+      const itemType = item["@type"];
+      const types = Array.isArray(itemType) ? itemType : [itemType];
+
+      return !types.some((t: string) => excludedTypes.includes(t));
+    });
+
+    const oldUrl = `${env.SITE_URL}/${slug}`;
+    const newUrl =
+      type === "podcasts"
+        ? `${siteUrl}/podcasts/${slug}`
+        : type == "blogs"
+          ? `${siteUrl}/supply-chain-hub/pr-news/${slug}`
+          : "";
+
+    const escapedOldUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    let replacedString = JSON.stringify(filteredGraph)
+      .replace(new RegExp(escapedOldUrl + '(?=["/#?])', "g"), newUrl)
+      .replace(new RegExp(escapedSiteUrl + '(?!/wp)(?=["/#?])', "g"), siteUrl);
+
+    filteredGraph = JSON.parse(replacedString);
+
+    return { "@context": "https://schema.org", "@graph": filteredGraph };
+  }
+
+  return null;
+}
+
+function parseCanonical(headHtml: string, type: string): string | null {
+  const canonicalMatch =
+    headHtml.match(
+      /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*\/?>/i,
+    ) ??
+    headHtml.match(
+      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["'][^>]*\/?>/i,
+    );
+
+  if (!canonicalMatch?.[1]) return null;
+
+  const rawCanonical = canonicalMatch[1];
+  const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if (!new RegExp(`^${escapedSiteUrl}`).test(rawCanonical)) {
+    return rawCanonical;
+  }
+
+  const slugFromHref = rawCanonical
+    .replace(new RegExp(`^${escapedSiteUrl}/?`), "")
+    .replace(/\/+$/, "");
+
+  const siteUrl = env.PUBLIC_SITE_URL;
+
+  return type === "podcasts"
+    ? `${siteUrl}/podcasts/${slugFromHref}`
+    : type === "supply-chain-hub/women-in-supply-chain"
+      ? `${siteUrl}/supply-chain-hub/women-in-supply-chain/${slugFromHref}`
+      : type === "blogs"
+        ? `${siteUrl}/supply-chain-hub/pr-news/${slugFromHref}`
+        : type === "supply-chain-news"
+          ? `${siteUrl}/supply-chain-hub/pr-news`
+          : type === "wisc"
+            ? `${siteUrl}/supply-chain-hub/women-in-supply-chain`
+            : type === "linkedin"
+              ? `${siteUrl}/linkedin-updates`
+              : type === "ltsc-youtube"
+                ? `${siteUrl}/watch`
+                : type === "watch"
+                  ? `${siteUrl}/watch/${slugFromHref}`
+                  : `${siteUrl}/${slugFromHref}`;
+}
+
+function parseMetadata(headHtml: string): PageMetadata {
+  const siteUrl = env.PUBLIC_SITE_URL;
+  const escapedSiteUrl = env.SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rb = (v: string | null) => replaceBaseUrl(v, escapedSiteUrl, siteUrl);
 
   return {
-    items: (data.items ?? []).map((item: any) => ({
-      videoId: item.id?.videoId ?? null,
-      title: item.snippet.title ?? "",
-      publishedAt: item.snippet.publishedAt ?? "",
-      thumbnail: item.snippet.thumbnails?.medium?.url ?? null,
-    })),
-    playlistThumbnail: null,
-    nextPageToken: data.nextPageToken ?? null,
+    title: decode(rb(extractTitle(headHtml))) ?? null,
+    description:
+      decode(rb(extractMetaContent(headHtml, "description"))) ?? null,
+    ogTitle: decode(rb(extractMetaContent(headHtml, "og:title"))) ?? null,
+    ogDescription:
+      decode(rb(extractMetaContent(headHtml, "og:description"))) ?? null,
+    ogImage: extractMetaContent(headHtml, "og:image") ?? null,
+    ogType: decode(extractMetaContent(headHtml, "og:type")) ?? null,
+    twitterTitle: extractMetaContent(headHtml, "twitter:title") ?? null,
+    twitterDescription:
+      extractMetaContent(headHtml, "twitter:description") ?? null,
+    twitterImage: extractMetaContent(headHtml, "twitter:image") ?? null,
+    twitterCard: extractMetaContent(headHtml, "twitter:card") ?? null,
   };
-};
-
-export async function fetchAllRecentVideos(pageToken?: string, limit = 9) {
-  return unstable_cache(
-    () => _fetchAllRecentVideos(pageToken, limit),
-    ["yt-recent", pageToken ?? "", String(limit)],
-    { revalidate: REVALIDATE },
-  )();
 }
 
-/* ------------------------------------------------ */
-/* LIVE + UPCOMING */
-/* ------------------------------------------------ */
+export async function getRankMathHead(
+  slug: string,
+  type: string,
+  options: { graph?: boolean; canonical?: boolean; metadata?: boolean } = {
+    graph: true,
+    canonical: true,
+    metadata: true,
+  },
+): Promise<RankMathHeadData | null> {
+  try {
+    const url = `${env.SITE_URL}/wp-json/rankmath/v1/getHead?url=${env.SITE_URL}/${slug}`;
 
-export async function getUpcomingEvents() {
-  return ytRequestEvents("search", {
-    part: "snippet",
-    type: "video",
-    eventType: "upcoming",
-    order: "date",
-    key: env.YOUTUBE_API_KEY,
-    channelId: env.YOUTUBE_CHANNEL_ID,
-  });
-}
+    let headHtml: string | null = null;
 
-export async function getLiveEvents() {
-  return ytRequestEvents("search", {
-    part: "snippet",
-    type: "video",
-    eventType: "live",
-    order: "date",
-    key: env.YOUTUBE_API_KEY,
-    channelId: env.YOUTUBE_CHANNEL_ID,
-  });
+    try {
+      const res = await safeFetchJSON(url, {
+        next: { revalidate: 3600 },
+      });
+      if (res?.head) headHtml = res.head;
+    } catch {
+      const rawRes = await fetch(`${env.SITE_URL}/${slug}`);
+      if (!rawRes.ok) return null;
+      headHtml = await rawRes.text();
+    }
+
+    if (!headHtml) return null;
+
+    return {
+      graph: options.graph ? parseGraph(headHtml, slug, type) : null,
+      canonical: options.canonical ? parseCanonical(headHtml, type) : null,
+      metadata: options.metadata ? parseMetadata(headHtml) : null,
+    };
+  } catch (error) {
+    console.error("Error fetching RankMath head data:", error);
+    return null;
+  }
 }
