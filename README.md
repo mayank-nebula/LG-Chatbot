@@ -1,76 +1,13 @@
-add_action('rest_api_init', function () {
+While reviewing the YouTube integration, I noticed a difference between the previous implementation and the current approach, which explains the higher YouTube Data API quota usage.
 
-    register_rest_route('site/v1', '/options/(?P<slug>[a-zA-Z0-9_-]+)', [
-        'methods'  => 'GET',
-        'callback' => function ($data) {
+In the earlier implementation, the system fetched the channel’s complete YouTube feed using the uploads playlist and then filtered the results in the application to identify previous live streams before rendering them. Since playlist-based requests cost only 1 quota unit per request, this approach kept the API usage relatively low.
 
-            $slug    = $data['slug'];
-            $post_id = str_replace('-', '_', $slug);
-			
-            $fields = get_fields($post_id);
+However, that approach also had a limitation from a user experience perspective. Because it relied on fetching the general uploads feed and filtering afterward, cases could occur where the “Load More” functionality did not return any additional relevant results even though the user expected more live event content.
 
-            if (!$fields) {
-                return new WP_Error(
-                    'no_options_found',
-                    'No options found for this slug',
-                    ['status' => 404]
-                );
-            }
-        
-            return $fields;
-        },
-        'permission_callback' => '__return_true'
-    ]);
+In the current implementation, the integration uses the search.list endpoint with parameters such as eventType=live and eventType=upcoming to directly retrieve relevant live event data. This helps ensure that the results being loaded are specifically related to live or upcoming events, providing a better and more consistent user experience.
 
-});
+However, the search.list endpoint costs 100 quota units per request, which leads to significantly higher quota consumption compared to the earlier playlist-based approach.
 
+Due to this difference in API usage and the frequency of requests, the project is reaching the current daily quota limit.
 
-add_action('acf/init', function() { 
-    // Parent Page (Appears After ACF) 
-    acf_add_options_page([ 
-        'page_title' => 'Site Pages', 
-        'menu_title' => 'Site Pages', 
-        'menu_slug'  => 'site-pages', 
-        'redirect'   => false, 
-        'position'   => 81, 
-        'icon_url'   => 'dashicons-admin-generic', 
-    ]); 
-
-    // Child Pages Under Parent (Sorted Alphabetically)
-    $pages = [ 
-        'about-us-page'             => 'About Us Page',
-        'community-page'            => 'Community Page',
-        'compliance-statement-page' => 'Compliance Statement Page',
-        'events-page'               => 'Events Page',
-        'faq-page'                  => 'FAQ',
-        'footer'                    => 'Footer',
-        'gemini-chatbot'            => 'Gemini Chatbot',
-        'get-featured-page'         => 'Get Featured Page',
-        'header'                    => 'Header',
-        'home-page'                 => 'Home Page',
-        'impact-page'               => 'Impact Page',
-        'linkedin'                  => 'LinkedIn Page',
-        'partner-with-us'           => 'Partner With Us',
-        'performance-paradox-page'  => 'Performance Paradox Page',
-        'podcasts-page'             => 'Podcasts Page',
-        'pr-news'                   => 'PR News Page',
-        'privacy-policy-page'       => 'Privacy Policy Page',
-        'supply-chain-hub-page'     => 'Supply Chain Hub Page',
-		'system-status'             => 'System Status',
-        'terms-and-conditions-page' => 'Terms And Conditions Page',
-        'thoughts-and-coffee-page'  => 'Thoughts And Coffee Page',
-        'tpm-today-page'            => 'Tpm Today Page',
-        'watch'                     => 'Watch Page',
-        'wisc-page'                 => 'WISC Page'
-    ]; 
-
-    foreach ($pages as $slug => $title) { 
-        acf_add_options_sub_page([ 
-            'page_title'  => $title,             
-            'menu_title'  => $title,             
-            'menu_slug'   => $slug,
-            'parent_slug' => 'site-pages', 
-            'post_id'     => str_replace('-', '_', $slug),
-        ]); 
-    } 
-});
+Could you please help initiate a request to increase the YouTube Data API daily quota for this project so the integration can continue to function smoothly?
