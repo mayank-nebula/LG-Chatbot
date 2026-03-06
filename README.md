@@ -2,6 +2,27 @@ const data: any = await safeFetchJSON(url.toString(), {
     next: { revalidate: 3600 },
   });
 
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout = 15_000,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Request timed out after ${timeout} ms: ${url}`));
+    }, timeout);
+
+    fetch(url, options)
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
 
   export async function safeFetchJSON(url: string, options: RequestInit = {}) {
   const res = await fetchWithTimeout(url, {
