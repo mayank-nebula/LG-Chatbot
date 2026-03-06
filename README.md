@@ -1,111 +1,76 @@
-import { MetadataRoute } from "next";
-import { query } from "@/lib/db";
-import { env } from "@/lib/env";
-import postsData from "@/data/wisc_blog.json";
+add_action('rest_api_init', function () {
 
-// ----------------------------------------------------------------------
-// FIX: Revalidate the sitemap every 1 hour (3600 seconds)
-// This ensures Next.js fetches fresh data from your DB in production
-// ----------------------------------------------------------------------
-export const revalidate = 3600;
+    register_rest_route('site/v1', '/options/(?P<slug>[a-zA-Z0-9_-]+)', [
+        'methods'  => 'GET',
+        'callback' => function ($data) {
 
-const BASE_URL = env.PUBLIC_SITE_URL;
-const NOW = new Date();
+            $slug    = $data['slug'];
+            $post_id = str_replace('-', '_', $slug);
+			
+            $fields = get_fields($post_id);
 
-function toUrl(path: string): string {
-  return `${BASE_URL}${path}`;
-}
+            if (!$fields) {
+                return new WP_Error(
+                    'no_options_found',
+                    'No options found for this slug',
+                    ['status' => 404]
+                );
+            }
+        
+            return $fields;
+        },
+        'permission_callback' => '__return_true'
+    ]);
 
-function toDate(date?: string | null): Date {
-  if (!date) return NOW;
-  const parsed = new Date(date);
-  return isNaN(parsed.getTime()) ? NOW : parsed;
-}
+});
 
-async function getPodcastsSlugs(): Promise<{ slug: string; date: string }[]> {
-  try {
-    // Fixed template literal syntax here
-    const sql = `SELECT slug, date FROM episodes_data ORDER BY date DESC`;
-    const rows = await query<{ slug: string; date: string }>(sql, []);
-    return rows;
-  } catch (err) {
-    console.error("[sitemap] Failed to fetch podcast slugs:", err);
-    return [];
-  }
-}
 
-async function getNewsSlugs(): Promise<{ slug: string; date: string }[]> {
-  try {
-    // Fixed template literal syntax here
-    const sql = `SELECT slug, date FROM articles_data ORDER BY date DESC`;
-    const rows = await query<{ slug: string; date: string }>(sql, []);
-    return rows;
-  } catch (err) {
-    console.error("[sitemap] Failed to fetch news slugs:", err);
-    return [];
-  }
-}
+add_action('acf/init', function() { 
+    // Parent Page (Appears After ACF) 
+    acf_add_options_page([ 
+        'page_title' => 'Site Pages', 
+        'menu_title' => 'Site Pages', 
+        'menu_slug'  => 'site-pages', 
+        'redirect'   => false, 
+        'position'   => 81, 
+        'icon_url'   => 'dashicons-admin-generic', 
+    ]); 
 
-const STATIC_ROUTES: {
-  path: string;
-  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
-  priority: number;
-}[] = [
-  { path: "/", changeFrequency: "weekly", priority: 1.0 },
-  { path: "/supply-chain-hub", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/supply-chain-hub/pr-news", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/supply-chain-hub/linkedin-updates", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/supply-chain-hub/women-in-supply-chain", changeFrequency: "never", priority: 0.8 },
-  { path: "/community", changeFrequency: "never", priority: 0.8 },
-  { path: "/podcasts", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/events", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/about-us", changeFrequency: "never", priority: 0.5 },
-  { path: "/watch", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/watch/tpm-today", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/work-with-us", changeFrequency: "never", priority: 0.5 },
-  { path: "/impact", changeFrequency: "weekly", priority: 0.5 },
-  { path: "/terms-and-conditions", changeFrequency: "never", priority: 0.5 },
-  { path: "/privacy-policy", changeFrequency: "never", priority: 0.5 },
-  { path: "/watch/thoughts-and-coffee", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/watch/performance-paradox", changeFrequency: "weekly", priority: 0.8 },
-];
+    // Child Pages Under Parent (Sorted Alphabetically)
+    $pages = [ 
+        'about-us-page'             => 'About Us Page',
+        'community-page'            => 'Community Page',
+        'compliance-statement-page' => 'Compliance Statement Page',
+        'events-page'               => 'Events Page',
+        'faq-page'                  => 'FAQ',
+        'footer'                    => 'Footer',
+        'gemini-chatbot'            => 'Gemini Chatbot',
+        'get-featured-page'         => 'Get Featured Page',
+        'header'                    => 'Header',
+        'home-page'                 => 'Home Page',
+        'impact-page'               => 'Impact Page',
+        'linkedin'                  => 'LinkedIn Page',
+        'partner-with-us'           => 'Partner With Us',
+        'performance-paradox-page'  => 'Performance Paradox Page',
+        'podcasts-page'             => 'Podcasts Page',
+        'pr-news'                   => 'PR News Page',
+        'privacy-policy-page'       => 'Privacy Policy Page',
+        'supply-chain-hub-page'     => 'Supply Chain Hub Page',
+		'system-status'             => 'System Status',
+        'terms-and-conditions-page' => 'Terms And Conditions Page',
+        'thoughts-and-coffee-page'  => 'Thoughts And Coffee Page',
+        'tpm-today-page'            => 'Tpm Today Page',
+        'watch'                     => 'Watch Page',
+        'wisc-page'                 => 'WISC Page'
+    ]; 
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [podcasts, news] = await Promise.all([
-    getPodcastsSlugs(),
-    getNewsSlugs(),
-  ]);
-
-  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map(
-    ({ path, changeFrequency, priority }) => ({
-      url: toUrl(path),
-      lastModified: NOW,
-      changeFrequency,
-      priority,
-    })
-  );
-
-  const wiscEntries: MetadataRoute.Sitemap = postsData.map((item) => ({
-    // Added a slash before the slug to prevent malformed URLs
-    url: toUrl(`/supply-chain-hub/women-in-supply-chain/${item.slug.replace(/^\//, '')}`),
-    lastModified: toDate(item.date),
-    changeFrequency: "never",
-    priority: 0.9,
-  }));
-
-  const podcastEntries: MetadataRoute.Sitemap = podcasts.map((item) => ({
-    url: toUrl(`/podcasts/${item.slug.replace(/^\//, '')}`),
-    lastModified: toDate(item.date),
-    changeFrequency: "monthly",
-    priority: 0.9,
-  }));
-
-  const newsEntries: MetadataRoute.Sitemap = news.map((item) => ({
-    url: toUrl(`/supply-chain-hub/pr-news/${item.slug.replace(/^\//, '')}`),
-    lastModified: toDate(item.date),
-    changeFrequency: "monthly",
-    priority: 0.9,
-  }));
-
-  return [...staticEntries, ...wiscEntries, ...podcastEntries, ...newsEntries];
-}
+    foreach ($pages as $slug => $title) { 
+        acf_add_options_sub_page([ 
+            'page_title'  => $title,             
+            'menu_title'  => $title,             
+            'menu_slug'   => $slug,
+            'parent_slug' => 'site-pages', 
+            'post_id'     => str_replace('-', '_', $slug),
+        ]); 
+    } 
+});
