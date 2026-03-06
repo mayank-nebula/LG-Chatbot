@@ -1,17 +1,18 @@
+import { unstable_cache } from "next/cache";
 import { env } from "@/lib/env";
 import { safeFetchJSON } from "@/lib/fetch";
+
 import type {
   PlaylistResponse,
   LiveDetailsMap,
   LiveEventResponse,
 } from "@/types/youtube";
 
+const REVALIDATE = 3600;
+
 export const PLAYLIST_MAP: Record<string, string> = {
   "tpm-today": "PLFKDRuq7tnIpkl7eUKgCbdvpX7dCpAdRN",
   "performance-paradox": "PLFKDRuq7tnIpnPt44AVdo0QnqlCoEDfTy",
-  // frostbytes: "PLFKDRuq7tnIrjZiJ9LgCW7Yh9FL7Jr4Tg",
-  // "on-the-margins": "PLFKDRuq7tnIoQ_2Sv9fecaCPA-FeMOdf8",
-  // "supply-chain-unfiltered": "PLFKDRuq7tnIreQYw1tbkiv0CGKoAdWb9p",
   "thoughts-and-coffee": "PLFKDRuq7tnIphnKPW1IAivCVG92M0v6fE",
 };
 
@@ -19,13 +20,17 @@ export function resolvePlaylist(keyword: string): string | null {
   return PLAYLIST_MAP[keyword] ?? null;
 }
 
-export async function fetchPlaylistVideos(
+/* ------------------------------------------------ */
+/* PLAYLIST VIDEOS */
+/* ------------------------------------------------ */
+
+const _fetchPlaylistVideos = async (
   playlistId: string,
   pageToken?: string,
   limit = 9,
-): Promise<PlaylistResponse> {
-  // throw new Error("API Connection Failed");
+): Promise<PlaylistResponse> => {
   const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
+
   url.searchParams.set("part", "snippet");
   url.searchParams.set("maxResults", String(limit));
   url.searchParams.set("playlistId", playlistId);
@@ -33,9 +38,7 @@ export async function fetchPlaylistVideos(
 
   if (pageToken) url.searchParams.set("pageToken", pageToken);
 
-  const data: any = await safeFetchJSON(url.toString(), {
-    next: { revalidate: 3600 },
-  });
+  const data: any = await safeFetchJSON(url.toString());
 
   return {
     items: (data.items ?? []).map((item: any) => ({
@@ -44,16 +47,33 @@ export async function fetchPlaylistVideos(
       publishedAt: item.snippet.publishedAt ?? "",
       thumbnail: item.snippet.thumbnails?.medium?.url ?? null,
     })),
-    playlistThumbnail: data.items[0]?.snippet?.thumbnails?.high?.url,
+    playlistThumbnail: data.items?.[0]?.snippet?.thumbnails?.high?.url,
     nextPageToken: data.nextPageToken ?? null,
   };
-}
+};
 
-export async function fetchCompletedEvents(
+export async function fetchPlaylistVideos(
+  playlistId: string,
   pageToken?: string,
   limit = 9,
-): Promise<PlaylistResponse> {
+) {
+  return unstable_cache(
+    () => _fetchPlaylistVideos(playlistId, pageToken, limit),
+    ["yt-playlist", playlistId, pageToken ?? "", String(limit)],
+    { revalidate: REVALIDATE },
+  )();
+}
+
+/* ------------------------------------------------ */
+/* COMPLETED EVENTS */
+/* ------------------------------------------------ */
+
+const _fetchCompletedEvents = async (
+  pageToken?: string,
+  limit = 9,
+): Promise<PlaylistResponse> => {
   const url = new URL("https://www.googleapis.com/youtube/v3/search");
+
   url.searchParams.set("part", "snippet");
   url.searchParams.set("channelId", env.YOUTUBE_CHANNEL_ID);
   url.searchParams.set("type", "video");
@@ -64,9 +84,7 @@ export async function fetchCompletedEvents(
 
   if (pageToken) url.searchParams.set("pageToken", pageToken);
 
-  const data: any = await safeFetchJSON(url.toString(), {
-    next: { revalidate: 3600 },
-  });
+  const data: any = await safeFetchJSON(url.toString());
 
   return {
     items: (data.items ?? []).map((item: any) => ({
@@ -78,18 +96,29 @@ export async function fetchCompletedEvents(
     playlistThumbnail: null,
     nextPageToken: data.nextPageToken ?? null,
   };
+};
+
+export async function fetchCompletedEvents(pageToken?: string, limit = 9) {
+  return unstable_cache(
+    () => _fetchCompletedEvents(pageToken, limit),
+    ["yt-completed", pageToken ?? "", String(limit)],
+    { revalidate: REVALIDATE },
+  )();
 }
 
-async function ytRequestEvents(
+/* ------------------------------------------------ */
+/* GENERIC YOUTUBE EVENT REQUEST */
+/* ------------------------------------------------ */
+
+const _ytRequestEvents = async (
   endpoint: string,
   params: Record<string, string>,
-) {
+): Promise<LiveEventResponse> => {
   const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
+
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
-  const data: any = await safeFetchJSON(url.toString(), {
-    next: { revalidate: 3600 },
-  });
+  const data: any = await safeFetchJSON(url.toString());
 
   return {
     items: (data.items ?? []).map((item: any) => ({
@@ -97,52 +126,85 @@ async function ytRequestEvents(
       title: item.snippet?.title ?? "",
       thumbnail: item.snippet?.thumbnails?.medium?.url ?? null,
     })),
-  } as LiveEventResponse;
+  };
+};
+
+async function ytRequestEvents(
+  endpoint: string,
+  params: Record<string, string>,
+) {
+  const cacheKey = [
+    "yt-events",
+    endpoint,
+    ...Object.values(params),
+  ];
+
+  return unstable_cache(
+    () => _ytRequestEvents(endpoint, params),
+    cacheKey,
+    { revalidate: REVALIDATE },
+  )();
 }
 
-export async function fetchLiveDetails(
+/* ------------------------------------------------ */
+/* LIVE DETAILS */
+/* ------------------------------------------------ */
+
+const _fetchLiveDetails = async (
   videoIds: string[],
-): Promise<LiveDetailsMap> {
+): Promise<LiveDetailsMap> => {
   if (!videoIds || videoIds.length === 0) return {};
 
   const url = new URL("https://www.googleapis.com/youtube/v3/videos");
+
   url.searchParams.set("part", "liveStreamingDetails");
   url.searchParams.set("id", videoIds.join(","));
   url.searchParams.set("key", env.YOUTUBE_API_KEY);
 
-  const data: any = await safeFetchJSON(url.toString(), {
-    next: { revalidate: 3600 },
-  });
+  const data: any = await safeFetchJSON(url.toString());
 
   const result: LiveDetailsMap = {};
+
   for (const item of data.items ?? []) {
     result[item.id] = {
-      scheduledStartTime: item.liveStreamingDetails?.scheduledStartTime ?? null,
-      actualStartTime: item.liveStreamingDetails?.actualStartTime ?? null,
+      scheduledStartTime:
+        item.liveStreamingDetails?.scheduledStartTime ?? null,
+      actualStartTime:
+        item.liveStreamingDetails?.actualStartTime ?? null,
     };
   }
+
   return result;
+};
+
+export async function fetchLiveDetails(videoIds: string[]) {
+  return unstable_cache(
+    () => _fetchLiveDetails(videoIds),
+    ["yt-live-details", ...videoIds],
+    { revalidate: REVALIDATE },
+  )();
 }
 
-// Add this to lib/youtube.ts
-export async function fetchAllRecentVideos(
+/* ------------------------------------------------ */
+/* ALL RECENT VIDEOS */
+/* ------------------------------------------------ */
+
+const _fetchAllRecentVideos = async (
   pageToken?: string,
   limit = 9,
-): Promise<PlaylistResponse> {
-  // throw new Error("API Connection Failed");
+): Promise<PlaylistResponse> => {
   const url = new URL("https://www.googleapis.com/youtube/v3/search");
+
   url.searchParams.set("part", "snippet");
   url.searchParams.set("channelId", env.YOUTUBE_CHANNEL_ID);
   url.searchParams.set("maxResults", String(limit));
-  url.searchParams.set("order", "date"); // This ensures we get the latest uploads
+  url.searchParams.set("order", "date");
   url.searchParams.set("type", "video");
   url.searchParams.set("key", env.YOUTUBE_API_KEY);
 
   if (pageToken) url.searchParams.set("pageToken", pageToken);
 
-  const data: any = await safeFetchJSON(url.toString(), {
-    next: { revalidate: 3600 },
-  });
+  const data: any = await safeFetchJSON(url.toString());
 
   return {
     items: (data.items ?? []).map((item: any) => ({
@@ -154,7 +216,19 @@ export async function fetchAllRecentVideos(
     playlistThumbnail: null,
     nextPageToken: data.nextPageToken ?? null,
   };
+};
+
+export async function fetchAllRecentVideos(pageToken?: string, limit = 9) {
+  return unstable_cache(
+    () => _fetchAllRecentVideos(pageToken, limit),
+    ["yt-recent", pageToken ?? "", String(limit)],
+    { revalidate: REVALIDATE },
+  )();
 }
+
+/* ------------------------------------------------ */
+/* LIVE + UPCOMING */
+/* ------------------------------------------------ */
 
 export async function getUpcomingEvents() {
   return ytRequestEvents("search", {
