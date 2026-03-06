@@ -3,6 +3,12 @@ import { query } from "@/lib/db";
 import { env } from "@/lib/env";
 import postsData from "@/data/wisc_blog.json";
 
+// ----------------------------------------------------------------------
+// FIX: Revalidate the sitemap every 1 hour (3600 seconds)
+// This ensures Next.js fetches fresh data from your DB in production
+// ----------------------------------------------------------------------
+export const revalidate = 3600;
+
 const BASE_URL = env.PUBLIC_SITE_URL;
 const NOW = new Date();
 
@@ -18,17 +24,9 @@ function toDate(date?: string | null): Date {
 
 async function getPodcastsSlugs(): Promise<{ slug: string; date: string }[]> {
   try {
-    const sql = `
-      SELECT slug, date 
-      FROM episodes_data
-      ORDER BY date DESC
-    `;
-
-    const rows = await query<{
-      slug: string;
-      date: string;
-    }>(sql, []);
-
+    // Fixed template literal syntax here
+    const sql = `SELECT slug, date FROM episodes_data ORDER BY date DESC`;
+    const rows = await query<{ slug: string; date: string }>(sql, []);
     return rows;
   } catch (err) {
     console.error("[sitemap] Failed to fetch podcast slugs:", err);
@@ -38,17 +36,9 @@ async function getPodcastsSlugs(): Promise<{ slug: string; date: string }[]> {
 
 async function getNewsSlugs(): Promise<{ slug: string; date: string }[]> {
   try {
-    const sql = `
-      SELECT slug, date 
-      FROM articles_data
-      ORDER BY date DESC
-    `;
-
-    const rows = await query<{
-      slug: string;
-      date: string;
-    }>(sql, []);
-
+    // Fixed template literal syntax here
+    const sql = `SELECT slug, date FROM articles_data ORDER BY date DESC`;
+    const rows = await query<{ slug: string; date: string }>(sql, []);
     return rows;
   } catch (err) {
     console.error("[sitemap] Failed to fetch news slugs:", err);
@@ -63,21 +53,9 @@ const STATIC_ROUTES: {
 }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1.0 },
   { path: "/supply-chain-hub", changeFrequency: "weekly", priority: 0.9 },
-  {
-    path: "/supply-chain-hub/pr-news",
-    changeFrequency: "monthly",
-    priority: 0.8,
-  },
-  {
-    path: "/supply-chain-hub/linkedin-updates",
-    changeFrequency: "weekly",
-    priority: 0.8,
-  },
-  {
-    path: "/supply-chain-hub/women-in-supply-chain",
-    changeFrequency: "never",
-    priority: 0.8,
-  },
+  { path: "/supply-chain-hub/pr-news", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/supply-chain-hub/linkedin-updates", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/supply-chain-hub/women-in-supply-chain", changeFrequency: "never", priority: 0.8 },
   { path: "/community", changeFrequency: "never", priority: 0.8 },
   { path: "/podcasts", changeFrequency: "weekly", priority: 0.9 },
   { path: "/events", changeFrequency: "weekly", priority: 0.9 },
@@ -88,16 +66,8 @@ const STATIC_ROUTES: {
   { path: "/impact", changeFrequency: "weekly", priority: 0.5 },
   { path: "/terms-and-conditions", changeFrequency: "never", priority: 0.5 },
   { path: "/privacy-policy", changeFrequency: "never", priority: 0.5 },
-  {
-    path: "/watch/thoughts-and-coffee",
-    changeFrequency: "weekly",
-    priority: 0.8,
-  },
-  {
-    path: "/watch/performance-paradox",
-    changeFrequency: "weekly",
-    priority: 0.8,
-  },
+  { path: "/watch/thoughts-and-coffee", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/watch/performance-paradox", changeFrequency: "weekly", priority: 0.8 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -112,25 +82,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: NOW,
       changeFrequency,
       priority,
-    }),
+    })
   );
 
   const wiscEntries: MetadataRoute.Sitemap = postsData.map((item) => ({
-    url: toUrl(`/supply-chain-hub/women-in-supply-chain${item.slug}`),
+    // Added a slash before the slug to prevent malformed URLs
+    url: toUrl(`/supply-chain-hub/women-in-supply-chain/${item.slug.replace(/^\//, '')}`),
     lastModified: toDate(item.date),
     changeFrequency: "never",
     priority: 0.9,
   }));
 
   const podcastEntries: MetadataRoute.Sitemap = podcasts.map((item) => ({
-    url: toUrl(`/podcasts/${item.slug}`),
+    url: toUrl(`/podcasts/${item.slug.replace(/^\//, '')}`),
     lastModified: toDate(item.date),
     changeFrequency: "monthly",
     priority: 0.9,
   }));
 
   const newsEntries: MetadataRoute.Sitemap = news.map((item) => ({
-    url: toUrl(`/supply-chain-hub/pr-news/${item.slug}`),
+    url: toUrl(`/supply-chain-hub/pr-news/${item.slug.replace(/^\//, '')}`),
     lastModified: toDate(item.date),
     changeFrequency: "monthly",
     priority: 0.9,
