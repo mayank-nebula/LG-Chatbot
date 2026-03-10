@@ -1,27 +1,129 @@
-steps:
-  # Step 1: Build the Docker image
-  - name: "gcr.io/cloud-builders/docker"
-    id: Build frontend image
-    args:
-      - "build"
-      - "--build-arg"
-      - "NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM=${_NEXT_PUBLIC_FILLOUT_SUBSCRIBER_FORM}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM=${_NEXT_PUBLIC_FILLOUT_WORK_WITH_US_FORM}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_FILLOUT_SSSC_FORM=${_NEXT_PUBLIC_FILLOUT_SSSC_FORM}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID=${_NEXT_PUBLIC_ELFSIGHT_LINKEDIN_ID}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_SITE_URL=${_NEXT_PUBLIC_SITE_URL}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_COOKIE_YES_ID=${_NEXT_PUBLIC_COOKIE_YES_ID}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_GTM_ID=${_NEXT_PUBLIC_GTM_ID}"
-      - "-t"
-      - "us-central1-docker.pkg.dev/$PROJECT_ID/next-app-repo/letstalksupplychain:$COMMIT_SHA"
-      - "-t"
-      - "us-central1-docker.pkg.dev/$PROJECT_ID/next-app-repo/letstalksupplychain:latest"
-      - "."
-   
-[Warning] One or more build-args [NEXT_PUBLIC_COOKIE_YES_ID NEXT_PUBLIC_FILLOUT_SSSC_FORM NEXT_PUBLIC_GTM_ID NEXT_PUBLIC_SITE_URL] were not consumed
+import { MetadataRoute } from "next";
+import { query } from "@/lib/db";
+import { env } from "@/lib/env";
+import postsData from "@/data/wisc_blog.json";
+
+export const dynamic = "force-dynamic";
+
+const BASE_URL = env.PUBLIC_SITE_URL;
+const NOW = new Date();
+
+function toUrl(path: string): string {
+  return `${BASE_URL}${path}`;
+}
+
+function toDate(date?: string | null): Date {
+  if (!date) return NOW;
+  const parsed = new Date(date);
+  return isNaN(parsed.getTime()) ? NOW : parsed;
+}
+
+async function getPodcastsSlugs(): Promise<{ slug: string; date: string }[]> {
+  try {
+    // Fixed template literal syntax here
+    const sql = `SELECT slug, date FROM episodes_data ORDER BY date DESC`;
+    const rows = await query<{ slug: string; date: string }>(sql, []);
+    return rows;
+  } catch (err) {
+    console.error("[sitemap] Failed to fetch podcast slugs:", err);
+    return [];
+  }
+}
+
+async function getNewsSlugs(): Promise<{ slug: string; date: string }[]> {
+  try {
+    // Fixed template literal syntax here
+    const sql = `SELECT slug, date FROM articles_data ORDER BY date DESC`;
+    const rows = await query<{ slug: string; date: string }>(sql, []);
+    return rows;
+  } catch (err) {
+    console.error("[sitemap] Failed to fetch news slugs:", err);
+    return [];
+  }
+}
+
+const STATIC_ROUTES: {
+  path: string;
+  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
+  priority: number;
+}[] = [
+  { path: "/", changeFrequency: "weekly", priority: 1.0 },
+  { path: "/supply-chain-hub", changeFrequency: "weekly", priority: 0.9 },
+  {
+    path: "/supply-chain-hub/pr-news",
+    changeFrequency: "monthly",
+    priority: 0.8,
+  },
+  {
+    path: "/supply-chain-hub/linkedin-updates",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+  {
+    path: "/supply-chain-hub/women-in-supply-chain",
+    changeFrequency: "never",
+    priority: 0.8,
+  },
+  { path: "/community", changeFrequency: "never", priority: 0.8 },
+  { path: "/podcasts", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/events", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/about-us", changeFrequency: "never", priority: 0.5 },
+  { path: "/watch", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/watch/tpm-today", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/work-with-us", changeFrequency: "never", priority: 0.5 },
+  { path: "/impact", changeFrequency: "weekly", priority: 0.5 },
+  { path: "/terms-and-conditions", changeFrequency: "never", priority: 0.5 },
+  { path: "/privacy-policy", changeFrequency: "never", priority: 0.5 },
+  {
+    path: "/watch/thoughts-and-coffee",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+  {
+    path: "/watch/performance-paradox",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+];
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [podcasts, news] = await Promise.all([
+    getPodcastsSlugs(),
+    getNewsSlugs(),
+  ]);
+
+  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map(
+    ({ path, changeFrequency, priority }) => ({
+      url: toUrl(path),
+      lastModified: NOW,
+      changeFrequency,
+      priority,
+    }),
+  );
+
+  const wiscEntries: MetadataRoute.Sitemap = postsData.map((item) => ({
+    // Added a slash before the slug to prevent malformed URLs
+    url: toUrl(
+      `/supply-chain-hub/women-in-supply-chain/${item.slug.replace(/^\//, "")}`,
+    ),
+    lastModified: toDate(item.date),
+    changeFrequency: "never",
+    priority: 0.9,
+  }));
+
+  const podcastEntries: MetadataRoute.Sitemap = podcasts.map((item) => ({
+    url: toUrl(`/podcasts/${item.slug.replace(/^\//, "")}`),
+    lastModified: toDate(item.date),
+    changeFrequency: "monthly",
+    priority: 0.9,
+  }));
+
+  const newsEntries: MetadataRoute.Sitemap = news.map((item) => ({
+    url: toUrl(`/supply-chain-hub/pr-news/${item.slug.replace(/^\//, "")}`),
+    lastModified: toDate(item.date),
+    changeFrequency: "monthly",
+    priority: 0.9,
+  }));
+
+  return [...staticEntries, ...wiscEntries, ...podcastEntries, ...newsEntries];
+}
