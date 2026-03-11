@@ -1,1 +1,3 @@
-Hey Soniya, this will take upto 2 days to complete as this is sensitive content. To implement this we need to see what their current flow is before implementing. I can see it is password protected but "gated download" version is not clear to me.
+Hi Soniya, this task may take up to 2 days to complete since it involves handling sensitive content.
+
+Before implementation, we need to confirm the exact flow with the client. I can see the page is password protected, but the “gated download” requirement is not completely clear yet, so we’ll need clarification on how that should work before proceeding.
