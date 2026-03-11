@@ -1,30 +1,31 @@
 import { NextResponse } from 'next/server';
 
-// Helper function to extract YouTube ID from any YouTube URL format
-function getYouTubeId(url: string): string | null {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\n]+)/);
-  return match ? match[1] : null;
-}
-
 export async function GET() {
   // 1. Fetch your data from your Headless WordPress API here.
-  // This is mock data simulating what your API returns.
   const videos = [
     {
       pageUrl: 'https://letstalksupplychain.com/podcasts/episode-529',
       title: 'Episode 529: Empower the People Who Power the World',
       description: 'A great discussion about supply chain and technology.',
       uploadDate: '2023-10-25T12:00:00+00:00',
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // YouTube link
-      featuredMediaUrl: 'https://letstalksupplychain.com/wp-content/uploads/2023/10/ep529.jpg', // WP Image (ignored for YT)
+      
+      // --- YOUTUBE SPECIFIC ---
+      youtubeId: 'dQw4w9WgXcQ', // Just the ID!
+      mp4Url: null, 
+      
+      featuredMediaUrl: 'https://letstalksupplychain.com/wp-content/uploads/2023/10/ep529.jpg',
     },
     {
       pageUrl: 'https://letstalksupplychain.com/podcasts/episode-530',
       title: 'Episode 530: The Future of Logistics',
       description: 'Exploring upcoming trends in global logistics.',
       uploadDate: '2023-11-01T12:00:00+00:00',
-      videoUrl: 'https://letstalksupplychain.com/wp-content/uploads/2023/11/logistics-video.mp4', // MP4 link
-      featuredMediaUrl: 'https://letstalksupplychain.com/wp-content/uploads/2023/11/ep530-featured.jpg', // WP Image (Used for MP4)
+      
+      // --- MP4 SPECIFIC ---
+      youtubeId: null, 
+      mp4Url: 'https://letstalksupplychain.com/wp-content/uploads/2023/11/logistics-video.mp4',
+      
+      featuredMediaUrl: 'https://letstalksupplychain.com/wp-content/uploads/2023/11/ep530-featured.jpg',
     },
   ];
 
@@ -34,33 +35,32 @@ export async function GET() {
           xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
     ${videos
       .map((video) => {
-        // Determine if the video is YouTube or MP4
-        const isYouTube = video.videoUrl.includes('youtube.com') || video.videoUrl.includes('youtu.be');
-        
         let thumbnailUrl = '';
         let videoLocationTag = '';
 
-        if (isYouTube) {
-          // --- YOUTUBE LOGIC ---
-          const ytId = getYouTubeId(video.videoUrl);
+        // Check if we have a YouTube ID
+        if (video.youtubeId) {
           
-          // 1. Use Auto-generated YouTube thumbnail
-          thumbnailUrl = ytId 
-            ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` 
-            : video.featuredMediaUrl; // fallback just in case
-            
-          // 2. Use player_loc with the proper embed URL
-          videoLocationTag = ytId 
-            ? `<video:player_loc>https://www.youtube.com/embed/${ytId}</video:player_loc>`
-            : `<video:player_loc><![CDATA[${video.videoUrl}]]></video:player_loc>`;
-            
-        } else {
-          // --- MP4 / SELF-HOSTED LOGIC ---
-          // 1. Use WordPress featured media for thumbnail
+          // 1. Automatically generate the YouTube thumbnail using the ID
+          thumbnailUrl = `https://img.youtube.com/vi/${video.youtubeId}/maxresdefault.jpg`;
+          
+          // 2. Create the proper YouTube embed URL for Google
+          videoLocationTag = `<video:player_loc>https://www.youtube.com/embed/${video.youtubeId}</video:player_loc>`;
+          
+        } 
+        // Otherwise, check if we have an MP4 URL
+        else if (video.mp4Url) {
+          
+          // 1. Use the WordPress Featured Image
           thumbnailUrl = video.featuredMediaUrl || '';
           
-          // 2. Use content_loc for direct mp4 files
-          videoLocationTag = `<video:content_loc><![CDATA[${video.videoUrl}]]></video:content_loc>`;
+          // 2. Provide the direct link to the MP4 file
+          videoLocationTag = `<video:content_loc><![CDATA[${video.mp4Url}]]></video:content_loc>`;
+          
+        } 
+        // If neither exists, skip this entry
+        else {
+          return '';
         }
 
         // Return the XML block for this specific video
@@ -83,7 +83,6 @@ export async function GET() {
   return new NextResponse(xml, {
     headers: {
       'Content-Type': 'text/xml',
-      // Optional: Add caching to prevent your DB from being hit every time Google crawls
       'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate',
     },
   });
