@@ -1,1 +1,1 @@
-When users submit their email before accessing the media kit, where should this data be sent? Should it be stored in WordPress, or do we need to send it to a specific CRM (e.g., HubSpot, Salesforce, etc.) via an API/webhook?
+Endpoint, JSON sample data to be sent, Authentication token if applicable 
