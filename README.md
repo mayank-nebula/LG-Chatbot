@@ -1,9 +1,1 @@
-const seen = new Map<string, Video>();
-    for (const video of results) {
-      const slug = video.pageUrl.split("/").pop() ?? video.pageUrl;
-      if (!seen.has(slug)) {
-        seen.set(slug, video);
-      }
-    }
-
-    return Array.from(seen.values());
+When users submit their email before accessing the media kit, where should this data be sent? Should it be stored in WordPress, or do we need to send it to a specific CRM (e.g., HubSpot, Salesforce, etc.) via an API/webhook?
