@@ -1,10 +1,13 @@
 export function proxy(req: NextRequest) {
-  let pathname = req.nextUrl.pathname;
+  const originalPathname = req.nextUrl.pathname;
+  let pathname = originalPathname;
 
-  if (pathname.startsWith("/old-backup")) {
-    pathname = pathname.replace("/old-backup", "");
+  // 1. Strip out /old-backup
+  if (pathname === "/old-backup" || pathname.startsWith("/old-backup/")) {
+    pathname = pathname.replace("/old-backup", "") || "/";
   }
 
+  // 2. Check urlMap
   if (urlMap[pathname]) {
     const destination = urlMap[pathname];
     const redirectUrl = new URL(destination, req.url);
@@ -20,16 +23,26 @@ export function proxy(req: NextRequest) {
       return NextResponse.redirect(redirectUrl, { status: 302 });
     }
 
-    return NextResponse.redirect(redirectUrl, {
-      status: 301,
-    });
+    return NextResponse.redirect(redirectUrl, { status: 301 });
   }
 
+  // 3. Set up the base response
+  // If the pathname was modified (meaning it had /old-backup), we redirect to the new valid endpoint.
+  // Otherwise, we let Next.js continue normally.
+  let response;
+  if (originalPathname !== pathname) {
+    const newUrl = req.nextUrl.clone();
+    newUrl.pathname = pathname;
+    response = NextResponse.redirect(newUrl, { status: 301 }); // Changes browser URL to /hello
+  } else {
+    response = NextResponse.next();
+  }
+
+  // 4. Handle Cookies (attaches to either the redirect response or the next() response)
   const sessionId = req.cookies.get(COOKIE_NAME)?.value;
 
   if (!sessionId) {
     const id = genUuid();
-    const response = NextResponse.next();
     response.cookies.set({
       name: COOKIE_NAME,
       value: id,
@@ -39,8 +52,7 @@ export function proxy(req: NextRequest) {
       path: "/",
       maxAge: THIRTY_DAYS,
     });
-    return response;
   }
 
-  return NextResponse.next();
+  return response;
 }
