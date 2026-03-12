@@ -118,7 +118,11 @@ add_action('rest_api_init', function () {
 
 
 
+import { z } from "zod";
 
+export const emailSchema = z.object({
+  email: z.string().email().toLowerCase().trim(),
+});
 
 import { NextResponse } from "next/server";
 import { emailSchema } from "@/lib/validators/email";
