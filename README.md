@@ -1,23 +1,322 @@
-Hi Mayank,
+GET - https://api.attio.com/v2/objects/people/records/7f2204b9-7559-42ef-890a-eefe0faa3b95
 
-This is our custom Doc View object, (slug, /mk_view) containing sample data sets (attached file). Customizations to the object attributes are possible if suggested or required. 
-
-You'll also need to upsert/link with the standard People object. 
-For testing (your own record IDs, so you won't interfere with other data):
-•	Person Record: Mayank is 7f2204b9-7559-42ef-890a-eefe0faa3b95
-•	Company Record: Evaluserve is 82566fc5-4a04-4cce-9484-8804ec1d2540
-I have shared the API key separately with you (Google Doc). Access will expire after tomorrow. 
-The permissions I've configured are:
-•	rw / Records
-•	r / Object Configuration
-Please confirm if additional scopes are needed.
-
-Thanks,
-
-Chris
-
-
-Record ID,Record,Created at,Created by,viewed_at,email,mk_url,ip,page_id,mk_title,view_id,user_agent,utm_source,utm_medium,utm_campaign,referer,password_ok,company,company > Record ID,person,person > Record ID,short_url,link_id,clicked_at,proposal_id,bp_id,status,created_at,opened_count,view_type,customer_journey_id,currency,proposal_url,proposal_link,contact_emails,contact_names,opened_at,sent_at,signed_at,signed_pdf_sent_at
-007cf457-b47f-4242-a963-9bc8f722eed3,007cf457-b47f-4242-a963-9bc8f722eed3,2026-02-06T16:24:17Z,,2026-02-06T16:24:12.000Z,alisha@letstalksupplychain.com,https://letstalksupplychain.com/media-kit/,24.179.22.102,,Protected: Media Kit,,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",,,,https://letstalksupplychain.com/media-kit/,TRUE,,,Alisha McNary,4cc0ea29-5c52-44e2-93d1-57939d3549e2,,,,,,,,,,,,,,,,,,,
-00bc7aff-7088-47d9-933d-218691dbe327,00bc7aff-7088-47d9-933d-218691dbe327,2025-11-26T00:30:45Z,,2025-11-26T00:30:44.000Z,email_working@everything.com,https://letstalksupplychain.com/media-kit-full/,2604:3d09:417a:9000:2d24:7428:7e53:fc4,,Protected: Media Kit,,"Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36",,,,https://letstalksupplychain.com/media-kit-full/,TRUE,,,Media Kit Visitor,dc064d92-163a-4006-a974-c552bceb48ca,,,,,,,,,,,,,,,,,,,
-024782d1-b5fb-4c54-94c7-a607d8951d2f,024782d1-b5fb-4c54-94c7-a607d8951d2f,2025-11-05T09:00:04Z,,,,,,,,,,,,,,,Let's Talk Supply Chain,ae2cf92c-e22c-5e01-a673-1a46a7ab468d,Sarah Barnes-Humphrey,1f3bbeb8-a817-53cf-9a0f-638f978ebbbe,,,,2665225,2648439,SIGNED,,0,0,68856,USD,https://betterproposals.io/2/proposals/view?id=2665225,https://betterproposals.io/proposal/cover?ProposalID=8E54De08dI2MOUwqZFWkVYqUKxl7GBhG45IWTIS-H7k&debug=yes,listener@letstalksupplychain.com,Chris Bconic,,2025-11-04T16:16:21.000Z,,
+{
+    "data": {
+        "id": {
+            "workspace_id": "e2f79257-f8f4-4a0c-af1c-82a49b8bcede",
+            "object_id": "4fe08ea1-1f6d-440d-b031-e55a74607e31",
+            "record_id": "7f2204b9-7559-42ef-890a-eefe0faa3b95"
+        },
+        "created_at": "2025-11-21T11:54:12.721000000Z",
+        "web_url": "https://app.attio.com/ltsc/person/7f2204b9-7559-42ef-890a-eefe0faa3b95",
+        "values": {
+            "record_id": [
+                {
+                    "active_from": "2025-11-21T11:54:12.752000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "value": "7f2204b9-7559-42ef-890a-eefe0faa3b95",
+                    "attribute_type": "text"
+                }
+            ],
+            "name": [
+                {
+                    "active_from": "2025-11-21T11:54:13.068000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "first_name": "Mayank",
+                    "last_name": "(XT)",
+                    "full_name": "Mayank Sharma (XT)",
+                    "attribute_type": "personal-name"
+                }
+            ],
+            "where_we_met": [],
+            "description": [],
+            "email_addresses": [
+                {
+                    "active_from": "2025-11-21T11:54:12.822000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "original_email_address": "mayank.sharma9@evalueserve.com",
+                    "email_address": "mayank.sharma9@evalueserve.com",
+                    "email_domain": "evalueserve.com",
+                    "email_root_domain": "evalueserve.com",
+                    "email_local_specifier": "mayank.sharma9",
+                    "attribute_type": "email-address"
+                }
+            ],
+            "phone_numbers": [],
+            "company": [
+                {
+                    "active_from": "2025-11-21T11:54:13.070000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "target_object": "companies",
+                    "target_record_id": "82566fc5-4a04-4cce-9484-8804ec1d2540",
+                    "attribute_type": "record-reference"
+                }
+            ],
+            "job_title": [],
+            "primary_location": [],
+            "linkedin": [],
+            "angellist": [],
+            "facebook": [],
+            "instagram": [],
+            "twitter": [],
+            "twitter_follower_count": [],
+            "lifecycle_stage": [
+                {
+                    "active_from": "2026-01-23T18:25:57.121000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "workspace-member",
+                        "id": "a79c551a-47fa-4160-b0d0-9a5574f52cc3"
+                    },
+                    "status": {
+                        "id": {
+                            "workspace_id": "e2f79257-f8f4-4a0c-af1c-82a49b8bcede",
+                            "object_id": "4fe08ea1-1f6d-440d-b031-e55a74607e31",
+                            "attribute_id": "ef5e29ba-17a9-4200-8fae-bca9aaf84c2e",
+                            "status_id": "58b6b949-fc5c-4513-99a6-f5ec10cc0cd9"
+                        },
+                        "title": "Internal",
+                        "is_archived": false,
+                        "target_time_in_status": null,
+                        "celebration_enabled": false
+                    },
+                    "attribute_type": "status"
+                }
+            ],
+            "person_type": [],
+            "associated_deals": [],
+            "engagements": [],
+            "unsubscribed": [],
+            "community_segment": [],
+            "first_calendar_interaction": [
+                {
+                    "active_from": "2026-01-19T16:07:15.359000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "interaction_type": "meeting",
+                    "interacted_at": "2026-01-19T16:00:00.000000000Z",
+                    "owner_actor": {
+                        "type": "workspace-member",
+                        "id": "43932767-1758-4ffc-8bb4-b42b4c9f5869"
+                    },
+                    "attribute_type": "interaction"
+                }
+            ],
+            "last_calendar_interaction": [
+                {
+                    "active_from": "2026-02-18T14:36:28.825000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "interaction_type": "meeting",
+                    "interacted_at": "2026-02-18T14:30:00.000000000Z",
+                    "owner_actor": {
+                        "type": "workspace-member",
+                        "id": "43932767-1758-4ffc-8bb4-b42b4c9f5869"
+                    },
+                    "attribute_type": "interaction"
+                }
+            ],
+            "next_calendar_interaction": [],
+            "first_email_interaction": [
+                {
+                    "active_from": "2025-11-21T11:54:13.716000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "interaction_type": "email",
+                    "interacted_at": "2025-11-12T21:42:10.000000000Z",
+                    "owner_actor": {
+                        "type": "workspace-member",
+                        "id": "43932767-1758-4ffc-8bb4-b42b4c9f5869"
+                    },
+                    "attribute_type": "interaction"
+                }
+            ],
+            "last_email_interaction": [
+                {
+                    "active_from": "2026-03-13T05:00:23.725000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "interaction_type": "email",
+                    "interacted_at": "2026-03-13T04:57:17.000000000Z",
+                    "owner_actor": {
+                        "type": "workspace-member",
+                        "id": "43932767-1758-4ffc-8bb4-b42b4c9f5869"
+                    },
+                    "attribute_type": "interaction"
+                }
+            ],
+            "first_interaction": [
+                {
+                    "active_from": "2025-11-21T11:54:13.716000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "interaction_type": "email",
+                    "interacted_at": "2025-11-12T21:42:10.000000000Z",
+                    "owner_actor": {
+                        "type": "workspace-member",
+                        "id": "43932767-1758-4ffc-8bb4-b42b4c9f5869"
+                    },
+                    "attribute_type": "interaction"
+                }
+            ],
+            "last_interaction": [
+                {
+                    "active_from": "2026-03-13T05:00:23.725000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "interaction_type": "email",
+                    "interacted_at": "2026-03-13T04:57:17.000000000Z",
+                    "owner_actor": {
+                        "type": "workspace-member",
+                        "id": "43932767-1758-4ffc-8bb4-b42b4c9f5869"
+                    },
+                    "attribute_type": "interaction"
+                }
+            ],
+            "next_interaction": [],
+            "strongest_connection_strength_legacy": [
+                {
+                    "active_from": "2026-03-13T05:00:23.725000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "value": 255.897697052374,
+                    "attribute_type": "number"
+                }
+            ],
+            "strongest_connection_strength": [
+                {
+                    "active_from": "2026-01-23T16:21:01.986000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "option": {
+                        "id": {
+                            "workspace_id": "e2f79257-f8f4-4a0c-af1c-82a49b8bcede",
+                            "object_id": "4fe08ea1-1f6d-440d-b031-e55a74607e31",
+                            "attribute_id": "2ef84b09-8719-4c19-a0c9-b37366638013",
+                            "option_id": "dfc001fa-6bf7-403b-8e78-c2a66aa07a08"
+                        },
+                        "title": "Very strong",
+                        "is_archived": false
+                    },
+                    "attribute_type": "select"
+                }
+            ],
+            "strongest_connection_user": [
+                {
+                    "active_from": "2025-11-21T11:54:13.716000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "referenced_actor_type": "workspace-member",
+                    "referenced_actor_id": "43932767-1758-4ffc-8bb4-b42b4c9f5869",
+                    "attribute_type": "actor-reference"
+                }
+            ],
+            "avatar_url": [],
+            "created_at": [
+                {
+                    "active_from": "2025-11-21T11:54:12.845000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "value": "2025-11-21T11:54:12.721000000Z",
+                    "attribute_type": "timestamp"
+                }
+            ],
+            "created_by": [
+                {
+                    "active_from": "2025-11-21T11:54:12.872000000Z",
+                    "active_until": null,
+                    "created_by_actor": {
+                        "type": "system",
+                        "id": null
+                    },
+                    "referenced_actor_type": "system",
+                    "referenced_actor_id": null,
+                    "attribute_type": "actor-reference"
+                }
+            ],
+            "ltsc_mc_tags_1757023357": [],
+            "mailchimp_tags_1757023357": [],
+            "mc_tags_1757023361": [],
+            "first_conversion_date": [],
+            "first_page_seen": [],
+            "city": [],
+            "state_region": [],
+            "postal_code": [],
+            "city_ip": [],
+            "country_ip": [],
+            "state_region_ip": [],
+            "seniority": [],
+            "hubspot_record_id": [],
+            "buying_role": [],
+            "do_not_contact": [],
+            "next_action_date": [],
+            "deal": [],
+            "deal_4": [],
+            "mk_view_record": [],
+            "last_viewed_at": [],
+            "mk_view_url": [],
+            "what_s_your_budget": [],
+            "what_is_your_goal_for_let_s_talk_supply_chain": [],
+            "where_did_you_hear_about_us": [],
+            "mk_tracked_link_url": [],
+            "mk_tracked_link_id": [],
+            "mk_last_click_at": [],
+            "mk_click_count": [],
+            "mk_link_status": [],
+            "proposal_url": [],
+            "proposal_link": [],
+            "bp_status": [],
+            "opened_at": [],
+            "subscription_status": [],
+            "upload_source": [],
+            "phone_ext": [],
+            "consent_given": []
+        }
+    }
+}
